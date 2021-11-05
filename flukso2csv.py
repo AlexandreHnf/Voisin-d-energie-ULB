@@ -29,7 +29,7 @@ import tmpo
 from matplotlib import pyplot
 
 
-SENSOR_FILE = "sensors3.csv"
+SENSOR_FILE = "sensors2.csv"
 OUTPUT_FILE = "output/output.csv"
 
 
@@ -63,7 +63,7 @@ def createFluksoDataframe(session, sensors, since):
     data_dfs = [session.series(id, head=since) for id in sensors.sensor_id]
     energy_df = pd.concat(data_dfs, axis=1)
     del data_dfs
-    print(len(energy_df.index))
+    print("nb index : ", len(energy_df.index))
     energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
     # energy_df.index = energy_df.index.astype('datetime64[ns]')
     energy_df.columns = sensors.index
@@ -92,7 +92,7 @@ def flukso2csv(path="", since=""):
         since = 0
     else:
         since = pd.Timestamp.now(tz="UTC") - pd.Timedelta(since)
-        print("Since : ", since)
+        print("Since : ", since, type(since))
 
     sensors = read_sensor_info(path)
     session = tmpo.Session(path)
