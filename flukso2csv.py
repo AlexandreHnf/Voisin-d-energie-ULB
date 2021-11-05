@@ -21,8 +21,17 @@ The file contains the power time series, each sensor a column.
 
 import argparse
 import os
+from datetime import timezone
+
 import pandas as pd
+from pandas import read_csv
 import tmpo
+from matplotlib import pyplot
+
+
+SENSOR_FILE = "sensors3.csv"
+OUTPUT_FILE = "output/output.csv"
+
 
 
 def get_prog_dir():
@@ -33,7 +42,7 @@ def get_prog_dir():
 
 
 def read_sensor_info(path):
-    path += "sensors.csv"
+    path += SENSOR_FILE
     sensors = pd.read_csv(path, header=0, index_col=0)
     return sensors
 
@@ -45,6 +54,36 @@ def energy2power(energy_df):
     return power_df
 
 
+def showTimeSeries(power_df):
+    series = read_csv('output3.csv', header=0, index_col=0, parse_dates=True, squeeze=True)
+    print(series.head())
+
+
+def createFluksoDataframe(session, sensors, since):
+    data_dfs = [session.series(id, head=since) for id in sensors.sensor_id]
+    energy_df = pd.concat(data_dfs, axis=1)
+    del data_dfs
+    print(len(energy_df.index))
+    energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
+    # energy_df.index = energy_df.index.astype('datetime64[ns]')
+    energy_df.columns = sensors.index
+    power_df = energy2power(energy_df)
+    del energy_df
+
+    if power_df.index.tzinfo is None or power_df.index.tzinfo.utcoffset(power_df.index) is None: # NAIVE
+        power_df.index = power_df.index.tz_localize("CET").tz_convert("CET")
+    else:
+        power_df.index = power_df.index.tz_convert("CET")
+
+    power_df.fillna(0, inplace=True)
+
+    print("nb elements : ", len(power_df.index))
+    print(power_df.head(30))
+    # showTimeSeries(power_df)
+
+    return power_df
+
+
 def flukso2csv(path="", since=""):
     if not path:
         path = get_prog_dir()
@@ -53,7 +92,7 @@ def flukso2csv(path="", since=""):
         since = 0
     else:
         since = pd.Timestamp.now(tz="UTC") - pd.Timedelta(since)
-        print(since)
+        print("Since : ", since)
 
     sensors = read_sensor_info(path)
     session = tmpo.Session(path)
@@ -61,15 +100,10 @@ def flukso2csv(path="", since=""):
         session.add(sid, tk)
 
     session.sync()
-    data_dfs = [ session.series(id, head=since) for id in sensors.sensor_id ]
-    energy_df = pd.concat(data_dfs, axis=1)
-    del data_dfs
-    energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
-    energy_df.columns = sensors.index
-    power_df = energy2power(energy_df)
-    del energy_df
-    power_df.index = power_df.index.tz_convert("CET")
-    power_df.to_csv(path + "output.csv")
+
+    power_df = createFluksoDataframe(session, sensors, since)
+
+    power_df.to_csv(path + OUTPUT_FILE)
 
 
 if __name__ == "__main__":
