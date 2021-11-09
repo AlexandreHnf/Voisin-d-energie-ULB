@@ -26,6 +26,7 @@ from datetime import timezone
 import pandas as pd
 from pandas import read_csv
 import tmpo
+import matplotlib.pyplot as plt
 from matplotlib import pyplot
 
 
@@ -50,13 +51,17 @@ def read_sensor_info(path):
 def energy2power(energy_df):
     power_df = energy_df.diff() * 1000
     power_df.fillna(0, inplace=True)
-    power_df = power_df.resample("1S").mean()
+    power_df = power_df.resample("8S").mean()
     return power_df
 
 
-def showTimeSeries(power_df):
-    series = read_csv('output3.csv', header=0, index_col=0, parse_dates=True, squeeze=True)
-    print(series.head())
+def showTimeSeries(df):
+    # plt.figure()
+    df.plot(colormap='jet', marker='.', markersize=5,
+             title='Electricity consumption over time')
+    plt.xlabel('Time')
+    plt.ylabel('Power (Watt)')
+    plt.show()
 
 
 def createSeries(session, sensors, since, hID):
@@ -76,7 +81,6 @@ def createFluksoDataframe(session, sensors, since):
     del data_dfs
     print("nb index : ", len(energy_df.index))
     energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
-    # energy_df.index = energy_df.index.astype('datetime64[ns]')
     energy_df.columns = home_sensors.index
     power_df = energy2power(energy_df)
     del energy_df
@@ -89,8 +93,7 @@ def createFluksoDataframe(session, sensors, since):
     power_df.fillna(0, inplace=True)
 
     print("nb elements : ", len(power_df.index))
-    print(power_df.head(30))
-    # showTimeSeries(power_df)
+    print(power_df.head(10))
 
     return power_df
 
@@ -113,6 +116,8 @@ def flukso2csv(path="", since=""):
     session.sync()
 
     power_df = createFluksoDataframe(session, sensors, since)
+
+    showTimeSeries(power_df)
 
     power_df.to_csv(path + OUTPUT_FILE)
 
