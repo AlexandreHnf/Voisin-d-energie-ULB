@@ -29,7 +29,7 @@ import tmpo
 from matplotlib import pyplot
 
 
-SENSOR_FILE = "sensors2.csv"
+SENSOR_FILE = "sensors/sensors.csv"
 OUTPUT_FILE = "output/output.csv"
 
 
@@ -43,7 +43,7 @@ def get_prog_dir():
 
 def read_sensor_info(path):
     path += SENSOR_FILE
-    sensors = pd.read_csv(path, header=0, index_col=0)
+    sensors = pd.read_csv(path, header=0, index_col=1)
     return sensors
 
 
@@ -59,14 +59,25 @@ def showTimeSeries(power_df):
     print(series.head())
 
 
+def createSeries(session, sensors, since, hID):
+    data_dfs = []
+    home_sensors = sensors.loc[sensors["home_ID"] == hID]
+    print(home_sensors)
+    for id in home_sensors.sensor_id:
+        data_dfs.append(session.series(id, head=since))
+
+    return data_dfs, home_sensors
+
+
 def createFluksoDataframe(session, sensors, since):
-    data_dfs = [session.series(id, head=since) for id in sensors.sensor_id]
+    # data_dfs = [session.series(id, head=since) for id in sensors.sensor_id]
+    data_dfs, home_sensors = createSeries(session, sensors, since, 1)
     energy_df = pd.concat(data_dfs, axis=1)
     del data_dfs
     print("nb index : ", len(energy_df.index))
     energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
     # energy_df.index = energy_df.index.astype('datetime64[ns]')
-    energy_df.columns = sensors.index
+    energy_df.columns = home_sensors.index
     power_df = energy2power(energy_df)
     del energy_df
 
@@ -96,7 +107,7 @@ def flukso2csv(path="", since=""):
 
     sensors = read_sensor_info(path)
     session = tmpo.Session(path)
-    for sid, tk in sensors.values:
+    for hid, sid, tk, st in sensors.values:
         session.add(sid, tk)
 
     session.sync()
