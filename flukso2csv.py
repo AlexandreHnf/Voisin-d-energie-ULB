@@ -45,30 +45,46 @@ def get_prog_dir():
 
 
 def read_sensor_info(path):
+    """
+    read csv file of sensors data
+    """
     path += SENSOR_FILE
     sensors = pd.read_csv(path, header=0, index_col=1)
     return sensors
 
 
 def energy2power(energy_df):
+    """
+    from cumulative energy to power (Watt)
+    """
     power_df = energy_df.diff() * 1000
     power_df.fillna(0, inplace=True)
     power_df = power_df.resample("8S").mean()
     return power_df
 
 
-def showTimeSeries(df):
+def showTimeSeries(df, since, home_ID):
+    """
+    show time series : x = time, y = power (Watt)
+    """
     if len(df.index) == 0:
         plt.figure()
     else:
-        df.plot(colormap='jet', marker='.', markersize=5,
-                 title='Electricity consumption over time')
+        df.plot(colormap='jet',
+                marker='.',
+                markersize=5,
+                title='Electricity consumption over time - home {0} - since {1}'.format(home_ID, since))
+
         plt.xlabel('Time')
         plt.ylabel('Power (Watt)')
         # plt.show()
 
 
+
 def createSeries(session, sensors, since, hID):
+    """
+    create a list of time series from the sensors data
+    """
     data_dfs = []
     home_sensors = sensors.loc[sensors["home_ID"] == hID]
     print(home_sensors)
@@ -81,7 +97,10 @@ def createSeries(session, sensors, since, hID):
 
 
 def createFluksoDataframe(session, sensors, since, home_ID):
-    # data_dfs = [session.series(id, head=since) for id in sensors.sensor_id]
+    """
+    create a dataframe where the colums are the phases of the flukso and the rows are the
+    data : 1 row = 1 timestamp = 1 power value
+    """
     data_dfs, home_sensors = createSeries(session, sensors, since, home_ID)
     energy_df = pd.concat(data_dfs, axis=1)
     del data_dfs
@@ -91,6 +110,7 @@ def createFluksoDataframe(session, sensors, since, home_ID):
     power_df = energy2power(energy_df)
     del energy_df
 
+    # set timestamps to local timezone
     if power_df.index.tzinfo is None or power_df.index.tzinfo.utcoffset(power_df.index) is None: # NAIVE
         power_df.index = power_df.index.tz_localize("CET").tz_convert("CET")
     else:
@@ -104,15 +124,28 @@ def createFluksoDataframe(session, sensors, since, home_ID):
     return power_df
 
 
+def getTiming(since):
+    """
+    get the timestamp of the "since"
+    ex : the timestamp 20 min ago
+    """
+    if not since:
+        since_timing = 0
+    else:
+        since_timing = pd.Timestamp.now(tz="UTC") - pd.Timedelta(since)
+        print("Since : ", since_timing, type(since_timing))
+
+    return since_timing
+
+
 def flukso2csv(path="", since=""):
+    """
+
+    """
     if not path:
         path = get_prog_dir()
 
-    if not since:
-        since = 0
-    else:
-        since = pd.Timestamp.now(tz="UTC") - pd.Timedelta(since)
-        print("Since : ", since, type(since))
+    since_timing = getTiming(since)
 
     sensors = read_sensor_info(path)
     session = tmpo.Session(path)
@@ -123,11 +156,11 @@ def flukso2csv(path="", since=""):
 
     print(set(sensors["home_ID"]))
     for i in range(len(set(sensors["home_ID"]))):
-        power_df = createFluksoDataframe(session, sensors, since, i+1)
+        power_df = createFluksoDataframe(session, sensors, since_timing, i+1)
 
-        showTimeSeries(power_df)
+        showTimeSeries(power_df, since, i+1)
 
-        power_df.to_csv(path + OUTPUT_FILE)
+        # power_df.to_csv(path + OUTPUT_FILE)
 
     plt.show()
 
