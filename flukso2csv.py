@@ -29,6 +29,7 @@ import os
 import pandas as pd
 from pandas import read_csv
 import tmpo
+from datetime import datetime
 import matplotlib.pyplot as plt
 
 
@@ -67,51 +68,65 @@ def showTimeSeries(df, since, home_ID):
     """
     show time series : x = time, y = power (Watt)
     """
-    if len(df.index) == 0:
-        plt.figure()
-    else:
-        df.plot(colormap='jet',
-                marker='.',
-                markersize=5,
-                title='Electricity consumption over time - home {0} - since {1}'.format(home_ID, since))
+    # if len(df.index) == 0:
+    #     plt.figure()
+    # else:
+    df.plot(colormap='jet',
+            marker='.',
+            markersize=5,
+            title='Electricity consumption over time - home {0} - since {1}'.format(home_ID, since))
 
-        plt.xlabel('Time')
-        plt.ylabel('Power (Watt)')
-        # plt.show()
+    plt.xlabel('Time')
+    plt.ylabel('Power (Watt)')
+    # plt.show()
+
+
+def getZeroSeries(since, since_timing):
+    frequency = 8  # seconds
+    period = pd.Timedelta(since).total_seconds() / frequency
+    zeros = pd.date_range(since_timing, periods=period, freq=str(frequency) + "S")
+    # print("datetime range : ", zeros)
+    zeros_series = pd.Series(int(period) * [0], zeros)
+    # print("zeros series :", zeros_series)
+
+    return zeros_series
 
 
 
-def createSeries(session, sensors, since, hID):
+def createSeries(session, sensors, since, since_timing, hID):
     """
     create a list of time series from the sensors data
     """
     data_dfs = []
     home_sensors = sensors.loc[sensors["home_ID"] == hID]
-    print(home_sensors)
+    # print(home_sensors)
     for id in home_sensors.sensor_id:
-        dff = session.series(id, head=since)
-        print(type(dff))
-        data_dfs.append(session.series(id, head=since))
+        dff = session.series(id, head=since_timing)
+        if len(dff.index) == 0:
+            dff = getZeroSeries(since, since_timing)
+        print("type of series : ", type(dff))
+        data_dfs.append(dff)
 
     return data_dfs, home_sensors
 
 
-def createFluksoDataframe(session, sensors, since, home_ID):
+def createFluksoDataframe(session, sensors, since, since_timing, home_ID):
     """
     create a dataframe where the colums are the phases of the flukso and the rows are the
     data : 1 row = 1 timestamp = 1 power value
     """
-    data_dfs, home_sensors = createSeries(session, sensors, since, home_ID)
+    data_dfs, home_sensors = createSeries(session, sensors, since, since_timing, home_ID)
     energy_df = pd.concat(data_dfs, axis=1)
     del data_dfs
     print("nb index : ", len(energy_df.index))
+    print(energy_df.index)
     energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
     energy_df.columns = home_sensors.index
     power_df = energy2power(energy_df)
     del energy_df
 
     # set timestamps to local timezone
-    if power_df.index.tzinfo is None or power_df.index.tzinfo.utcoffset(power_df.index) is None: # NAIVE
+    if power_df.index.tzinfo is None or power_df.index.tzinfo.utcoffset(power_df.index) is None:  # NAIVE
         power_df.index = power_df.index.tz_localize("CET").tz_convert("CET")
     else:
         power_df.index = power_df.index.tz_convert("CET")
@@ -129,18 +144,20 @@ def getTiming(since):
     get the timestamp of the "since"
     ex : the timestamp 20 min ago
     """
+    print("since {}".format(since))
     if not since:
         since_timing = 0
     else:
         since_timing = pd.Timestamp.now(tz="UTC") - pd.Timedelta(since)
+        print("timing in sec : ", pd.Timedelta(since).total_seconds())
         print("Since : ", since_timing, type(since_timing))
 
     return since_timing
 
 
-def flukso2csv(path="", since=""):
+def flukso2visualization(path="", since=""):
     """
-
+    get Flukso data (via API) then visualize the data
     """
     if not path:
         path = get_prog_dir()
@@ -156,7 +173,8 @@ def flukso2csv(path="", since=""):
 
     print(set(sensors["home_ID"]))
     for i in range(len(set(sensors["home_ID"]))):
-        power_df = createFluksoDataframe(session, sensors, since_timing, i+1)
+    # for i in range(1):
+        power_df = createFluksoDataframe(session, sensors, since, since_timing, i+1)
 
         showTimeSeries(power_df, since, i+1)
 
@@ -165,13 +183,19 @@ def flukso2csv(path="", since=""):
     plt.show()
 
 
-if __name__ == "__main__":
+def main():
     argparser = argparse.ArgumentParser(
             description=__doc__,
             formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    argparser.add_argument("--since", type=str, default="",
-            help="Period to query until now, e.g. '30days', '1hours', '20min' etc. Defaults to all data.")
+    argparser.add_argument("--since",
+                           type=str,
+                           default="",
+                           help="Period to query until now, e.g. '30days', '1hours', '20min' etc. Defaults to all data.")
     args = argparser.parse_args()
-    flukso2csv(since=args.since)
+    flukso2visualization(since=args.since)
+
+
+if __name__ == "__main__":
+    main()
 
