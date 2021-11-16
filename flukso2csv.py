@@ -3,25 +3,29 @@ Authors :
     - Guillaume Levasseur
     - Alexandre Heneffe
 
-Script to fetch Fluksometer data using the tmpo protocol and export it as a CSV file.
+Script to fetch Fluksometer data using the tmpo protocol and
+    - export it as a CSV file.
+    - visualize it (time series)
 
 Input
 -----
 This script requires to have a file named `sensors.csv` in the "sensors/" directory.
-This `sensors.csv` file contains the home name, sensor ID and sensor token for each row.
+This `sensors.csv` file contains the home_ID, home name, sensor ID, sensor token and
+state for each row.
 
 Example input:
 
 > cat sensors.csv
-home_ID,home_name,sensor_id,token,state
-1,Flukso HQ,fed676021dacaaf6a12a8dda7685be34,b371402dc767cc83e41bc294b63f9586,+
+home_ID,phase,home_name,sensor_id,token,state
+1,phase1+,Flukso1,fed676021dacaaf6a12a8dda7685be34,b371402dc767cc83e41bc294b63f9586,+
 
 Output
 ------
-File `output.csv` in the same directory as the module.
+File `output.csv` in output/
 /!\ The previous file will be overwritten!
-The file contains the power time series, each sensor a column.
+The file contains the power time series, each sensor/phase a column.
 """
+
 
 import argparse
 import os
@@ -35,7 +39,7 @@ import matplotlib.pyplot as plt
 
 SENSOR_FILE = "sensors/sensors.csv"
 OUTPUT_FILE = "output/output.csv"
-
+FREQUENCY = "8S"
 
 
 def get_prog_dir():
@@ -60,7 +64,7 @@ def energy2power(energy_df):
     """
     power_df = energy_df.diff() * 1000
     power_df.fillna(0, inplace=True)
-    power_df = power_df.resample("8S").mean()
+    power_df = power_df.resample(FREQUENCY).mean()
     return power_df
 
 
@@ -77,7 +81,7 @@ def showTimeSeries(df, since, home_ID):
             title='Electricity consumption over time - home {0} - since {1}'.format(home_ID, since))
 
     plt.xlabel('Time')
-    plt.ylabel('Power (Watt)')
+    plt.ylabel('Power (kiloWatts) - KW')
     # plt.show()
 
 
@@ -99,12 +103,16 @@ def createSeries(session, sensors, since, since_timing, hID):
     """
     data_dfs = []
     home_sensors = sensors.loc[sensors["home_ID"] == hID]
+
     # print(home_sensors)
     for id in home_sensors.sensor_id:
+        print("{} :".format(id))
+        print("- first timestamp : {}".format(session.first_timestamp(id)))
+        print("- last timestamp : {}".format(session.last_timestamp(id)))
+
         dff = session.series(id, head=since_timing)
         if len(dff.index) == 0:
             dff = getZeroSeries(since, since_timing)
-        print("type of series : ", type(dff))
         data_dfs.append(dff)
 
     return data_dfs, home_sensors
@@ -119,7 +127,7 @@ def createFluksoDataframe(session, sensors, since, since_timing, home_ID):
     energy_df = pd.concat(data_dfs, axis=1)
     del data_dfs
     print("nb index : ", len(energy_df.index))
-    print(energy_df.index)
+    # print(energy_df.index)
     energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
     energy_df.columns = home_sensors.index
     power_df = energy2power(energy_df)
@@ -134,6 +142,8 @@ def createFluksoDataframe(session, sensors, since, since_timing, home_ID):
     power_df.fillna(0, inplace=True)
 
     print("nb elements : ", len(power_df.index))
+
+    print("=======> 10 first elements : ")
     print(power_df.head(10))
 
     return power_df
@@ -152,6 +162,7 @@ def getTiming(since):
         print("timing in sec : ", pd.Timedelta(since).total_seconds())
         print("Since : ", since_timing, type(since_timing))
 
+    print("since timing : ", since_timing)
     return since_timing
 
 
@@ -166,14 +177,20 @@ def flukso2visualization(path="", since=""):
 
     sensors = read_sensor_info(path)
     session = tmpo.Session(path)
-    for hid, sid, tk, st in sensors.values:
+    for hid, hn, sid, tk, st in sensors.values:
         session.add(sid, tk)
 
     session.sync()
 
-    print(set(sensors["home_ID"]))
-    for i in range(len(set(sensors["home_ID"]))):
+    nb_homes = len(set(sensors["home_ID"]))
+    print("Homes : ", nb_homes)
+
+    plt.style.use('grayscale')
+
+    for i in range(nb_homes):
     # for i in range(1):
+
+        print("========================= HOME {} =====================".format(i+1))
         power_df = createFluksoDataframe(session, sensors, since, since_timing, i+1)
 
         showTimeSeries(power_df, since, i+1)
