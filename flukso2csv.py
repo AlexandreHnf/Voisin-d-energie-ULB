@@ -26,7 +26,6 @@ File `output.csv` in output/
 The file contains the power time series, each sensor/phase a column.
 """
 
-
 import argparse
 import os
 
@@ -36,10 +35,9 @@ import tmpo
 from datetime import datetime
 import matplotlib.pyplot as plt
 
-
 SENSOR_FILE = "sensors/sensors.csv"
 OUTPUT_FILE = "output/output.csv"
-FREQUENCY = "8S"
+FREQ = [8, "S"]  # 8 sec.
 
 
 def get_prog_dir():
@@ -64,7 +62,7 @@ def energy2power(energy_df):
     """
     power_df = energy_df.diff() * 1000
     power_df.fillna(0, inplace=True)
-    power_df = power_df.resample(FREQUENCY).mean()
+    power_df = power_df.resample(str(FREQ[0]) + FREQ[1]).mean()
     return power_df
 
 
@@ -85,16 +83,24 @@ def showTimeSeries(df, since, home_ID):
     # plt.show()
 
 
+def showConsProdSeries(df, since, home_ID):
+    df.plot(colormap='jet',
+            marker='.',
+            markersize=5,
+            title='Power consumption & production over time - home {0} - since {1}'.format(home_ID, since))
+
+    plt.xlabel('Time')
+    plt.ylabel('Power (kiloWatts) - KW')
+
+
 def getZeroSeries(since, since_timing):
-    frequency = 8  # seconds
-    period = pd.Timedelta(since).total_seconds() / frequency
-    zeros = pd.date_range(since_timing, periods=period, freq=str(frequency) + "S")
+    period = pd.Timedelta(since).total_seconds() / FREQ[0]
+    zeros = pd.date_range(since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
     # print("datetime range : ", zeros)
     zeros_series = pd.Series(int(period) * [0], zeros)
     # print("zeros series :", zeros_series)
 
     return zeros_series
-
 
 
 def createSeries(session, sensors, since, since_timing, hID):
@@ -118,6 +124,19 @@ def createSeries(session, sensors, since, since_timing, hID):
     return data_dfs, home_sensors
 
 
+def getLocalTimestampsIndex(power_df):
+    """
+    set timestamps to local timezone
+    """
+
+    # NAIVE
+    if power_df.index.tzinfo is None or power_df.index.tzinfo.utcoffset(power_df.index) is None:
+        # first convert to aware timestamp, then local
+        return power_df.index.tz_localize("CET").tz_convert("CET")
+    else:
+        return power_df.index.tz_convert("CET")
+
+
 def createFluksoDataframe(session, sensors, since, since_timing, home_ID):
     """
     create a dataframe where the colums are the phases of the flukso and the rows are the
@@ -127,22 +146,16 @@ def createFluksoDataframe(session, sensors, since, since_timing, home_ID):
     energy_df = pd.concat(data_dfs, axis=1)
     del data_dfs
     print("nb index : ", len(energy_df.index))
-    # print(energy_df.index)
     energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
     energy_df.columns = home_sensors.index
     power_df = energy2power(energy_df)
     del energy_df
 
-    # set timestamps to local timezone
-    if power_df.index.tzinfo is None or power_df.index.tzinfo.utcoffset(power_df.index) is None:  # NAIVE
-        power_df.index = power_df.index.tz_localize("CET").tz_convert("CET")
-    else:
-        power_df.index = power_df.index.tz_convert("CET")
+    power_df.index = getLocalTimestampsIndex(power_df)
 
     power_df.fillna(0, inplace=True)
 
     print("nb elements : ", len(power_df.index))
-
     print("=======> 10 first elements : ")
     print(power_df.head(10))
 
@@ -166,6 +179,34 @@ def getTiming(since):
     return since_timing
 
 
+def getPhasesIndexes(sensors, nb_homes):
+    indexes = {}
+    for hid in range(1, nb_homes + 1):
+        indexes[hid] = {}
+        home_df = sensors.loc[sensors["home_ID"] == hid]
+        indexes[hid]["+"] = list(home_df.loc[home_df['state'] == "+"].index)
+        indexes[hid]["-"] = list(home_df.loc[home_df['state'] == "-"].index)
+
+    return indexes
+
+
+def getConsumptionProduction(indexes, power_df):
+    cons_prod_df = pd.DataFrame([[0, 0] for _ in range(len(power_df))],
+                                power_df.index,
+                                ["Consumption", "Production"])
+
+    print(cons_prod_df.head(4))
+
+    for i in range(len(indexes["+"])):
+        cons_prod_df["Consumption"] = cons_prod_df["Consumption"] + power_df[indexes["+"][i]]
+        cons_prod_df["Production"] = cons_prod_df["Production"] + power_df[indexes["-"][i]]
+
+    print("after sums :")
+    print(cons_prod_df.head(4))
+
+    return cons_prod_df
+
+
 def flukso2visualization(path="", since=""):
     """
     get Flukso data (via API) then visualize the data
@@ -185,15 +226,20 @@ def flukso2visualization(path="", since=""):
     nb_homes = len(set(sensors["home_ID"]))
     print("Homes : ", nb_homes)
 
-    plt.style.use('grayscale')
+    indexes = getPhasesIndexes(sensors, nb_homes)
+    print("indexes : ", indexes)
 
-    for i in range(nb_homes):
-    # for i in range(1):
+    plt.style.use('grayscale')  # plot style
 
-        print("========================= HOME {} =====================".format(i+1))
-        power_df = createFluksoDataframe(session, sensors, since, since_timing, i+1)
+    # for i in range(nb_homes):
+    for i in range(1):
+        print("========================= HOME {} =====================".format(i + 1))
+        power_df = createFluksoDataframe(session, sensors, since, since_timing, i + 1)
 
-        showTimeSeries(power_df, since, i+1)
+        cons_prod_df = getConsumptionProduction(indexes[i + 1], power_df)
+
+        # showTimeSeries(power_df, since, i+1)
+        showConsProdSeries(cons_prod_df, since, i+1)
 
         # power_df.to_csv(path + OUTPUT_FILE)
 
@@ -202,17 +248,17 @@ def flukso2visualization(path="", since=""):
 
 def main():
     argparser = argparse.ArgumentParser(
-            description=__doc__,
-            formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     argparser.add_argument("--since",
                            type=str,
                            default="",
                            help="Period to query until now, e.g. '30days', '1hours', '20min' etc. Defaults to all data.")
+
     args = argparser.parse_args()
     flukso2visualization(since=args.since)
 
 
 if __name__ == "__main__":
     main()
-
