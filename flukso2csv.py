@@ -30,9 +30,8 @@ import argparse
 import os
 
 import pandas as pd
-from pandas import read_csv
+import numpy as np
 import tmpo
-from datetime import datetime
 import matplotlib.pyplot as plt
 
 SENSOR_FILE = "sensors/sensors.csv"
@@ -52,6 +51,9 @@ class Home:
 
         self.power_df = self.createFluksoPowerDF()
         self.cons_prod_df = self.getConsumptionProductionDF()
+
+    def getColumnsTotal(self):
+        return self.power_df.sum(axis=0, numeric_only=True)
 
     def energy2power(self, energy_df):
         """
@@ -136,10 +138,10 @@ class Home:
         """
 
         self.power_df.plot(colormap='jet',
-                marker='.',
-                markersize=5,
-                title='Electricity consumption over time - home {0} - since {1}'
-                .format(self.home_id, self.since))
+                           marker='.',
+                           markersize=5,
+                           title='Electricity consumption over time - home {0} - since {1}'
+                           .format(self.home_id, self.since))
 
         plt.xlabel('Time')
         plt.ylabel('Power (kiloWatts) - KW')
@@ -147,10 +149,10 @@ class Home:
 
     def showConsProdSeries(self):
         self.cons_prod_df.plot(colormap='jet',
-                marker='.',
-                markersize=5,
-                title='Power consumption & production over time - home {0} - since {1}'
-                .format(self.home_id, self.since))
+                               marker='.',
+                               markersize=5,
+                               title='Power consumption & production over time - home {0} - since {1}'
+                               .format(self.home_id, self.since))
 
         plt.xlabel('Time')
         plt.ylabel('Power (kiloWatts) - KW')
@@ -219,7 +221,7 @@ def getProgDir():
 def visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes):
     plt.style.use('grayscale')  # plot style
 
-    for hid in range(1, nb_homes+1):
+    for hid in range(1, nb_homes + 1):
         print("========================= HOME {} =====================".format(hid))
         home = Home(session, sensors, since, since_timing, indexes[hid], hid)
 
@@ -229,6 +231,20 @@ def visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes
         # power_df.to_csv(path + OUTPUT_FILE)
 
     plt.show()
+
+
+def identifyPhaseState(nb_homes, session, sensors, since, since_timing, indexes):
+    for hid in range(1, nb_homes + 1):
+        col_names = indexes[hid]["+"] + indexes[hid]["-"]
+        home = Home(session, sensors, since, since_timing, indexes[hid], hid)
+        sums = home.getColumnsTotal()
+        sums = sums.to_frame()
+        sums.columns = ["tot_power"]
+        states = sums.assign(state=np.where(sums["tot_power"] > 0.0, '+', '-'))
+
+        print("sums home " + str(hid))
+        print(sums)
+        print(states)
 
 
 def flukso2visualization(path="", since=""):
@@ -254,7 +270,8 @@ def flukso2visualization(path="", since=""):
     print("indexes : ", indexes)
 
     # visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes)
-    visualizeFluksoData(1, session, sensors, since, since_timing, indexes)
+    # visualizeFluksoData(1, session, sensors, since, since_timing, indexes)
+    identifyPhaseState(1, session, sensors, since, since_timing, indexes)
 
 
 def main():
