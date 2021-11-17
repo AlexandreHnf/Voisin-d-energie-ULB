@@ -40,11 +40,123 @@ OUTPUT_FILE = "output/output.csv"
 FREQ = [8, "S"]  # 8 sec.
 
 
-def get_prog_dir():
-    import __main__
-    main_path = os.path.abspath(__main__.__file__)
-    main_path = os.path.dirname(main_path) + os.sep
-    return main_path
+class Home:
+
+    def __init__(self, session, sensors, since, since_timing, indexes, home_id):
+        self.session = session
+        self.home_sensors = sensors.loc[sensors["home_ID"] == home_id]
+        self.since = since
+        self.since_timing = since_timing
+        self.indexes = indexes
+        self.home_id = home_id
+
+        self.power_df = self.createFluksoPowerDF()
+        self.cons_prod_df = self.getConsumptionProductionDF()
+
+    def energy2power(self, energy_df):
+        """
+        from cumulative energy to power (Watt)
+        """
+        power_df = energy_df.diff() * 1000
+        power_df.fillna(0, inplace=True)
+        power_df = power_df.resample(str(FREQ[0]) + FREQ[1]).mean()
+        return power_df
+
+    def getZeroSeries(self):
+        period = pd.Timedelta(self.since).total_seconds() / FREQ[0]
+        zeros = pd.date_range(self.since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
+        # print("datetime range : ", zeros)
+        zeros_series = pd.Series(int(period) * [0], zeros)
+        # print("zeros series :", zeros_series)
+
+        return zeros_series
+
+    def createSeries(self):
+        """
+        create a list of time series from the sensors data
+        """
+        data_dfs = []
+
+        for id in self.home_sensors.sensor_id:
+            print("{} :".format(id))
+            print("- first timestamp : {}".format(self.session.first_timestamp(id)))
+            print("- last timestamp : {}".format(self.session.last_timestamp(id)))
+
+            dff = self.session.series(id, head=self.since_timing)
+            if len(dff.index) == 0:
+                dff = self.getZeroSeries()
+            data_dfs.append(dff)
+
+        return data_dfs
+
+    def createFluksoPowerDF(self):
+        """
+        create a dataframe where the colums are the phases of the Flukso and the rows are the
+        data : 1 row = 1 timestamp = 1 power value
+        """
+        data_dfs = self.createSeries()
+        energy_df = pd.concat(data_dfs, axis=1)
+        del data_dfs
+        print("nb index : ", len(energy_df.index))
+        energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
+        energy_df.columns = self.home_sensors.index
+        power_df = self.energy2power(energy_df)
+        del energy_df
+
+        power_df.index = getLocalTimestampsIndex(power_df)
+
+        power_df.fillna(0, inplace=True)
+
+        print("nb elements : ", len(power_df.index))
+        print("=======> 10 first elements : ")
+        print(power_df.head(10))
+
+        return power_df
+
+    def getConsumptionProductionDF(self):
+        cons_prod_df = pd.DataFrame([[0, 0, 0] for _ in range(len(self.power_df))],
+                                    self.power_df.index,
+                                    ["P_cons", "P_Prod", "P_tot"])
+
+        print(cons_prod_df.head(4))
+
+        for i in range(len(self.indexes["+"])):
+            cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + self.power_df[self.indexes["+"][i]]
+            cons_prod_df["P_Prod"] = cons_prod_df["P_Prod"] + self.power_df[self.indexes["-"][i]]
+
+        cons_prod_df["P_tot"] = cons_prod_df["P_cons"] - cons_prod_df["P_Prod"]
+        print("after sums :")
+        print(cons_prod_df.head(4))
+
+        return cons_prod_df
+
+    def showTimeSeries(self):
+        """
+        show time series : x = time, y = power (Watt)
+        """
+
+        self.power_df.plot(colormap='jet',
+                marker='.',
+                markersize=5,
+                title='Electricity consumption over time - home {0} - since {1}'
+                .format(self.home_id, self.since))
+
+        plt.xlabel('Time')
+        plt.ylabel('Power (kiloWatts) - KW')
+        # plt.show()
+
+    def showConsProdSeries(self):
+        self.cons_prod_df.plot(colormap='jet',
+                marker='.',
+                markersize=5,
+                title='Power consumption & production over time - home {0} - since {1}'
+                .format(self.home_id, self.since))
+
+        plt.xlabel('Time')
+        plt.ylabel('Power (kiloWatts) - KW')
+
+
+# ====================================================================================
 
 
 def read_sensor_info(path):
@@ -54,74 +166,6 @@ def read_sensor_info(path):
     path += SENSOR_FILE
     sensors = pd.read_csv(path, header=0, index_col=1)
     return sensors
-
-
-def energy2power(energy_df):
-    """
-    from cumulative energy to power (Watt)
-    """
-    power_df = energy_df.diff() * 1000
-    power_df.fillna(0, inplace=True)
-    power_df = power_df.resample(str(FREQ[0]) + FREQ[1]).mean()
-    return power_df
-
-
-def showTimeSeries(df, since, home_ID):
-    """
-    show time series : x = time, y = power (Watt)
-    """
-    # if len(df.index) == 0:
-    #     plt.figure()
-    # else:
-    df.plot(colormap='jet',
-            marker='.',
-            markersize=5,
-            title='Electricity consumption over time - home {0} - since {1}'.format(home_ID, since))
-
-    plt.xlabel('Time')
-    plt.ylabel('Power (kiloWatts) - KW')
-    # plt.show()
-
-
-def showConsProdSeries(df, since, home_ID):
-    df.plot(colormap='jet',
-            marker='.',
-            markersize=5,
-            title='Power consumption & production over time - home {0} - since {1}'.format(home_ID, since))
-
-    plt.xlabel('Time')
-    plt.ylabel('Power (kiloWatts) - KW')
-
-
-def getZeroSeries(since, since_timing):
-    period = pd.Timedelta(since).total_seconds() / FREQ[0]
-    zeros = pd.date_range(since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
-    # print("datetime range : ", zeros)
-    zeros_series = pd.Series(int(period) * [0], zeros)
-    # print("zeros series :", zeros_series)
-
-    return zeros_series
-
-
-def createSeries(session, sensors, since, since_timing, hID):
-    """
-    create a list of time series from the sensors data
-    """
-    data_dfs = []
-    home_sensors = sensors.loc[sensors["home_ID"] == hID]
-
-    # print(home_sensors)
-    for id in home_sensors.sensor_id:
-        print("{} :".format(id))
-        print("- first timestamp : {}".format(session.first_timestamp(id)))
-        print("- last timestamp : {}".format(session.last_timestamp(id)))
-
-        dff = session.series(id, head=since_timing)
-        if len(dff.index) == 0:
-            dff = getZeroSeries(since, since_timing)
-        data_dfs.append(dff)
-
-    return data_dfs, home_sensors
 
 
 def getLocalTimestampsIndex(power_df):
@@ -135,31 +179,6 @@ def getLocalTimestampsIndex(power_df):
         return power_df.index.tz_localize("CET").tz_convert("CET")
     else:
         return power_df.index.tz_convert("CET")
-
-
-def createFluksoDataframe(session, sensors, since, since_timing, home_ID):
-    """
-    create a dataframe where the colums are the phases of the flukso and the rows are the
-    data : 1 row = 1 timestamp = 1 power value
-    """
-    data_dfs, home_sensors = createSeries(session, sensors, since, since_timing, home_ID)
-    energy_df = pd.concat(data_dfs, axis=1)
-    del data_dfs
-    print("nb index : ", len(energy_df.index))
-    energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
-    energy_df.columns = home_sensors.index
-    power_df = energy2power(energy_df)
-    del energy_df
-
-    power_df.index = getLocalTimestampsIndex(power_df)
-
-    power_df.fillna(0, inplace=True)
-
-    print("nb elements : ", len(power_df.index))
-    print("=======> 10 first elements : ")
-    print(power_df.head(10))
-
-    return power_df
 
 
 def getTiming(since):
@@ -190,21 +209,26 @@ def getPhasesIndexes(sensors, nb_homes):
     return indexes
 
 
-def getConsumptionProduction(indexes, power_df):
-    cons_prod_df = pd.DataFrame([[0, 0] for _ in range(len(power_df))],
-                                power_df.index,
-                                ["Consumption", "Production"])
+def getProgDir():
+    import __main__
+    main_path = os.path.abspath(__main__.__file__)
+    main_path = os.path.dirname(main_path) + os.sep
+    return main_path
 
-    print(cons_prod_df.head(4))
 
-    for i in range(len(indexes["+"])):
-        cons_prod_df["Consumption"] = cons_prod_df["Consumption"] + power_df[indexes["+"][i]]
-        cons_prod_df["Production"] = cons_prod_df["Production"] + power_df[indexes["-"][i]]
+def visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes):
+    plt.style.use('grayscale')  # plot style
 
-    print("after sums :")
-    print(cons_prod_df.head(4))
+    for hid in range(1, nb_homes+1):
+        print("========================= HOME {} =====================".format(hid))
+        home = Home(session, sensors, since, since_timing, indexes[hid], hid)
 
-    return cons_prod_df
+        home.showTimeSeries()
+        home.showConsProdSeries()
+
+        # power_df.to_csv(path + OUTPUT_FILE)
+
+    plt.show()
 
 
 def flukso2visualization(path="", since=""):
@@ -212,7 +236,7 @@ def flukso2visualization(path="", since=""):
     get Flukso data (via API) then visualize the data
     """
     if not path:
-        path = get_prog_dir()
+        path = getProgDir()
 
     since_timing = getTiming(since)
 
@@ -229,21 +253,8 @@ def flukso2visualization(path="", since=""):
     indexes = getPhasesIndexes(sensors, nb_homes)
     print("indexes : ", indexes)
 
-    plt.style.use('grayscale')  # plot style
-
-    # for i in range(nb_homes):
-    for i in range(1):
-        print("========================= HOME {} =====================".format(i + 1))
-        power_df = createFluksoDataframe(session, sensors, since, since_timing, i + 1)
-
-        cons_prod_df = getConsumptionProduction(indexes[i + 1], power_df)
-
-        # showTimeSeries(power_df, since, i+1)
-        showConsProdSeries(cons_prod_df, since, i+1)
-
-        # power_df.to_csv(path + OUTPUT_FILE)
-
-    plt.show()
+    # visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes)
+    visualizeFluksoData(1, session, sensors, since, since_timing, indexes)
 
 
 def main():
