@@ -36,6 +36,7 @@ import matplotlib.pyplot as plt
 
 SENSOR_FILE = "sensors/sensors.csv"
 OUTPUT_FILE = "output/output.csv"
+UPDATED_SENSORS_FILE = "sensors/updated_sensors.csv"
 FREQ = [8, "S"]  # 8 sec.
 
 
@@ -233,21 +234,32 @@ def visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes
     plt.show()
 
 
-def identifyPhaseState(nb_homes, session, sensors, since, since_timing, indexes):
+def identifyPhaseState(path, nb_homes, session, sensors, since, since_timing, indexes):
+    states_df = pd.DataFrame(columns=["tot_power", "state"])
+
     for hid in range(1, nb_homes + 1):
         col_names = indexes[hid]["+"] + indexes[hid]["-"]
         home = Home(session, sensors, since, since_timing, indexes[hid], hid)
         sums = home.getColumnsTotal()
-        sums = sums.to_frame()
+        sums = sums.to_frame()  # to dataframe
         sums.columns = ["tot_power"]
-        states = sums.assign(state=np.where(sums["tot_power"] > 0.0, '+', '-'))
+        sums = sums.assign(state=np.where(sums["tot_power"] > 0.0, '+', '-'))
+        states_df = states_df.append(sums)
 
         print("sums home " + str(hid))
         print(sums)
-        print(states)
+
+    updated_sensors_states = sensors
+    updated_sensors_states["state"] = states_df["state"]
+
+    print(states_df)
+    print(updated_sensors_states)
+
+    print(path + UPDATED_SENSORS_FILE)
+    updated_sensors_states.to_csv(path + UPDATED_SENSORS_FILE)
 
 
-def flukso2visualization(path="", since=""):
+def getFluksoData(path="", since=""):
     """
     get Flukso data (via API) then visualize the data
     """
@@ -257,24 +269,18 @@ def flukso2visualization(path="", since=""):
     since_timing = getTiming(since)
 
     sensors = read_sensor_info(path)
+    print(sensors.head(5))
     session = tmpo.Session(path)
     for hid, hn, sid, tk, st in sensors.values:
         session.add(sid, tk)
 
     session.sync()
 
-    nb_homes = len(set(sensors["home_ID"]))
-    print("Homes : ", nb_homes)
-
-    indexes = getPhasesIndexes(sensors, nb_homes)
-    print("indexes : ", indexes)
-
-    # visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes)
-    # visualizeFluksoData(1, session, sensors, since, since_timing, indexes)
-    identifyPhaseState(1, session, sensors, since, since_timing, indexes)
+    return sensors, session, since_timing
 
 
 def main():
+    # TODO : add argument for choosing between different features (visualizeFluksoData, identifyPhaseState)
     argparser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -285,7 +291,19 @@ def main():
                            help="Period to query until now, e.g. '30days', '1hours', '20min' etc. Defaults to all data.")
 
     args = argparser.parse_args()
-    flukso2visualization(since=args.since)
+    since = args.since
+
+    sensors, session, since_timing = getFluksoData(since=since)
+
+    nb_homes = len(set(sensors["home_ID"]))
+    print("Homes : ", nb_homes)
+
+    indexes = getPhasesIndexes(sensors, nb_homes)
+    print("indexes : ", indexes)
+
+    # visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes)
+    visualizeFluksoData(1, session, sensors, since, since_timing, indexes)
+    # identifyPhaseState(getProgDir(), nb_homes, session, sensors, since, since_timing, indexes)
 
 
 if __name__ == "__main__":
