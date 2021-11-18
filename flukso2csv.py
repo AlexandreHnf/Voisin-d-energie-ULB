@@ -32,8 +32,11 @@ import os
 import pandas as pd
 import numpy as np
 import tmpo
+import random
 import matplotlib.pyplot as plt
 
+
+# constants
 SENSOR_FILE = "sensors/sensors.csv"
 OUTPUT_FILE = "output/output.csv"
 UPDATED_SENSORS_FILE = "sensors/updated_sensors.csv"
@@ -119,15 +122,18 @@ class Home:
     def getConsumptionProductionDF(self):
         cons_prod_df = pd.DataFrame([[0, 0, 0] for _ in range(len(self.power_df))],
                                     self.power_df.index,
-                                    ["P_cons", "P_Prod", "P_tot"])
+                                    ["P_cons", "P_prod", "P_tot"])
 
         print(cons_prod_df.head(4))
 
         for i in range(len(self.indexes["+"])):
             cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + self.power_df[self.indexes["+"][i]]
-            cons_prod_df["P_Prod"] = cons_prod_df["P_Prod"] + self.power_df[self.indexes["-"][i]]
+            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + self.power_df[self.indexes["-"][i]]
 
-        cons_prod_df["P_tot"] = cons_prod_df["P_cons"] - cons_prod_df["P_Prod"]
+        # TEST : TEMPORARY
+        cons_prod_df["P_prod"] = [random.randint(-500, 500) for _ in range(len(cons_prod_df))]
+
+        cons_prod_df["P_tot"] = cons_prod_df["P_cons"] - cons_prod_df["P_prod"]
         print("after sums :")
         print(cons_prod_df.head(4))
 
@@ -139,8 +145,9 @@ class Home:
         """
 
         self.power_df.plot(colormap='jet',
+                           linewidth=1,
                            marker='.',
-                           markersize=5,
+                           markersize=3,
                            title='Electricity consumption over time - home {0} - since {1}'
                            .format(self.home_id, self.since))
 
@@ -149,11 +156,26 @@ class Home:
         # plt.show()
 
     def showConsProdSeries(self):
+        """
+        show power consumption and production (PV) w.r.t. time
+        + total power consumption
+        """
+
         self.cons_prod_df.plot(colormap='jet',
+                               linewidth=1,
                                marker='.',
-                               markersize=5,
+                               markersize=3,
                                title='Power consumption & production over time - home {0} - since {1}'
                                .format(self.home_id, self.since))
+
+        # show the positive and negative areas defined by the total power consumption line (P_tot)
+        timestamps = self.cons_prod_df.index
+        p_tot = self.cons_prod_df["P_tot"]
+
+        # positive (green)
+        plt.fill_between(timestamps, p_tot, where=(p_tot > 0), color='g', alpha=0.3)
+        # negative (red)
+        plt.fill_between(timestamps, p_tot, where=(p_tot < 0), color='r', alpha=0.3)
 
         plt.xlabel('Time')
         plt.ylabel('Power (kiloWatts) - KW')
@@ -301,8 +323,10 @@ def main():
     indexes = getPhasesIndexes(sensors, nb_homes)
     print("indexes : ", indexes)
 
-    # visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes)
-    visualizeFluksoData(1, session, sensors, since, since_timing, indexes)
+    # =========================================================
+
+    visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes)
+    # visualizeFluksoData(1, session, sensors, since, since_timing, indexes)
     # identifyPhaseState(getProgDir(), nb_homes, session, sensors, since, since_timing, indexes)
 
 
