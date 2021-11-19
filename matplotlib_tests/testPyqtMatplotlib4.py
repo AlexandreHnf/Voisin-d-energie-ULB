@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import sys
 import random
+from PyQt5.QtCore import QRect
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtWidgets import (QWidget,
                              QPushButton,
@@ -28,42 +29,31 @@ class Window(QtWidgets.QWidget):
         self.center()
         self.setWindowTitle('Flukso visualization')
 
-        # grid = QtWidgets.QGridLayout()
-        # self.setLayout(grid)
-
-
         # ==========
         qlayout = QHBoxLayout(self)
         self.setLayout(qlayout)
 
         qscroll = QScrollArea(self)
-        qscroll.setGeometry(0, 0, 0, 0)
+        # qscroll.setGeometry(0, 0, 0, 0)
         # qscroll.setFrameStyle(QtGui.QFrame.NoFrame)
         qlayout.addWidget(qscroll)
 
         self.qscrollContents = QWidget()
         self.qscrollLayout = QVBoxLayout(self.qscrollContents)
-        # self.qscrollLayout.setGeometry(QtCore.QRect(0, 0, 1000, 1000))
+        self.qscrollLayout.setGeometry(QRect(0, 0, 100, 100))
 
         qscroll.setWidget(self.qscrollContents)
         qscroll.setWidgetResizable(True)
         # ==========
 
-
-        # self.figure = plt.figure(figsize = (15,5))
-        # self.canvas = FigureCanvas(self.figure)
-        # self.toolbar = NavigationToolbar(self.canvas, self)
-        # grid.addWidget(self.canvas, 3,0,1,2)
-        # grid.addWidget(self.canvas, 3,0,1,2)
-
-        self.plot3()
+        self.plot1()
 
         self.qscrollContents.setLayout(self.qscrollLayout)
 
         self.show()
 
 
-    def plot3(self):
+    def plot1(self):
         """ plot some random stuff """
         # random data
 
@@ -71,30 +61,35 @@ class Window(QtWidgets.QWidget):
         data2 = [random.random() for _ in range(10)]
 
         for i in range(5):
+
             qfigWidget = QWidget(self.qscrollContents)
+            plotLayout = QHBoxLayout()
+            plotLayout.setGeometry(QRect(0, 0, 100, 100))
 
-            fig = plt.figure(figsize=(15, 5))
-            canvas = FigureCanvas(fig)
-            canvas.setParent(qfigWidget)
-            toolbar = NavigationToolbar(canvas, qfigWidget)
-            axes = fig.add_subplot(111)
-            axes.plot(data, '*-')
-            axes.plot(data2, '*-')
+            for _ in range(2):
+                fig = plt.figure(figsize=(15, 5))
+                canvas = FigureCanvas(fig)
+                canvas.setParent(qfigWidget)
+                toolbar = NavigationToolbar(canvas, qfigWidget)
+                axes = fig.add_subplot(111)
+                axes.plot(data, '*-')
+                axes.plot(data2, '*-')
 
-            # place plot components in a layout
-            plotLayout = QVBoxLayout()
-            plotLayout.addWidget(canvas)
-            plotLayout.addWidget(toolbar)
+                # place plot components in a layout
+
+                plotLayout.addWidget(canvas)
+                plotLayout.addWidget(toolbar)
+
+                # prevent the canvas to shrink beyond a point
+                # original size looks like a good minimum size
+                canvas.setMinimumSize(canvas.size())
+
             qfigWidget.setLayout(plotLayout)
-
-            # prevent the canvas to shrink beyond a point
-            # original size looks like a good minimum size
-            canvas.setMinimumSize(canvas.size())
 
             self.qscrollLayout.addWidget(qfigWidget)
 
 
-    def plot4(self):
+    def plot2(self):
         since_timing = "2021-11-15 15:33:26.895163+00:00"
         period = 1200
         zeros = pd.date_range(since_timing, periods=period, freq="1S")
