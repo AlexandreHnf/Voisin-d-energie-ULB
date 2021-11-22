@@ -55,6 +55,9 @@ UPDATED_SENSORS_FILE = "sensors/updated_sensors.csv"
 FREQ = [8, "S"]  # 8 sec.
 
 
+# =================================================
+
+
 class Window(QtWidgets.QWidget):
 
     def __init__(self, homes):
@@ -95,16 +98,6 @@ class Window(QtWidgets.QWidget):
         show time series : x = time, y = power (Watt)
         """
 
-        # self.power_df.plot(colormap='jet',
-        #                    linewidth=1,
-        #                    marker='.',
-        #                    markersize=3,
-        #                    title='Electricity consumption over time - home {0} - since {1}'
-        #                    .format(self.home_id, self.since))
-        #
-        # plt.xlabel('Time')
-        # plt.ylabel('Power (kiloWatts) - KW')
-
         vlayout = QVBoxLayout()  # vertical
         vlayout.setGeometry(QRect(0, 0, 100, 100))
 
@@ -123,8 +116,8 @@ class Window(QtWidgets.QWidget):
                      .format(home.getHomeID(), home.getSince()))
         ax.set_xlabel("Time (t)")
         ax.set_ylabel("Power (kiloWatts) - KW")
-        ax.legend()
-        canvas.resize(300, 300)
+        ax.legend(loc="upper right", fancybox=True)
+        canvas.resize(400, 400)
 
         # place plot components in a layout
 
@@ -142,25 +135,6 @@ class Window(QtWidgets.QWidget):
         show power consumption and production (PV) w.r.t. time
         + total power consumption
         """
-
-        # self.cons_prod_df.plot(colormap='jet',
-        #                        linewidth=1,
-        #                        marker='.',
-        #                        markersize=3,
-        #                        title='Power consumption & production over time - home {0} - since {1}'
-        #                        .format(self.home_id, self.since))
-        #
-        # # show the positive and negative areas defined by the total power consumption line (P_tot)
-        # timestamps = self.cons_prod_df.index
-        # p_tot = self.cons_prod_df["P_tot"]
-        #
-        # # positive (green)
-        # plt.fill_between(timestamps, p_tot, where=(p_tot > 0), color='g', alpha=0.3)
-        # # negative (red)
-        # plt.fill_between(timestamps, p_tot, where=(p_tot < 0), color='r', alpha=0.3)
-        #
-        # plt.xlabel('Time')
-        # plt.ylabel('Power (kiloWatts) - KW')
 
         vlayout = QVBoxLayout()  # vertical
         vlayout.setGeometry(QRect(0, 0, 100, 100))
@@ -189,8 +163,8 @@ class Window(QtWidgets.QWidget):
                      .format(home.getHomeID(), home.getSince()))
         ax.set_xlabel("Time (t)")
         ax.set_ylabel("Power (kiloWatts) - KW")
-        ax.legend()
-        canvas.resize(300, 300)
+        ax.legend(loc="upper right", fancybox=True)
+        canvas.resize(400, 400)
 
         # place plot components in a layout
 
@@ -340,47 +314,6 @@ class Home:
 
         return cons_prod_df
 
-    def showTimeSeries(self):
-        """
-        show time series : x = time, y = power (Watt)
-        """
-
-        self.power_df.plot(colormap='jet',
-                           linewidth=1,
-                           marker='.',
-                           markersize=3,
-                           title='Electricity consumption over time - home {0} - since {1}'
-                           .format(self.home_id, self.since))
-
-        plt.xlabel('Time')
-        plt.ylabel('Power (kiloWatts) - KW')
-        # plt.show()
-
-    def showConsProdSeries(self):
-        """
-        show power consumption and production (PV) w.r.t. time
-        + total power consumption
-        """
-
-        self.cons_prod_df.plot(colormap='jet',
-                               linewidth=1,
-                               marker='.',
-                               markersize=3,
-                               title='Power consumption & production over time - home {0} - since {1}'
-                               .format(self.home_id, self.since))
-
-        # show the positive and negative areas defined by the total power consumption line (P_tot)
-        timestamps = self.cons_prod_df.index
-        p_tot = self.cons_prod_df["P_tot"]
-
-        # positive (green)
-        plt.fill_between(timestamps, p_tot, where=(p_tot > 0), color='g', alpha=0.3)
-        # negative (red)
-        plt.fill_between(timestamps, p_tot, where=(p_tot < 0), color='r', alpha=0.3)
-
-        plt.xlabel('Time')
-        plt.ylabel('Power (kiloWatts) - KW')
-
 
 # ====================================================================================
 
@@ -443,7 +376,7 @@ def getProgDir():
 
 
 def visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes):
-    plt.style.use('grayscale')  # plot style
+    plt.style.use('ggplot')  # plot style
 
     homes = []
 
@@ -452,13 +385,7 @@ def visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes
         home = Home(session, sensors, since, since_timing, indexes[hid], hid)
         homes.append(home)
 
-        # home.showTimeSeries()
-        # home.showConsProdSeries()
-
-        # power_df.to_csv(path + OUTPUT_FILE)
-
-    # plt.show()
-
+    # launch window with flukso visualization (using PYQT GUI)
     app = QtWidgets.QApplication(sys.argv)
     app.aboutToQuit.connect(app.deleteLater)
     GUI = Window(homes)
