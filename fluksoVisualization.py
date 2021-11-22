@@ -43,6 +43,10 @@ UPDATED_SENSORS_FILE = "sensors/updated_sensors.csv"
 FREQ = [8, "S"]  # 8 sec.
 
 
+
+# ================================================================
+
+
 class Home:
 
     def __init__(self, session, sensors, since, since_timing, indexes, home_id):

@@ -63,10 +63,13 @@ class Window(QtWidgets.QWidget):
         for i in range(5):
 
             qfigWidget = QWidget(self.qscrollContents)
+
             plotLayout = QHBoxLayout()
-            plotLayout.setGeometry(QRect(0, 0, 100, 100))
 
             for _ in range(2):
+                plot2graphsLayout = QVBoxLayout()
+                plot2graphsLayout.setGeometry(QRect(0, 0, 100, 100))
+
                 fig = plt.figure(figsize=(15, 5))
                 canvas = FigureCanvas(fig)
                 canvas.setParent(qfigWidget)
@@ -74,15 +77,22 @@ class Window(QtWidgets.QWidget):
                 axes = fig.add_subplot(111)
                 axes.plot(data, '*-')
                 axes.plot(data2, '*-')
+                axes.set_title("title")
+                axes.set_xlabel("x")
+                axes.set_ylabel("y")
+                canvas.resize(300, 300)
 
                 # place plot components in a layout
 
-                plotLayout.addWidget(canvas)
-                plotLayout.addWidget(toolbar)
+                plot2graphsLayout.addWidget(canvas)
+                plot2graphsLayout.addWidget(toolbar)
 
                 # prevent the canvas to shrink beyond a point
                 # original size looks like a good minimum size
                 canvas.setMinimumSize(canvas.size())
+
+                plotLayout.addLayout(plot2graphsLayout)
+
 
             qfigWidget.setLayout(plotLayout)
 
