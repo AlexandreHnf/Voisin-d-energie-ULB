@@ -116,12 +116,14 @@ class Window(QtWidgets.QWidget):
         ax.clear()
 
         power_df = home.getPowerDF()
-        ax.plot(power_df)
+        for col in power_df.columns:
+            ax.plot(power_df[col], label=col)
 
         ax.set_title('Electricity consumption over time - home {0} - since {1}'
                      .format(home.getHomeID(), home.getSince()))
         ax.set_xlabel("Time (t)")
         ax.set_ylabel("Power (kiloWatts) - KW")
+        ax.legend()
         canvas.resize(300, 300)
 
         # place plot components in a layout
@@ -171,7 +173,8 @@ class Window(QtWidgets.QWidget):
         ax.clear()
 
         cons_prod_df = home.getConsProdDF()
-        ax.plot(cons_prod_df)
+        for col in cons_prod_df.columns:
+            ax.plot(cons_prod_df[col], label=col)
 
         # show the positive and negative areas defined by the total power consumption line (P_tot)
         timestamps = cons_prod_df.index
@@ -186,6 +189,7 @@ class Window(QtWidgets.QWidget):
                      .format(home.getHomeID(), home.getSince()))
         ax.set_xlabel("Time (t)")
         ax.set_ylabel("Power (kiloWatts) - KW")
+        ax.legend()
         canvas.resize(300, 300)
 
         # place plot components in a layout
