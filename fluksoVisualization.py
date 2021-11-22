@@ -43,7 +43,6 @@ UPDATED_SENSORS_FILE = "sensors/updated_sensors.csv"
 FREQ = [8, "S"]  # 8 sec.
 
 
-
 # ================================================================
 
 

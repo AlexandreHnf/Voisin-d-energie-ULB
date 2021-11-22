@@ -92,13 +92,17 @@ class PrettyWidget(QtWidgets.QWidget):
         period = 1200
         zeros = pd.date_range(since_timing, periods=period, freq="1S")
         # print("datetime range : ", zeros)
-        zeros_series = pd.Series(int(period) * [0], zeros)
+        y = int(period) * [1]
+        zeros_series = pd.Series(y, zeros)
 
         # create an axis
         ax = self.figure.add_subplot(111)
 
         # discards the old graph
         ax.clear()
+
+        yy = zeros_series[0]
+        plt.fill_between(zeros_series.index, yy, where=(yy > 0), color='g', alpha=0.3)
 
         # plot data
         ax.plot(zeros_series)
