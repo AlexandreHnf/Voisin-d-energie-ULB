@@ -46,7 +46,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.lyt.addWidget(self.myFig)
 
         # Format plot
-        self.myFig.
         plt.xticks(rotation=45, ha='right')
         plt.subplots_adjust(bottom=0.30)
 
@@ -81,6 +80,7 @@ class MyFigureCanvas(FigureCanvas):
         # Initiate the timer
         self._timer_ = self.new_timer(interval, [(self._update_canvas_, (), {})])
         self._timer_.start()
+
         return
 
     def _update_canvas_(self) -> None:
@@ -98,8 +98,10 @@ class MyFigureCanvas(FigureCanvas):
         # self._ax_.set_ylim(ymin=self._y_range_[0], ymax=self._y_range_[1])
 
         # Format plot
-        # plt.xticks(rotation=45, ha='right')
-        # plt.subplots_adjust(bottom=0.30)
+        for tick in self._ax_.get_xticklabels():
+            tick.set_rotation(45)
+
+        self.figure.subplots_adjust(bottom=0.30)
         self._ax_.set_title('TMP102 Temperature over Time')
         self._ax_.set_ylabel('Temperature (deg C)')
 
