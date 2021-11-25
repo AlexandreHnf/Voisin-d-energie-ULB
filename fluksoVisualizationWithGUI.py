@@ -306,7 +306,7 @@ class Home:
             cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + self.power_df[self.indexes["-"][i]]
 
         # TEST : TEMPORARY
-        cons_prod_df["P_prod"] = [random.randint(-500, 500) for _ in range(len(cons_prod_df))]
+        # cons_prod_df["P_prod"] = [random.randint(-500, 500) for _ in range(len(cons_prod_df))]
 
         cons_prod_df["P_tot"] = cons_prod_df["P_cons"] - cons_prod_df["P_prod"]
         print("after sums :")
