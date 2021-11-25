@@ -88,9 +88,8 @@ class MyFigureCanvas(FigureCanvas):
         This function gets called regularly by the timer.
 
         '''
-        # self._y_.append(round(get_next_datapoint(), 2))     # Add new datapoint
         self._y_.append(random.randint(20, 40))          # Add new datapoint
-        self._x_.append(dt.datetime.now().strftime('%H:%M:%S.%f'))
+        self._x_.append(dt.datetime.now().strftime('%H:%M:%S'))
         self._y_ = self._y_[-self._x_len_:]                 # Truncate list _y_
         self._x_ = self._x_[-self._x_len_:]
         self._ax_.clear()                                   # Clear ax
