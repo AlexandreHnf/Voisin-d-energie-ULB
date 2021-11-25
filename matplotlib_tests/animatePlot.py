@@ -24,7 +24,12 @@ def animate(i, xs, ys):
     xs = xs[-20:]
     ys = ys[-20:]
 
-    # Draw x and y lists
+    # Draw x and y listsdef animate(i, ys):
+    #     # Read temperature (Celsius) from TMP102
+    #     temp_c = random.randint(y_range[0], y_range[1])
+    #
+    #     # Add y to list
+    #     ys.append(temp_c)
     ax.clear()
     ax.plot(xs, ys)
 
@@ -37,5 +42,7 @@ def animate(i, xs, ys):
 
 # Set up plot to call animate() function periodically
 ani = animation.FuncAnimation(fig, animate, fargs=(xs, ys), interval=8000)
+ani2 = animation.FuncAnimation(fig, animate, fargs=(xs, ys), interval=1000)
+
 
 plt.show()
