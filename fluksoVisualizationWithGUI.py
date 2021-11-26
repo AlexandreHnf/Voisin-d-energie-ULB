@@ -155,9 +155,9 @@ class Window(QtWidgets.QWidget):
         p_tot = cons_prod_df["P_tot"]
 
         # positive (green)
-        plt.fill_between(timestamps, p_tot, where=(p_tot > 0), color='g', alpha=0.3)
+        plt.fill_between(timestamps, p_tot, where=(p_tot > 0), color='r', alpha=0.3)
         # negative (red)
-        plt.fill_between(timestamps, p_tot, where=(p_tot < 0), color='r', alpha=0.3)
+        plt.fill_between(timestamps, p_tot, where=(p_tot < 0), color='g', alpha=0.3)
 
         ax.set_title("Power consumption & production over time - home {0} - since {1}"
                      .format(home.getHomeID(), home.getSince()))

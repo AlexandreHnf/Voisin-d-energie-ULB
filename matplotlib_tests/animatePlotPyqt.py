@@ -33,7 +33,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         super().__init__()
         # 1. Window settings
         self.setGeometry(300, 300, 800, 400)
-        self.setWindowTitle("Matplotlib live plot in PyQt - example 1")
+        self.setWindowTitle("Matplotlib live plot in PyQt -Example")
         self.frm = QtWidgets.QFrame(self)
         self.frm.setStyleSheet("QWidget { background-color: #eeeeec; }")
         self.lyt = QtWidgets.QVBoxLayout()
@@ -101,8 +101,8 @@ class MyFigureCanvas(FigureCanvas):
             tick.set_rotation(45)
 
         self.figure.subplots_adjust(bottom=0.30)
-        self._ax_.set_title('TMP102 Temperature over Time')
-        self._ax_.set_ylabel('Temperature (deg C)')
+        self._ax_.set_title('Random value over time')
+        self._ax_.set_ylabel('Random')
 
         self.draw()
         return
