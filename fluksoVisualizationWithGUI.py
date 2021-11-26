@@ -48,6 +48,9 @@ from PyQt5.QtWidgets import (QWidget,
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 
+from matplotlib.lines import Line2D
+
+
 # constants
 SENSOR_FILE = "sensors/sensors.csv"
 OUTPUT_FILE = "output/output.csv"
@@ -163,7 +166,17 @@ class Window(QtWidgets.QWidget):
                      .format(home.getHomeID(), home.getSince()))
         ax.set_xlabel("Time (t)")
         ax.set_ylabel("Power (kiloWatts) - KW")
-        ax.legend(loc="upper right", fancybox=True)
+
+        # custom legend for injection and taking (prélèvement)
+        custom_lines = [Line2D([0], [0], color="salmon", lw=4),
+                        Line2D([0], [0], color="limegreen", lw=4)]
+
+        legend1 = ax.legend(loc="upper right", fancybox=True, framealpha=0.4)
+        legend2 = ax.legend(handles=custom_lines, labels=["Prélèvement", "Injection"],
+                            loc=4, fancybox=True, framealpha=0.4)
+        plt.gca().add_artist(legend1)
+        plt.gca().add_artist(legend2)
+
         canvas.resize(400, 400)
 
         # place plot components in a layout
