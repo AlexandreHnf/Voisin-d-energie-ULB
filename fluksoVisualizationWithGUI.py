@@ -370,9 +370,9 @@ def getTiming(since):
     return since_timing
 
 
-def getPhasesIndexes(sensors, nb_homes):
+def getPhasesIndexes(sensors, home_ids):
     indexes = {}
-    for hid in range(1, nb_homes + 1):
+    for hid in home_ids:
         indexes[hid] = {}
         home_df = sensors.loc[sensors["home_ID"] == hid]
         indexes[hid]["+"] = list(home_df.loc[home_df['state'] == "+"].index)
@@ -388,12 +388,13 @@ def getProgDir():
     return main_path
 
 
-def visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes):
+def visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids):
     plt.style.use('ggplot')  # plot style
 
     homes = []
 
-    for hid in range(1, nb_homes + 1):
+    # for hid in range(1, nb_homes + 1):
+    for hid in home_ids:
         print("========================= HOME {} =====================".format(hid))
         home = Home(session, sensors, since, since_timing, indexes[hid], hid)
         homes.append(home)
@@ -466,15 +467,17 @@ def main():
 
     sensors, session, since_timing = getFluksoData(since=since)
 
-    nb_homes = len(set(sensors["home_ID"]))
+    home_ids = set(sensors["home_ID"])
+
+    nb_homes = len(home_ids)
     print("Homes : ", nb_homes)
 
-    indexes = getPhasesIndexes(sensors, nb_homes)
+    indexes = getPhasesIndexes(sensors, home_ids)
     print("indexes : ", indexes)
 
     # =========================================================
 
-    visualizeFluksoData(nb_homes, session, sensors, since, since_timing, indexes)
+    visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids)
     # visualizeFluksoData(1, session, sensors, since, since_timing, indexes)
     # identifyPhaseState(getProgDir(), nb_homes, session, sensors, since, since_timing, indexes)
 
