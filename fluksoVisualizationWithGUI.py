@@ -388,7 +388,25 @@ def getProgDir():
     return main_path
 
 
-def visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids):
+def saveFluksoData(homes):
+    for home in homes:
+        # filepath = "output/fluksoData/{}.csv".format(home.getHomeID())
+        power_df = home.getPowerDF()
+        cons_prod_df = home.getConsProdDF()
+
+        combined_df = power_df.join(cons_prod_df)
+
+        outname = home.getHomeID() + '.csv'
+        outdir = 'output/fluksoData/'
+        if not os.path.exists(outdir):
+            os.mkdir(outdir)
+
+        filepath = os.path.join(outdir, outname)
+
+        combined_df.to_csv(filepath)
+
+
+def visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids, save=False):
     plt.style.use('ggplot')  # plot style
 
     homes = []
@@ -398,6 +416,10 @@ def visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids
         print("========================= HOME {} =====================".format(hid))
         home = Home(session, sensors, since, since_timing, indexes[hid], hid)
         homes.append(home)
+
+    # save to csv
+    if save:
+        saveFluksoData(homes)
 
     # launch window with flukso visualization (using PYQT GUI)
     app = QtWidgets.QApplication(sys.argv)
@@ -477,7 +499,8 @@ def main():
 
     # =========================================================
 
-    visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids)
+    save = True
+    visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids, save)
     # visualizeFluksoData(1, session, sensors, since, since_timing, indexes)
     # identifyPhaseState(getProgDir(), nb_homes, session, sensors, since, since_timing, indexes)
 
