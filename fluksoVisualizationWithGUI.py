@@ -339,7 +339,8 @@ class Home:
     def appendFluksoData(self, power_df, home_id):
         print(len(self.power_df), len(power_df))
 
-        self.power_df = self.power_df.rename(self.getColNamesWithID(self.power_df, self.home_id), axis=1)
+        if not self.home_id in self.power_df.columns[0]:
+            self.power_df = self.power_df.rename(self.getColNamesWithID(self.power_df, self.home_id), axis=1)
         power_df = power_df.rename(self.getColNamesWithID(power_df, home_id), axis=1)
         print(self.power_df.head(2))
         print(power_df.head(2))
