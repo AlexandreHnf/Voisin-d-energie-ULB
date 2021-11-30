@@ -90,7 +90,7 @@ class Window(QtWidgets.QWidget):
         qscroll.setWidgetResizable(True)
         # ==========
 
-        self.plot1()
+        self.plot()
 
         self.qscrollContents.setLayout(self.qscrollLayout)
 
@@ -162,7 +162,7 @@ class Window(QtWidgets.QWidget):
         # negative (red)
         plt.fill_between(timestamps, p_tot, where=(p_tot < 0), color='g', alpha=0.3)
 
-        ax.set_title("Power consumption & production over time - home {0} - since {1}"
+        ax.set_title("Power consumption & production - home {0} - since {1}"
                      .format(home.getHomeID(), home.getSince()))
         ax.set_xlabel("Time (t)")
         ax.set_ylabel("Power (kiloWatts) - KW")
@@ -190,9 +190,11 @@ class Window(QtWidgets.QWidget):
 
         return vlayout
 
-    def plot1(self):
-        """ plot some random stuff """
-        # random data
+    def plot(self):
+        """
+        plot the 2 columns
+        | power over time | network consumption/injection |
+        """
 
         for home in self.homes:
             qfigWidget = QWidget(self.qscrollContents)
@@ -247,7 +249,8 @@ class Home:
     def getColumnsTotal(self):
         return self.power_df.sum(axis=0, numeric_only=True)
 
-    def energy2power(self, energy_df):
+    @staticmethod
+    def energy2power(energy_df):
         """
         from cumulative energy to power (Watt)
         """
@@ -272,13 +275,14 @@ class Home:
         data_dfs = []
 
         for id in self.home_sensors.sensor_id:
-            print("{} :".format(id))
+            # print("{} :".format(id))
             # print("- first timestamp : {}".format(self.session.first_timestamp(id)))
             # print("- last timestamp : {}".format(self.session.last_timestamp(id)))
 
             dff = self.session.series(id, head=self.since_timing)
             if len(dff.index) == 0:
                 dff = self.getZeroSeries()
+                print("--> zeros")
             data_dfs.append(dff)
 
         return data_dfs
@@ -291,7 +295,7 @@ class Home:
         data_dfs = self.createSeries()
         energy_df = pd.concat(data_dfs, axis=1)
         del data_dfs
-        print("nb index : ", len(energy_df.index))
+        # print("nb index : ", len(energy_df.index))
         energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
         energy_df.columns = self.home_sensors.index
         power_df = self.energy2power(energy_df)
@@ -301,9 +305,9 @@ class Home:
 
         power_df.fillna(0, inplace=True)
 
-        print("nb elements : ", len(power_df.index))
-        print("=======> 10 first elements : ")
-        print(power_df.head(10))
+        # print("nb elements : ", len(power_df.index))
+        # print("=======> 10 first elements : ")
+        # print(power_df.head(10))
 
         return power_df
 
@@ -312,20 +316,38 @@ class Home:
                                     self.power_df.index,
                                     ["P_cons", "P_prod", "P_tot"])
 
-        print(cons_prod_df.head(4))
+        # print(cons_prod_df.head(4))
 
         for i in range(len(self.indexes["+"])):
             cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + self.power_df[self.indexes["+"][i]]
             cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + self.power_df[self.indexes["-"][i]]
 
-        # TEST : TEMPORARY
-        # cons_prod_df["P_prod"] = [random.randint(-500, 500) for _ in range(len(cons_prod_df))]
-
         cons_prod_df["P_tot"] = cons_prod_df["P_cons"] - cons_prod_df["P_prod"]
-        print("after sums :")
-        print(cons_prod_df.head(4))
+        # print("after sums :")
+        # print(cons_prod_df.head(4))
 
         return cons_prod_df
+
+    def getColNamesWithID(self, df, home_id):
+        col_names = df.columns
+        new_col_names = {}
+        for col_name in col_names:
+            new_col_names[col_name] = "{}_{}".format(home_id, col_name)
+
+        return new_col_names
+
+    def appendFluksoData(self, power_df, home_id):
+        print(len(self.power_df), len(power_df))
+
+        self.power_df = self.power_df.rename(self.getColNamesWithID(self.power_df, self.home_id), axis=1)
+        power_df = power_df.rename(self.getColNamesWithID(power_df, home_id), axis=1)
+        print(self.power_df.head(2))
+        print(power_df.head(2))
+
+        self.power_df = self.power_df.join(power_df)
+
+    def addConsProd(self, cons_prod_df):
+        self.cons_prod_df = self.cons_prod_df.add(cons_prod_df, fill_value=0)
 
 
 # ====================================================================================
@@ -358,15 +380,15 @@ def getTiming(since):
     get the timestamp of the "since"
     ex : the timestamp 20 min ago
     """
-    print("since {}".format(since))
+    # print("since {}".format(since))
     if not since:
         since_timing = 0
     else:
         since_timing = pd.Timestamp.now(tz="UTC") - pd.Timedelta(since)
-        print("timing in sec : ", pd.Timedelta(since).total_seconds())
-        print("Since : ", since_timing, type(since_timing))
+        # print("timing in sec : ", pd.Timedelta(since).total_seconds())
+        # print("Since : ", since_timing, type(since_timing))
 
-    print("since timing : ", since_timing)
+    # print("since timing : ", since_timing)
     return since_timing
 
 
@@ -406,16 +428,27 @@ def saveFluksoData(homes):
         combined_df.to_csv(filepath)
 
 
-def visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids, save=False):
+def visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids, groups, save=False):
     plt.style.use('ggplot')  # plot style
 
-    homes = []
+    homes = {}
 
     # for hid in range(1, nb_homes + 1):
     for hid in home_ids:
         print("========================= HOME {} =====================".format(hid))
         home = Home(session, sensors, since, since_timing, indexes[hid], hid)
-        homes.append(home)
+        homes[hid] = home
+
+    grouped_homes = []
+    for i, group in enumerate(groups):  # group = tuple (home1, home2, ..)
+        print("========================= GROUP {} ====================".format(i))
+        home = homes[group[0]]
+        for j in range(1, len(group)):
+            home.appendFluksoData(homes[group[j]].getPowerDF(), homes[group[j]].getHomeID())
+            home.addConsProd(homes[group[j]].getConsProdDF())
+
+        print(home.getPowerDF().head(1))
+        grouped_homes.append(home)
 
     # save to csv
     if save:
@@ -424,7 +457,8 @@ def visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids
     # launch window with flukso visualization (using PYQT GUI)
     app = QtWidgets.QApplication(sys.argv)
     app.aboutToQuit.connect(app.deleteLater)
-    GUI = Window(homes)
+    GUI1 = Window(homes.values())
+    GUI2 = Window(grouped_homes)
     sys.exit(app.exec_())
 
 
@@ -487,10 +521,11 @@ def main():
     args = argparser.parse_args()
     since = args.since
 
+    # =========================================================
+
     sensors, session, since_timing = getFluksoData(since=since)
 
     home_ids = set(sensors["home_ID"])
-
     nb_homes = len(home_ids)
     print("Homes : ", nb_homes)
 
@@ -499,9 +534,11 @@ def main():
 
     # =========================================================
 
-    save = True
-    visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids, save)
+    save = False
+    groups = [("1", "Guillaume1"), ("CDB001", "CDB002", "CDB003")]
+    visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids, groups, save)
     # visualizeFluksoData(1, session, sensors, since, since_timing, indexes)
+
     # identifyPhaseState(getProgDir(), nb_homes, session, sensors, since, since_timing, indexes)
 
 
