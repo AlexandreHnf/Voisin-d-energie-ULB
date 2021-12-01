@@ -55,6 +55,7 @@ from matplotlib.lines import Line2D
 SENSOR_FILE = "sensors/sensors.csv"
 OUTPUT_FILE = "output/output.csv"
 UPDATED_SENSORS_FILE = "sensors/updated_sensors.csv"
+GROUPS_FILE = "sensors/grouped_homes_sensors.txt"
 FREQ = [8, "S"]  # 8 sec.
 
 
@@ -63,9 +64,10 @@ FREQ = [8, "S"]  # 8 sec.
 
 class Window(QtWidgets.QWidget):
 
-    def __init__(self, homes):
+    def __init__(self, homes, window_name):
         super(Window, self).__init__()
 
+        self.window_name = window_name
         self.homes = homes
 
         self.initUI()
@@ -73,7 +75,7 @@ class Window(QtWidgets.QWidget):
     def initUI(self):
         self.setGeometry(1000, 1000, 1000, 1000)
         self.center()
-        self.setWindowTitle('Flukso visualization')
+        self.setWindowTitle(self.window_name)
 
         # ==========
         qlayout = QHBoxLayout(self)
@@ -239,6 +241,9 @@ class Home:
 
     def getHomeID(self):
         return self.home_id
+
+    def setHomeID(self, hid):
+        self.home_id = hid
 
     def getSince(self):
         return self.since
@@ -442,11 +447,12 @@ def visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids
 
     grouped_homes = []
     for i, group in enumerate(groups):  # group = tuple (home1, home2, ..)
-        print("========================= GROUP {} ====================".format(i))
+        print("========================= GROUP {} ====================".format(i+1))
         home = homes[group[0]]
         for j in range(1, len(group)):
             home.appendFluksoData(homes[group[j]].getPowerDF(), homes[group[j]].getHomeID())
             home.addConsProd(homes[group[j]].getConsProdDF())
+        home.setHomeID("group_"+str(i+1))
 
         print(home.getPowerDF().head(1))
         grouped_homes.append(home)
@@ -458,8 +464,8 @@ def visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids
     # launch window with flukso visualization (using PYQT GUI)
     app = QtWidgets.QApplication(sys.argv)
     app.aboutToQuit.connect(app.deleteLater)
-    GUI1 = Window(homes.values())
-    GUI2 = Window(grouped_homes)
+    GUI1 = Window(homes.values(), 'Flukso visualization')
+    GUI2 = Window(grouped_homes, 'Group Flukso visualization')
     sys.exit(app.exec_())
 
 
@@ -508,6 +514,19 @@ def getFluksoData(path="", since=""):
     return sensors, session, since_timing
 
 
+def getFLuksoGroups():
+    """
+    Groups format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
+    """
+    groups = []
+    with open(GROUPS_FILE) as f:
+        lines = f.readlines()
+        for line in lines:
+            groups.append(line.strip().split(","))
+
+    return groups
+
+
 def main():
     # TODO : add argument for choosing between different features (visualizeFluksoData, identifyPhaseState)
     argparser = argparse.ArgumentParser(
@@ -536,7 +555,8 @@ def main():
     # =========================================================
 
     save = False
-    groups = [("1", "Guillaume1"), ("CDB001", "CDB002", "CDB003")]
+    groups = getFLuksoGroups()
+    print("groups : ", groups)
     visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids, groups, save)
     # visualizeFluksoData(1, session, sensors, since, since_timing, indexes)
 
