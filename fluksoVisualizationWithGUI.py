@@ -36,6 +36,17 @@ import tmpo
 import random
 import matplotlib.pyplot as plt
 
+# Hide warnings :
+import matplotlib as mpl
+import urllib3
+import warnings
+# max open warning
+mpl.rc('figure', max_open_warning=0)
+
+# security warning & Future warning
+warnings.simplefilter('ignore', urllib3.exceptions.SecurityWarning)
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 # PYQT
 from PyQt5.QtCore import QRect
 from PyQt5 import QtGui, QtWidgets
@@ -434,9 +445,7 @@ def saveFluksoData(homes):
         combined_df.to_csv(filepath)
 
 
-def visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids, groups, save=False):
-    plt.style.use('ggplot')  # plot style
-
+def generateHomes(session, sensors, since, since_timing, indexes, home_ids):
     homes = {}
 
     # for hid in range(1, nb_homes + 1):
@@ -445,17 +454,27 @@ def visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids
         home = Home(session, sensors, since, since_timing, indexes[hid], hid)
         homes[hid] = home
 
+    return homes
+
+
+def generateGroupedHomes(homes, groups):
     grouped_homes = []
     for i, group in enumerate(groups):  # group = tuple (home1, home2, ..)
-        print("========================= GROUP {} ====================".format(i+1))
+        print("========================= GROUP {} ====================".format(i + 1))
         home = homes[group[0]]
         for j in range(1, len(group)):
             home.appendFluksoData(homes[group[j]].getPowerDF(), homes[group[j]].getHomeID())
             home.addConsProd(homes[group[j]].getConsProdDF())
-        home.setHomeID("group_"+str(i+1))
+        home.setHomeID("group_" + str(i + 1))
 
         print(home.getPowerDF().head(1))
         grouped_homes.append(home)
+
+    return grouped_homes
+
+
+def visualizeFluksoData(homes, grouped_homes, save=False):
+    plt.style.use('ggplot')  # plot style
 
     # save to csv
     if save:
@@ -547,7 +566,8 @@ def main():
 
     home_ids = set(sensors["home_ID"])
     nb_homes = len(home_ids)
-    print("Homes : ", nb_homes)
+    print("Number of Homes : ", nb_homes)
+    print("Number of Fluksos : ", len(sensors))
 
     indexes = getPhasesIndexes(sensors, home_ids)
     print("indexes : ", indexes)
@@ -557,8 +577,9 @@ def main():
     save = False
     groups = getFLuksoGroups()
     print("groups : ", groups)
-    visualizeFluksoData(session, sensors, since, since_timing, indexes, home_ids, groups, save)
-    # visualizeFluksoData(1, session, sensors, since, since_timing, indexes)
+    homes = generateHomes(session, sensors, since, since_timing, indexes, home_ids)
+    grouped_homes = generateGroupedHomes(homes, groups)
+    visualizeFluksoData(homes, grouped_homes, save)
 
     # identifyPhaseState(getProgDir(), nb_homes, session, sensors, since, since_timing, indexes)
 
