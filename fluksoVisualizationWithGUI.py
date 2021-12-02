@@ -30,6 +30,7 @@ import argparse
 import os
 import sys
 
+import copy
 import pandas as pd
 import numpy as np
 import tmpo
@@ -40,6 +41,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import urllib3
 import warnings
+
 # max open warning
 mpl.rc('figure', max_open_warning=0)
 
@@ -60,7 +62,6 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 
 from matplotlib.lines import Line2D
-
 
 # constants
 SENSOR_FILE = "sensors/sensors.csv"
@@ -256,6 +257,9 @@ class Home:
     def setHomeID(self, hid):
         self.home_id = hid
 
+    def getNbFluksoSensors(self):
+        return len(self.power_df.columns)
+
     def getSince(self):
         return self.since
 
@@ -445,7 +449,10 @@ def saveFluksoData(homes):
         combined_df.to_csv(filepath)
 
 
-def generateHomes(session, sensors, since, since_timing, indexes, home_ids):
+def generateHomes(session, sensors, since, since_timing, home_ids):
+    indexes = getPhasesIndexes(sensors, home_ids)
+    print("indexes : ", indexes)
+
     homes = {}
 
     # for hid in range(1, nb_homes + 1):
@@ -461,7 +468,7 @@ def generateGroupedHomes(homes, groups):
     grouped_homes = []
     for i, group in enumerate(groups):  # group = tuple (home1, home2, ..)
         print("========================= GROUP {} ====================".format(i + 1))
-        home = homes[group[0]]
+        home = copy.copy(homes[group[0]])
         for j in range(1, len(group)):
             home.appendFluksoData(homes[group[j]].getPowerDF(), homes[group[j]].getHomeID())
             home.addConsProd(homes[group[j]].getConsProdDF())
@@ -473,12 +480,8 @@ def generateGroupedHomes(homes, groups):
     return grouped_homes
 
 
-def visualizeFluksoData(homes, grouped_homes, save=False):
+def visualizeFluksoData(homes, grouped_homes):
     plt.style.use('ggplot')  # plot style
-
-    # save to csv
-    if save:
-        saveFluksoData(homes)
 
     # launch window with flukso visualization (using PYQT GUI)
     app = QtWidgets.QApplication(sys.argv)
@@ -559,6 +562,7 @@ def main():
 
     args = argparser.parse_args()
     since = args.since
+    print("since : ", since)
 
     # =========================================================
 
@@ -569,17 +573,16 @@ def main():
     print("Number of Homes : ", nb_homes)
     print("Number of Fluksos : ", len(sensors))
 
-    indexes = getPhasesIndexes(sensors, home_ids)
-    print("indexes : ", indexes)
-
     # =========================================================
 
-    save = False
     groups = getFLuksoGroups()
     print("groups : ", groups)
-    homes = generateHomes(session, sensors, since, since_timing, indexes, home_ids)
+    homes = generateHomes(session, sensors, since, since_timing, home_ids)
     grouped_homes = generateGroupedHomes(homes, groups)
-    visualizeFluksoData(homes, grouped_homes, save)
+    print(len(homes), len(grouped_homes))
+    visualizeFluksoData(homes, grouped_homes)
+
+    # saveFluksoData(homes)
 
     # identifyPhaseState(getProgDir(), nb_homes, session, sensors, since, since_timing, indexes)
 
