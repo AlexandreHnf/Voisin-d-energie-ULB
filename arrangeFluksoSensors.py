@@ -2,8 +2,7 @@ import pandas as pd
 import numpy as np
 
 START_ID = 4
-SENSOR_FILE = "sensors/FluksoTechnical.csv"
-SENSOR_FLUKSO_FILE = "sensors/FluksoTechnical_Flukso.csv"
+FLUKSO_TECHNICAL_FILE = "sensors/FluksoTechnical.xlsx"
 COMPACT_SENSOR_FILE = "sensors/sensors_technical.csv"
 
 
@@ -16,8 +15,8 @@ def getHomeIDcolumn(flukso_ids, home_ids):
     return home_ids_col
 
 
-def getInstallationsIds(flukso_ids):
-    installation_ids_df = pd.read_csv(SENSOR_FLUKSO_FILE)
+def getInstallationsIds(flukso_ids, installation_ids_df):
+    # installation_ids_df = pd.read_csv(SENSOR_FLUKSO_FILE)
     fluksos = {}
 
     for i in range(len(installation_ids_df)):
@@ -73,7 +72,8 @@ def getStateFromPhase(phase_names):
 
 
 def getCompactSensorDF():
-    sensors_df = pd.read_csv(SENSOR_FILE, header=0, index_col=1)
+    # sensors_df = pd.read_csv(SENSOR_FILE, header=0, index_col=1)
+    sensors_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Sensors")
     compact_df = pd.DataFrame(columns=["home_ID",
                                        "phase",
                                        "flukso_id",
@@ -87,7 +87,8 @@ def getCompactSensorDF():
     compact_df["token"] = sensors_df["Token"]
 
     # home_ids = getHomeIDs()
-    installation_ids_col = getInstallationsIds(sensors_df["FlmId"])
+    installation_ids_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Flukso")
+    installation_ids_col = getInstallationsIds(sensors_df["FlmId"], installation_ids_df)
     compact_df["home_ID"] = installation_ids_col
     # home_ids_col = getHomeIDcolumn(sensors_df["FlmId"], home_ids)
     # compact_df["home_ID"] = home_ids_col
