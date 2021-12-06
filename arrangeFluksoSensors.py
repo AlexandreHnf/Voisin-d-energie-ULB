@@ -4,6 +4,7 @@ import numpy as np
 START_ID = 4
 FLUKSO_TECHNICAL_FILE = "sensors/FluksoTechnical.xlsx"
 COMPACT_SENSOR_FILE = "sensors/sensors_technical.csv"
+GROUPS_FILE = "sensors/grouped_homes_sensors.txt"
 
 
 def getHomeIDcolumn(flukso_ids, home_ids):
@@ -15,8 +16,7 @@ def getHomeIDcolumn(flukso_ids, home_ids):
     return home_ids_col
 
 
-def getInstallationsIds(flukso_ids, installation_ids_df):
-    # installation_ids_df = pd.read_csv(SENSOR_FLUKSO_FILE)
+def getFluksosDic(installation_ids_df):
     fluksos = {}
 
     for i in range(len(installation_ids_df)):
@@ -25,14 +25,20 @@ def getInstallationsIds(flukso_ids, installation_ids_df):
         FluksoId = installation_ids_df["FluksoId"][i]
         print(FlmId, installation_id, FluksoId)
 
-        if str(FlmId) == "nan":
-            FlmId = FluksoId
+        # if str(FlmId) == "nan":
+        #     FlmId = FluksoId
 
         fluksos[FlmId] = installation_id
 
+    print(fluksos)
+    return fluksos
+
+
+def getInstallationsIds(flukso_ids, fluksos):
     installation_id_col = []
     for fi in flukso_ids:
         installation_id_col.append(fluksos[fi])
+
     return installation_id_col
 
 
@@ -88,7 +94,8 @@ def getCompactSensorDF():
 
     # home_ids = getHomeIDs()
     installation_ids_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Flukso")
-    installation_ids_col = getInstallationsIds(sensors_df["FlmId"], installation_ids_df)
+    fluksos = getFluksosDic(installation_ids_df)
+    installation_ids_col = getInstallationsIds(sensors_df["FlmId"], fluksos)
     compact_df["home_ID"] = installation_ids_col
     # home_ids_col = getHomeIDcolumn(sensors_df["FlmId"], home_ids)
     # compact_df["home_ID"] = home_ids_col
@@ -103,16 +110,37 @@ def getCompactSensorDF():
     return compact_df
 
 
+def getGroups():
+    installation_ids_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Flukso")
+    available_fluksos = set(pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Sensors")["FlmId"])
+    fluksos = getFluksosDic(installation_ids_df)
+
+    groups_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Groups")
+    nb_groups = len(set(groups_df["GroupId"]))
+
+    with open(GROUPS_FILE, "w") as gf:
+        for i in range(nb_groups):
+            group = ""
+            grp_df = groups_df.loc[groups_df["GroupId"] == i+1]
+            for flukso in grp_df["FlmId"]:
+                if flukso in available_fluksos:
+                    install_id = fluksos[flukso]
+                    print(flukso, install_id)
+                    if install_id not in group:
+                        group += install_id + ","
+
+            gf.write(group[:-1] + "\n")
+
 def saveToCsv(df):
     df.to_csv(COMPACT_SENSOR_FILE, index=None, header=True)
 
 
 def main():
-    compact_df = getCompactSensorDF()
+    # compact_df = getCompactSensorDF()
 
-    saveToCsv(compact_df)
+    # saveToCsv(compact_df)
 
-
+    getGroups()
 
 if __name__ == "__main__":
     main()
