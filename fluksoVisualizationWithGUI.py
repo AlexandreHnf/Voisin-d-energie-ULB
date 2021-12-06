@@ -284,11 +284,11 @@ class Home:
         return power_df
 
     def getZeroSeries(self):
-        print("==>", self.since)
-        if self.since[0] == "s":
-            period = (pd.Timestamp.now(tz="UTC") - self.since_timing).total_seconds() / FREQ[0]
-        else:
-            period = pd.Timedelta(self.since).total_seconds() / FREQ[0]
+        to = pd.Timestamp.now(tz="UTC")
+        if self.to_timing != 0:
+            to = self.to_timing
+
+        period = (to - self.since_timing).total_seconds() / FREQ[0]
         zeros = pd.date_range(self.since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
         # print("datetime range : ", zeros)
         zeros_series = pd.Series(int(period) * [0], zeros)
