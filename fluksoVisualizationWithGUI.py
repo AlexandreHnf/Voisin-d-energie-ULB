@@ -234,11 +234,12 @@ class Window(QtWidgets.QWidget):
 
 class Home:
 
-    def __init__(self, session, sensors, since, since_timing, indexes, home_id):
+    def __init__(self, session, sensors, since, since_timing, to_timing, indexes, home_id):
         self.session = session
         self.home_sensors = sensors.loc[sensors["home_ID"] == home_id]
         self.since = since
         self.since_timing = since_timing
+        self.to_timing = to_timing
         self.indexes = indexes
         self.home_id = home_id
 
@@ -266,6 +267,9 @@ class Home:
     def getSinceTiming(self):
         return self.since_timing
 
+    def getToTiming(self):
+        return self.to_timing
+
     def getColumnsTotal(self):
         return self.power_df.sum(axis=0, numeric_only=True)
 
@@ -280,7 +284,11 @@ class Home:
         return power_df
 
     def getZeroSeries(self):
-        period = pd.Timedelta(self.since).total_seconds() / FREQ[0]
+        print("==>", self.since)
+        if self.since[0] == "s":
+            period = (pd.Timestamp.now(tz="UTC") - self.since_timing).total_seconds() / FREQ[0]
+        else:
+            period = pd.Timedelta(self.since).total_seconds() / FREQ[0]
         zeros = pd.date_range(self.since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
         # print("datetime range : ", zeros)
         zeros_series = pd.Series(int(period) * [0], zeros)
@@ -299,7 +307,10 @@ class Home:
             # print("- first timestamp : {}".format(self.session.first_timestamp(id)))
             # print("- last timestamp : {}".format(self.session.last_timestamp(id)))
 
-            dff = self.session.series(id, head=self.since_timing)
+            if self.to_timing == 0:
+                dff = self.session.series(id, head=self.since_timing)
+            else:
+                dff = self.session.series(id, head=self.since_timing, tail=self.to_timing)
             if len(dff.index) == 0:
                 dff = self.getZeroSeries()
                 print("--> zeros")
@@ -396,21 +407,23 @@ def getLocalTimestampsIndex(power_df):
         return power_df.index.tz_convert("CET")
 
 
-def getTiming(since):
+def getTiming(t):
     """
     get the timestamp of the "since"
     ex : the timestamp 20 min ago
     """
     # print("since {}".format(since))
-    if not since:
-        since_timing = 0
-    else:
-        since_timing = pd.Timestamp.now(tz="UTC") - pd.Timedelta(since)
-        # print("timing in sec : ", pd.Timedelta(since).total_seconds())
-        # print("Since : ", since_timing, type(since_timing))
+    timing = 0
+    if t:
+        if t[0] == "s":
+            e = t[1:].split("-")
+            timing = pd.Timestamp(year=int(e[0]), month=int(e[1]), day=int(e[2]),
+                                  hour=int(e[3]), minute=int(e[4]), tz="UTC")
+        else:
+            timing = pd.Timestamp.now(tz="UTC") - pd.Timedelta(t)
 
-    # print("since timing : ", since_timing)
-    return since_timing
+    print("timing : ", timing)
+    return timing
 
 
 def getPhasesIndexes(sensors, home_ids):
@@ -449,7 +462,7 @@ def saveFluksoData(homes):
         combined_df.to_csv(filepath)
 
 
-def generateHomes(session, sensors, since, since_timing, home_ids):
+def generateHomes(session, sensors, since, since_timing, to_timing, home_ids):
     indexes = getPhasesIndexes(sensors, home_ids)
     print("indexes : ", indexes)
 
@@ -458,7 +471,7 @@ def generateHomes(session, sensors, since, since_timing, home_ids):
     # for hid in range(1, nb_homes + 1):
     for hid in home_ids:
         print("========================= HOME {} =====================".format(hid))
-        home = Home(session, sensors, since, since_timing, indexes[hid], hid)
+        home = Home(session, sensors, since, since_timing, to_timing, indexes[hid], hid)
         homes[hid] = home
 
     return homes
@@ -516,14 +529,12 @@ def identifyPhaseState(path, nb_homes, session, sensors, since, since_timing, in
     updated_sensors_states.to_csv(path + UPDATED_SENSORS_FILE)
 
 
-def getFluksoData(path="", since=""):
+def getFluksoData(path=""):
     """
     get Flukso data (via API) then visualize the data
     """
     if not path:
         path = getProgDir()
-
-    since_timing = getTiming(since)
 
     sensors = read_sensor_info(path)
     print(sensors.head(5))
@@ -533,7 +544,7 @@ def getFluksoData(path="", since=""):
 
     session.sync()
 
-    return sensors, session, since_timing
+    return sensors, session
 
 
 def getFLuksoGroups():
@@ -558,15 +569,31 @@ def main():
     argparser.add_argument("--since",
                            type=str,
                            default="",
-                           help="Period to query until now, e.g. '30days', '1hours', '20min' etc. Defaults to all data.")
+                           help="Period to query until now, e.g. "
+                                "'30days', "
+                                "'1hours', "
+                                "'20min',"
+                                "'s2021-12-06-16-30-00', etc. Defaults to all data.")
+
+    argparser.add_argument("--to",
+                           type=str,
+                           default="",
+                           help="Query a defined interval, e.g. "
+                                "'2021-10-29-00-00-00>2021-10-29-23-59-52'")
 
     args = argparser.parse_args()
     since = args.since
     print("since : ", since)
 
+    to = args.to
+    print("to: ", to)
+
+
     # =========================================================
 
-    sensors, session, since_timing = getFluksoData(since=since)
+    start_timing = getTiming(since)
+    to_timing = getTiming(to)
+    sensors, session = getFluksoData()
 
     home_ids = set(sensors["home_ID"])
     nb_homes = len(home_ids)
@@ -577,15 +604,17 @@ def main():
 
     groups = getFLuksoGroups()
     print("groups : ", groups)
-    homes = generateHomes(session, sensors, since, since_timing, home_ids)
+    homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids)
     grouped_homes = generateGroupedHomes(homes, groups)
     print(len(homes), len(grouped_homes))
     visualizeFluksoData(homes, grouped_homes)
+
 
     # saveFluksoData(homes)
 
     # identifyPhaseState(getProgDir(), nb_homes, session, sensors, since, since_timing, indexes)
 
+    # 29-10-2021 : --since s2021-10-29-00-00-00 --to s2021-10-29-23-59-52
 
 if __name__ == "__main__":
     main()
