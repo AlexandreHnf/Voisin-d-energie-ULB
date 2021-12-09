@@ -65,7 +65,7 @@ from matplotlib.lines import Line2D
 
 # constants
 SENSOR_FILE = "sensors/sensors.csv"
-OUTPUT_FILE = "output/output.csv"
+OUTPUT_FILE = 'output/fluksoData/'
 UPDATED_SENSORS_FILE = "sensors/updated_sensors.csv"
 GROUPS_FILE = "sensors/grouped_homes_sensors.txt"
 FREQ = [8, "S"]  # 8 sec.
@@ -445,6 +445,7 @@ def getProgDir():
 
 
 def saveFluksoData(homes):
+    print("saving...")
     for home in homes:
         # filepath = "output/fluksoData/{}.csv".format(home.getHomeID())
         power_df = home.getPowerDF()
@@ -453,13 +454,15 @@ def saveFluksoData(homes):
         combined_df = power_df.join(cons_prod_df)
 
         outname = home.getHomeID() + '.csv'
-        outdir = 'output/fluksoData/'
+        outdir = OUTPUT_FILE
         if not os.path.exists(outdir):
             os.mkdir(outdir)
 
         filepath = os.path.join(outdir, outname)
 
         combined_df.to_csv(filepath)
+
+    print("Successfully Saved")
 
 
 def generateHomes(session, sensors, since, since_timing, to_timing, home_ids):
@@ -494,6 +497,7 @@ def generateGroupedHomes(homes, groups):
 
 
 def visualizeFluksoData(homes, grouped_homes):
+    print(homes)
     plt.style.use('ggplot')  # plot style
 
     # launch window with flukso visualization (using PYQT GUI)
@@ -502,6 +506,7 @@ def visualizeFluksoData(homes, grouped_homes):
     GUI1 = Window(homes.values(), 'Flukso visualization')
     GUI2 = Window(grouped_homes, 'Group Flukso visualization')
     sys.exit(app.exec_())
+    # app.exec_()
 
 
 def identifyPhaseState(path, nb_homes, session, sensors, since, since_timing, indexes):
@@ -588,7 +593,6 @@ def main():
     to = args.to
     print("to: ", to)
 
-
     # =========================================================
 
     start_timing = getTiming(since)
@@ -606,15 +610,19 @@ def main():
     print("groups : ", groups)
     homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids)
     grouped_homes = generateGroupedHomes(homes, groups)
-    print(len(homes), len(grouped_homes))
+
+    saveFluksoData(homes.values())
+    saveFluksoData(grouped_homes)
+
     visualizeFluksoData(homes, grouped_homes)
 
 
-    # saveFluksoData(homes)
 
     # identifyPhaseState(getProgDir(), nb_homes, session, sensors, since, since_timing, indexes)
 
-    # 29-10-2021 : --since s2021-10-29-00-00-00 --to s2021-10-29-23-59-52
+    # 29-10-2021 from Midnight to midnight (-2 for the UTC timestamps) :
+    # --since s2021-10-28-22-00-00 --to s2021-10-29-22-00-00
+
 
 if __name__ == "__main__":
     main()

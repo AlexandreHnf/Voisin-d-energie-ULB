@@ -2,6 +2,7 @@ import fluksoVisualizationWithGUI as fv
 import os
 import json
 
+OUTPUT_SIZE_PATH = "output/sizes/"
 
 def showSize(fsize):
     b = fsize
@@ -51,7 +52,7 @@ def estimate(since):
 
     print(sizes)
 
-    toJson(sizes, "output/fluksoData/sizes_{}.json".format(since))
+    toJson(sizes, OUTPUT_SIZE_PATH + "sizes_{}.json".format(since))
 
     return sizes
 
