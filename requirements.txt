@@ -3,3 +3,8 @@ pandas
 tmpo
 matplotlib
 PyQt5
+nodejs
+npm
+express
+cassandra-driver
+cassandra
