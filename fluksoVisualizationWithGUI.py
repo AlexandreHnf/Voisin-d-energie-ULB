@@ -132,7 +132,7 @@ class Window(QtWidgets.QWidget):
         ax.set_title('Electricity consumption over time - home {0} - since {1}'
                      .format(home.getHomeID(), home.getSince()))
         ax.set_xlabel("Time (t)")
-        ax.set_ylabel("Power (kiloWatts) - KW")
+        ax.set_ylabel("Power (Watts) - W")
         ax.legend(loc="upper right", fancybox=True)
         canvas.resize(400, 400)
 
@@ -171,10 +171,13 @@ class Window(QtWidgets.QWidget):
         timestamps = cons_prod_df.index
         p_tot = cons_prod_df["P_tot"]
 
+        # '#377eb8', '#ff7f00', '#4daf4a',
+        #                   '#f781bf', '#a65628', '#984ea3',
+        #                   '#999999', '#e41a1c', '#dede00'
         # positive (green)
-        plt.fill_between(timestamps, p_tot, where=(p_tot > 0), color='r', alpha=0.3)
+        plt.fill_between(timestamps, p_tot, where=(p_tot > 0), color='#4daf4a', alpha=0.3)
         # negative (red)
-        plt.fill_between(timestamps, p_tot, where=(p_tot < 0), color='g', alpha=0.3)
+        plt.fill_between(timestamps, p_tot, where=(p_tot < 0), color='#e41a1c', alpha=0.3)
 
         ax.set_title("Power consumption & production - home {0} - since {1}"
                      .format(home.getHomeID(), home.getSince()))
@@ -499,6 +502,7 @@ def generateGroupedHomes(homes, groups):
 def visualizeFluksoData(homes, grouped_homes):
     print(homes)
     plt.style.use('ggplot')  # plot style
+    plt.style.use("tableau-colorblind10")
 
     # launch window with flukso visualization (using PYQT GUI)
     app = QtWidgets.QApplication(sys.argv)
