@@ -177,7 +177,7 @@ class Window(QtWidgets.QWidget):
         # positive (green)
         plt.fill_between(timestamps, p_tot, where=(p_tot > 0), color='#4daf4a', alpha=0.3)
         # negative (red)
-        plt.fill_between(timestamps, p_tot, where=(p_tot < 0), color='#e41a1c', alpha=0.3)
+        plt.fill_between(timestamps, p_tot, where=(p_tot < 0), color='#dede00', alpha=0.3)
 
         ax.set_title("Power consumption & production - home {0} - since {1}"
                      .format(home.getHomeID(), home.getSince()))
@@ -186,7 +186,7 @@ class Window(QtWidgets.QWidget):
 
         # custom legend for injection and taking (prélèvement)
         custom_lines = [Line2D([0], [0], color="salmon", lw=4),
-                        Line2D([0], [0], color="limegreen", lw=4)]
+                        Line2D([0], [0], color="yellow", lw=4)]
 
         legend1 = ax.legend(loc="upper right", fancybox=True, framealpha=0.4)
         legend2 = ax.legend(handles=custom_lines, labels=["Prélèvement", "Injection"],
