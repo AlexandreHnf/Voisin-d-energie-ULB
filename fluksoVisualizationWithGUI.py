@@ -172,9 +172,9 @@ class Window(QtWidgets.QWidget):
         timestamps = cons_prod_df.index
         p_tot = cons_prod_df["P_tot"]
 
-        # '#377eb8', '#ff7f00', '#4daf4a',
-        #                   '#f781bf', '#a65628', '#984ea3',
-        #                   '#999999', '#e41a1c', '#dede00'
+        # daltonian colors :
+        # '#377eb8','#ff7f00','#4daf4a','#f781bf','#a65628','#984ea3','#999999','#e41a1c','#dede00'
+
         # positive (light green)
         plt.fill_between(timestamps, p_tot, where=(p_tot > 0), color='#4daf4a', alpha=0.3)
         # negative (yellow)
