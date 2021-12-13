@@ -78,6 +78,10 @@ def getStateFromPhase(phase_names):
 
 
 def getCompactSensorDF():
+    """
+    read the excel sheet containing the flukso ids, the sensors ids, the tokens
+    and compact them into a simpler usable csv file
+    """
     # sensors_df = pd.read_csv(SENSOR_FILE, header=0, index_col=1)
     sensors_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Sensors")
     compact_df = pd.DataFrame(columns=["home_ID",
@@ -97,8 +101,6 @@ def getCompactSensorDF():
     fluksos = getFluksosDic(installation_ids_df)
     installation_ids_col = getInstallationsIds(sensors_df["FlmId"], fluksos)
     compact_df["home_ID"] = installation_ids_col
-    # home_ids_col = getHomeIDcolumn(sensors_df["FlmId"], home_ids)
-    # compact_df["home_ID"] = home_ids_col
 
     states = getStateFromPhase(compact_df["phase"])
     compact_df["state"] = states
@@ -110,7 +112,10 @@ def getCompactSensorDF():
     return compact_df
 
 
-def getGroups():
+def getGroupsFromFluksoIDs():
+    """
+    get the list of installations IDs based on the flukso sensors ID of a group
+    """
     installation_ids_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Flukso")
     available_fluksos = set(pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Sensors")["FlmId"])
     fluksos = getFluksosDic(installation_ids_df)
@@ -121,7 +126,7 @@ def getGroups():
     with open(GROUPS_FILE, "w") as gf:
         for i in range(nb_groups):
             group = ""
-            grp_df = groups_df.loc[groups_df["GroupId"] == i+1]
+            grp_df = groups_df.loc[groups_df["GroupId"] == i+1]  # get group i
             for flukso in grp_df["FlmId"]:
                 if flukso in available_fluksos:
                     install_id = fluksos[flukso]
@@ -129,7 +134,29 @@ def getGroups():
                     if install_id not in group:
                         group += install_id + ","
 
-            gf.write(group[:-1] + "\n")
+            gf.write(group[:-1] + "\n")  # -1 to remove the last ","
+
+
+def getGroupsFromInstallationsIds():
+    """
+    get the list of installations IDs from the excel file and save them into a simple
+    csv file
+    1 row = all the installations ids of a group
+    """
+    groups_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Groups")
+    nb_groups = len(set(groups_df["GroupId"]))
+
+    with open(GROUPS_FILE, "w") as gf:
+        for i in range(nb_groups):
+            group = ""
+            grp_df = groups_df.loc[groups_df["GroupId"] == i+1]  # get group i
+            for install_id in grp_df["InstalationId"]:
+                if install_id not in group:
+                    group += install_id + ","
+
+            print(group[:-1])
+            # gf.write(group[:-1] + "\n")  # -1 to remove the last ","
+
 
 def saveToCsv(df):
     df.to_csv(COMPACT_SENSOR_FILE, index=None, header=True)
@@ -137,10 +164,10 @@ def saveToCsv(df):
 
 def main():
     # compact_df = getCompactSensorDF()
-
     # saveToCsv(compact_df)
 
-    getGroups()
+    getGroupsFromFluksoIDs()
+
 
 if __name__ == "__main__":
     main()
