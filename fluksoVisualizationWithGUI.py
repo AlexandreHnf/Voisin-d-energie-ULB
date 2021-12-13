@@ -174,9 +174,9 @@ class Window(QtWidgets.QWidget):
         # '#377eb8', '#ff7f00', '#4daf4a',
         #                   '#f781bf', '#a65628', '#984ea3',
         #                   '#999999', '#e41a1c', '#dede00'
-        # positive (green)
+        # positive (light green)
         plt.fill_between(timestamps, p_tot, where=(p_tot > 0), color='#4daf4a', alpha=0.3)
-        # negative (red)
+        # negative (yellow)
         plt.fill_between(timestamps, p_tot, where=(p_tot < 0), color='#dede00', alpha=0.3)
 
         ax.set_title("Power consumption & production - home {0} - since {1}"
@@ -185,11 +185,11 @@ class Window(QtWidgets.QWidget):
         ax.set_ylabel("Power (kiloWatts) - KW")
 
         # custom legend for injection and taking (prélèvement)
-        custom_lines = [Line2D([0], [0], color="salmon", lw=4),
-                        Line2D([0], [0], color="yellow", lw=4)]
+        custom_lines = [Line2D([0], [0], color="#4daf4a", lw=4),
+                        Line2D([0], [0], color="#dede00", lw=4)]
 
         legend1 = ax.legend(loc="upper right", fancybox=True, framealpha=0.4)
-        legend2 = ax.legend(handles=custom_lines, labels=["Prélèvement", "Injection"],
+        legend2 = ax.legend(handles=custom_lines, labels=["Injection", "Prélèvement"],
                             loc=4, fancybox=True, framealpha=0.4)
         plt.gca().add_artist(legend1)
         plt.gca().add_artist(legend2)
@@ -354,6 +354,7 @@ class Home:
 
         for i in range(len(self.indexes["+"])):
             cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + self.power_df[self.indexes["+"][i]]
+        for i in range(len(self.indexes["-"])):
             cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + self.power_df[self.indexes["-"][i]]
 
         cons_prod_df["P_tot"] = cons_prod_df["P_cons"] - cons_prod_df["P_prod"]
@@ -513,12 +514,14 @@ def visualizeFluksoData(homes, grouped_homes):
     # app.exec_()
 
 
-def identifyPhaseState(path, nb_homes, session, sensors, since, since_timing, indexes):
+def identifyPhaseState(path, home_ids, session, sensors, since, since_timing, to_timing):
     states_df = pd.DataFrame(columns=["tot_power", "state"])
+    indexes = getPhasesIndexes(sensors, home_ids)
 
-    for hid in range(1, nb_homes + 1):
+    for hid in home_ids:
         col_names = indexes[hid]["+"] + indexes[hid]["-"]
-        home = Home(session, sensors, since, since_timing, indexes[hid], hid)
+        # session, sensors, since, since_timing, to_timing, indexes, home_id
+        home = Home(session, sensors, since, since_timing, to_timing, indexes[hid], hid)
         sums = home.getColumnsTotal()
         sums = sums.to_frame()  # to dataframe
         sums.columns = ["tot_power"]
@@ -620,9 +623,7 @@ def main():
 
     visualizeFluksoData(homes, grouped_homes)
 
-
-
-    # identifyPhaseState(getProgDir(), nb_homes, session, sensors, since, since_timing, indexes)
+    # identifyPhaseState(getProgDir(), home_ids, session, sensors, "", 0, 0)
 
     # 29-10-2021 from Midnight to midnight (-2 for the UTC timestamps) :
     # --since s2021-10-28-22-00-00 --to s2021-10-29-22-00-00

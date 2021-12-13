@@ -23,10 +23,10 @@ def getFluksosDic(installation_ids_df):
         FlmId = installation_ids_df["FlmId"][i]
         installation_id = installation_ids_df["InstallationId"][i]
         FluksoId = installation_ids_df["FluksoId"][i]
-        print(FlmId, installation_id, FluksoId)
+        print(FlmId, installation_id)
 
-        # if str(FlmId) == "nan":
-        #     FlmId = FluksoId
+        if str(FlmId) == "nan":
+            FlmId = FluksoId
 
         fluksos[FlmId] = installation_id
 
@@ -77,6 +77,21 @@ def getStateFromPhase(phase_names):
     return states
 
 
+def getState(cons, prod):
+    states = []
+    for i in range(len(cons)):
+        if str(prod[i]) != "nan":
+            states.append("-")
+        else:
+            states.append("+")
+        print(cons[i], prod[i])
+
+    print(states)
+
+    return states
+
+
+
 def getCompactSensorDF():
     """
     read the excel sheet containing the flukso ids, the sensors ids, the tokens
@@ -102,12 +117,13 @@ def getCompactSensorDF():
     installation_ids_col = getInstallationsIds(sensors_df["FlmId"], fluksos)
     compact_df["home_ID"] = installation_ids_col
 
-    states = getStateFromPhase(compact_df["phase"])
+    states = getState(sensors_df["Cons"], sensors_df["Prod"])
+    # states = getStateFromPhase(compact_df["phase"])
     compact_df["state"] = states
 
     compact_df.sort_values(by=["home_ID"])
 
-    print(compact_df.head(10))
+    print(compact_df.head(68))
 
     return compact_df
 
@@ -163,10 +179,10 @@ def saveToCsv(df):
 
 
 def main():
-    # compact_df = getCompactSensorDF()
+    compact_df = getCompactSensorDF()
     # saveToCsv(compact_df)
 
-    getGroupsFromFluksoIDs()
+    # getGroupsFromFluksoIDs()
 
 
 if __name__ == "__main__":
