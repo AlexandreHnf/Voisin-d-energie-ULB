@@ -126,8 +126,9 @@ class Window(QtWidgets.QWidget):
         ax.clear()
 
         power_df = home.getPowerDF()
+        # print("== >", power_df.index[0], power_df.index[-1])
         for col in power_df.columns:
-            ax.plot(power_df[col], label=col)
+            ax.plot(power_df.index, power_df[col], label=col)
 
         ax.set_title('Electricity consumption over time - home {0} - since {1}'
                      .format(home.getHomeID(), home.getSince()))
@@ -165,7 +166,7 @@ class Window(QtWidgets.QWidget):
 
         cons_prod_df = home.getConsProdDF()
         for col in cons_prod_df.columns:
-            ax.plot(cons_prod_df[col], label=col)
+            ax.plot(cons_prod_df.index, cons_prod_df[col], label=col)
 
         # show the positive and negative areas defined by the total power consumption line (P_tot)
         timestamps = cons_prod_df.index
@@ -182,7 +183,7 @@ class Window(QtWidgets.QWidget):
         ax.set_title("Power consumption & production - home {0} - since {1}"
                      .format(home.getHomeID(), home.getSince()))
         ax.set_xlabel("Time (t)")
-        ax.set_ylabel("Power (kiloWatts) - KW")
+        ax.set_ylabel("Power (Watts) - W")
 
         # custom legend for injection and taking (prélèvement)
         custom_lines = [Line2D([0], [0], color="#4daf4a", lw=4),
@@ -292,6 +293,7 @@ class Home:
             to = self.to_timing
 
         period = (to - self.since_timing).total_seconds() / FREQ[0]
+        # print("s : {}, t : {}, to : {}, period : {}".format(self.since_timing, self.to_timing, to, period))
         zeros = pd.date_range(self.since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
         # print("datetime range : ", zeros)
         zeros_series = pd.Series(int(period) * [0], zeros)
@@ -335,7 +337,11 @@ class Home:
         power_df = self.energy2power(energy_df)
         del energy_df
 
-        power_df.index = getLocalTimestampsIndex(power_df)
+        ah = getLocalTimestampsIndex(power_df)
+        ah = [tps for tps in ah]
+        print(ah[0], ah[-1])
+        power_df.index = ah
+
 
         power_df.fillna(0, inplace=True)
 
@@ -422,8 +428,9 @@ def getTiming(t):
         if t[0] == "s":
             e = t[1:].split("-")
             timing = pd.Timestamp(year=int(e[0]), month=int(e[1]), day=int(e[2]),
-                                  hour=int(e[3]), minute=int(e[4]), tz="UTC")
+                                  hour=int(e[3]), minute=int(e[4]), tz="CET").tz_convert("UTC")
         else:
+            print("time delta : ", pd.Timedelta(t))
             timing = pd.Timestamp.now(tz="UTC") - pd.Timedelta(t)
 
     print("timing : ", timing)
@@ -627,7 +634,7 @@ def main():
 
     # 29-10-2021 from Midnight to midnight (-2 for the UTC timestamps) :
     # --since s2021-10-28-22-00-00 --to s2021-10-29-22-00-00
-    # --since s2021-10-28-00-00-00 -- to s2021-10-29-00-00-00
+    # --since s2021-10-29-00-00-00 --to s2021-10-30-00-00-00
 
 
 if __name__ == "__main__":

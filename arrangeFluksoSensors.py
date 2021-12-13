@@ -22,11 +22,11 @@ def getFluksosDic(installation_ids_df):
     for i in range(len(installation_ids_df)):
         FlmId = installation_ids_df["FlmId"][i]
         installation_id = installation_ids_df["InstallationId"][i]
-        FluksoId = installation_ids_df["FluksoId"][i]
+        # FluksoId = installation_ids_df["FluksoId"][i]
         print(FlmId, installation_id)
 
-        if str(FlmId) == "nan":
-            FlmId = FluksoId
+        # if str(FlmId) == "nan":
+        #     FlmId = FluksoId
 
         fluksos[FlmId] = installation_id
 
@@ -42,28 +42,6 @@ def getInstallationsIds(flukso_ids, fluksos):
     return installation_id_col
 
 
-# def getHomeIDs():
-#     installation_ids_df = pd.read_csv(SENSOR_FLUKSO_FILE)
-#     home_ids = {}
-#     installation_indexes = {}
-#     index = 0
-#     for i in range(len(installation_ids_df)):
-#         FlmId = installation_ids_df["FlmId"][i]
-#         installation_id = installation_ids_df["InstallationId"][i]
-#         FluksoId = installation_ids_df["FluksoId"][i]
-#         print(FlmId, installation_id, FluksoId)
-#
-#         if str(FlmId) == "nan":
-#             FlmId = FluksoId
-#
-#         if installation_id not in installation_indexes:
-#             index += 1
-#             installation_indexes[installation_id] = index
-#
-#         home_ids[FlmId] = index
-#
-#     print("installation_indexes : ", installation_indexes)
-#     return home_ids
 
 
 def getStateFromPhase(phase_names):
