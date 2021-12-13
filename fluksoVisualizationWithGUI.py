@@ -339,7 +339,7 @@ class Home:
 
         ah = getLocalTimestampsIndex(power_df)
         ah = [tps for tps in ah]
-        print(ah[0], ah[-1])
+        # print(ah[0], ah[-1])
         power_df.index = ah
 
 

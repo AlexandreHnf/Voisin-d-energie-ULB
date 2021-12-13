@@ -37,11 +37,12 @@ def getFluksosDic(installation_ids_df):
 def getInstallationsIds(flukso_ids, fluksos):
     installation_id_col = []
     for fi in flukso_ids:
-        installation_id_col.append(fluksos[fi])
+        if fi in fluksos:
+            installation_id_col.append(fluksos[fi])
+        else:
+            installation_id_col.append("unknown")
 
     return installation_id_col
-
-
 
 
 def getStateFromPhase(phase_names):
@@ -93,6 +94,7 @@ def getCompactSensorDF():
     installation_ids_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Flukso")
     fluksos = getFluksosDic(installation_ids_df)
     installation_ids_col = getInstallationsIds(sensors_df["FlmId"], fluksos)
+    print(installation_ids_col)
     compact_df["home_ID"] = installation_ids_col
 
     states = getState(sensors_df["Cons"], sensors_df["Prod"])
@@ -149,7 +151,7 @@ def getGroupsFromInstallationsIds():
                     group += install_id + ","
 
             print(group[:-1])
-            # gf.write(group[:-1] + "\n")  # -1 to remove the last ","
+            gf.write(group[:-1] + "\n")  # -1 to remove the last ","
 
 
 def saveToCsv(df):
@@ -157,10 +159,12 @@ def saveToCsv(df):
 
 
 def main():
-    compact_df = getCompactSensorDF()
+    # compact_df = getCompactSensorDF()
     # saveToCsv(compact_df)
 
     # getGroupsFromFluksoIDs()
+
+    getGroupsFromInstallationsIds()
 
 
 if __name__ == "__main__":
