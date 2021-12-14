@@ -56,13 +56,23 @@ def getStateFromPhase(phase_names):
     return states
 
 
-def getState(cons, prod):
+def getSign(x):
+    if x == 1:
+        return "+"
+    elif x == -1:
+        return "-"
+
+
+def getState(cons, prod, net):
     states = []
     for i in range(len(cons)):
-        if str(prod[i]) != "nan":
-            states.append("-")
+        if str(prod[i]) != "nan":  # if prod
+            states.append("-{}".format(getSign(prod[i])))
         else:
-            states.append("+")
+            if str(cons[i]) != "nan":
+                states.append("+{}".format(getSign(cons[i])))
+            else:
+                states.append("+{}".format(getSign(net[i])))
         print(cons[i], prod[i])
 
     print(states)
@@ -97,7 +107,7 @@ def getCompactSensorDF():
     print(installation_ids_col)
     compact_df["home_ID"] = installation_ids_col
 
-    states = getState(sensors_df["Cons"], sensors_df["Prod"])
+    states = getState(sensors_df["Cons"], sensors_df["Prod"], sensors_df["Network"])
     # states = getStateFromPhase(compact_df["phase"])
     compact_df["state"] = states
 
@@ -159,12 +169,12 @@ def saveToCsv(df):
 
 
 def main():
-    # compact_df = getCompactSensorDF()
-    # saveToCsv(compact_df)
+    compact_df = getCompactSensorDF()
+    saveToCsv(compact_df)
 
     # getGroupsFromFluksoIDs()
 
-    getGroupsFromInstallationsIds()
+    # getGroupsFromInstallationsIds()
 
 
 if __name__ == "__main__":
