@@ -175,10 +175,10 @@ class Window(QtWidgets.QWidget):
         # daltonian colors :
         # '#377eb8','#ff7f00','#4daf4a','#f781bf','#a65628','#984ea3','#999999','#e41a1c','#dede00'
 
-        # positive (light green)
-        plt.fill_between(timestamps, p_tot, where=(p_tot > 0), color='#4daf4a', alpha=0.3)
-        # negative (yellow)
-        plt.fill_between(timestamps, p_tot, where=(p_tot < 0), color='#dede00', alpha=0.3)
+        # positive (yellow)
+        plt.fill_between(timestamps, p_tot, where=(p_tot > 0), color='#dede00', alpha=0.3)
+        # negative (light green)
+        plt.fill_between(timestamps, p_tot, where=(p_tot < 0), color='#4daf4a', alpha=0.3)
 
         ax.set_title("Power consumption & production - home {0} - since {1}"
                      .format(home.getHomeID(), home.getSince()))
@@ -186,11 +186,11 @@ class Window(QtWidgets.QWidget):
         ax.set_ylabel("Power (Watts) - W")
 
         # custom legend for injection and taking (prélèvement)
-        custom_lines = [Line2D([0], [0], color="#4daf4a", lw=4),
-                        Line2D([0], [0], color="#dede00", lw=4)]
+        custom_lines = [Line2D([0], [0], color="#dede00", lw=4),  # yellow
+                        Line2D([0], [0], color="#4daf4a", lw=4)]  # light green
 
         legend1 = ax.legend(loc="upper right", fancybox=True, framealpha=0.4)
-        legend2 = ax.legend(handles=custom_lines, labels=["Injection", "Prélèvement"],
+        legend2 = ax.legend(handles=custom_lines, labels=["Prélèvement", "Injection"],
                             loc=4, fancybox=True, framealpha=0.4)
         plt.gca().add_artist(legend1)
         plt.gca().add_artist(legend2)
@@ -356,14 +356,21 @@ class Home:
                                     self.power_df.index,
                                     ["P_cons", "P_prod", "P_tot"])
 
-        # print(cons_prod_df.head(4))
+        # cons + : ++
+        for cc in self.indexes["cons"]["+"]:
+            cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + self.power_df[cc]
+        # cons - : +-
+        for cp in self.indexes["cons"]["-"]:
+            cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + (-1 * self.power_df[cp])
 
-        for i in range(len(self.indexes["+"])):
-            cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + self.power_df[self.indexes["+"][i]]
-        for i in range(len(self.indexes["-"])):
-            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + self.power_df[self.indexes["-"][i]]
+        # prod + : -+
+        for pc in self.indexes["prod"]["+"]:
+            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + self.power_df[pc]
+        # prod - : --
+        for pp in self.indexes["prod"]["-"]:
+            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + (-1 * self.power_df[pp])
 
-        cons_prod_df["P_tot"] = cons_prod_df["P_cons"] - cons_prod_df["P_prod"]
+        cons_prod_df["P_tot"] = cons_prod_df["P_cons"] + cons_prod_df["P_prod"]
         # print("after sums :")
         # print(cons_prod_df.head(4))
 
@@ -438,12 +445,18 @@ def getTiming(t):
 
 
 def getPhasesIndexes(sensors, home_ids):
+    """
+    return a dictionary of the form :
+    {hid1 : {"cons": []}}
+    """
     indexes = {}
     for hid in home_ids:
-        indexes[hid] = {}
+        indexes[hid] = {"cons": {}, "prod": {}}
         home_df = sensors.loc[sensors["home_ID"] == hid]
-        indexes[hid]["+"] = list(home_df.loc[home_df['state'] == "+"].index)
-        indexes[hid]["-"] = list(home_df.loc[home_df['state'] == "-"].index)
+        indexes[hid]["cons"]["+"] = list(home_df.loc[home_df['state'] == "++"].index)
+        indexes[hid]["prod"]["+"] = list(home_df.loc[home_df['state'] == "-+"].index)
+        indexes[hid]["cons"]["-"] = list(home_df.loc[home_df['state'] == "+-"].index)
+        indexes[hid]["prod"]["-"] = list(home_df.loc[home_df['state'] == "--"].index)
 
     return indexes
 
