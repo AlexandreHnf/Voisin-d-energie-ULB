@@ -93,12 +93,20 @@ def getCompactSensorDF():
                                        "flukso_id",
                                        "sensor_id",
                                        "token",
+                                       "net",
+                                       "con",
+                                       "pro",
                                        "state"])
 
     compact_df["phase"] = sensors_df["Function"]
     compact_df["flukso_id"] = sensors_df["FlmId"]
     compact_df["sensor_id"] = sensors_df["SensorId"]
     compact_df["token"] = sensors_df["Token"]
+    compact_df["net"] = sensors_df["Network"]
+    compact_df["con"] = sensors_df["Cons"]
+    compact_df["pro"] = sensors_df["Prod"]
+
+    compact_df.fillna(0, inplace=True)
 
     # home_ids = getHomeIDs()
     installation_ids_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Flukso")

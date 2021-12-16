@@ -356,23 +356,36 @@ class Home:
                                     self.power_df.index,
                                     ["P_cons", "P_prod", "P_tot"])
 
-        # cons + : ++
-        for cc in self.indexes["cons"]["+"]:
-            cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + self.power_df[cc]
-        # cons - : +-
-        for cp in self.indexes["cons"]["-"]:
-            cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + (-1 * self.power_df[cp])
+        # # cons + : ++
+        # for cc in self.indexes["cons"]["+"]:
+        #     cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + self.power_df[cc]
+        # # cons - : +-
+        # for cp in self.indexes["cons"]["-"]:
+        #     cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + (-1 * self.power_df[cp])
 
-        # prod + : -+
-        for pc in self.indexes["prod"]["+"]:
-            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + self.power_df[pc]
-        # prod - : --
-        for pp in self.indexes["prod"]["-"]:
-            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + (-1 * self.power_df[pp])
+        # # prod + : -+
+        # for pc in self.indexes["prod"]["+"]:
+        #     cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + self.power_df[pc]
+        # # prod - : --
+        # for pp in self.indexes["prod"]["-"]:
+        #     cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + (-1 * self.power_df[pp])
 
-        cons_prod_df["P_tot"] = cons_prod_df["P_cons"] + cons_prod_df["P_prod"]
-        # print("after sums :")
-        # print(cons_prod_df.head(4))
+        # cons_prod_df["P_tot"] = cons_prod_df["P_cons"] + cons_prod_df["P_prod"]
+
+        cons_prod_df["P_tot"] = cons_prod_df["P_cons"] - cons_prod_df["P_prod"]
+
+        # ===============
+
+        for phase in self.home_sensors.index:
+            c = self.home_sensors.loc[phase]["con"]
+            p = self.home_sensors.loc[phase]["pro"]
+            n = self.home_sensors.loc[phase]["net"]
+
+            cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + c * self.power_df[phase]
+            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * self.power_df[phase]
+            cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * self.power_df[phase]
+
+            print(n, c, p)
 
         return cons_prod_df
 
@@ -461,6 +474,19 @@ def getPhasesIndexes(sensors, home_ids):
     return indexes
 
 
+# def getHomePhases(sensors, home_ids):
+#     """
+#     return a dictionary of the form :
+#     {hid: [fid1, fid2, ...]}
+#     """
+#     home_phases = {}
+#     for hid in home_ids:
+#         phases = list(sensors.loc[sensors["home_ID"] == hid].index)
+#         home_phases[hid] = phases
+#
+#     return home_phases
+
+
 def getProgDir():
     import __main__
     main_path = os.path.abspath(__main__.__file__)
@@ -491,6 +517,7 @@ def saveFluksoData(homes):
 
 def generateHomes(session, sensors, since, since_timing, to_timing, home_ids):
     indexes = getPhasesIndexes(sensors, home_ids)
+    # print("home phases: ", getHomePhases(sensors, home_ids))
     print("indexes : ", indexes)
 
     homes = {}
@@ -571,7 +598,7 @@ def getFluksoData(path=""):
     sensors = read_sensor_info(path)
     print(sensors.head(5))
     session = tmpo.Session(path)
-    for hid, hn, sid, tk, st in sensors.values:
+    for hid, hn, sid, tk, n, c, p, st in sensors.values:
         session.add(sid, tk)
 
     session.sync()
