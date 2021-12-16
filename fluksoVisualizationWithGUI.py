@@ -515,6 +515,18 @@ def saveFluksoData(homes):
     print("Successfully Saved")
 
 
+def sortHomesByName(homes):
+    """
+    homes of the form : {"CDB001": home_object, ...}
+    return the list of homes objects sorted by name
+    """
+    sorted_homes = []
+    for hid in sorted(homes):
+        sorted_homes.append(homes[hid])
+
+    return sorted_homes
+
+
 def generateHomes(session, sensors, since, since_timing, to_timing, home_ids):
     indexes = getPhasesIndexes(sensors, home_ids)
     # print("home phases: ", getHomePhases(sensors, home_ids))
@@ -555,7 +567,7 @@ def visualizeFluksoData(homes, grouped_homes):
     # launch window with flukso visualization (using PYQT GUI)
     app = QtWidgets.QApplication(sys.argv)
     app.aboutToQuit.connect(app.deleteLater)
-    GUI1 = Window(homes.values(), 'Flukso visualization')
+    GUI1 = Window(sortHomesByName(homes), 'Flukso visualization')
     GUI2 = Window(grouped_homes, 'Group Flukso visualization')
     sys.exit(app.exec_())
     # app.exec_()
