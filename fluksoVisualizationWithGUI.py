@@ -356,36 +356,23 @@ class Home:
                                     self.power_df.index,
                                     ["P_cons", "P_prod", "P_tot"])
 
-        # # cons + : ++
-        # for cc in self.indexes["cons"]["+"]:
-        #     cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + self.power_df[cc]
-        # # cons - : +-
-        # for cp in self.indexes["cons"]["-"]:
-        #     cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + (-1 * self.power_df[cp])
-
-        # # prod + : -+
-        # for pc in self.indexes["prod"]["+"]:
-        #     cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + self.power_df[pc]
-        # # prod - : --
-        # for pp in self.indexes["prod"]["-"]:
-        #     cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + (-1 * self.power_df[pp])
-
-        # cons_prod_df["P_tot"] = cons_prod_df["P_cons"] + cons_prod_df["P_prod"]
-
-        cons_prod_df["P_tot"] = cons_prod_df["P_cons"] - cons_prod_df["P_prod"]
+        # P_cons = P_tot - P_prod
+        # P_net = P_prod + P_cons
 
         # ===============
 
         for phase in self.home_sensors.index:
-            c = self.home_sensors.loc[phase]["con"]
+            # c = self.home_sensors.loc[phase]["con"]
             p = self.home_sensors.loc[phase]["pro"]
             n = self.home_sensors.loc[phase]["net"]
 
-            cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + c * self.power_df[phase]
+            # cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + c * self.power_df[phase]
             cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * self.power_df[phase]
             cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * self.power_df[phase]
 
-            print(n, c, p)
+            print(n, p)
+
+        cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
 
         return cons_prod_df
 
@@ -419,7 +406,7 @@ def read_sensor_info(path):
     """
     read csv file of sensors data
     """
-    path += SENSOR_FILE
+    path += UPDATED_SENSORS_FILE
     sensors = pd.read_csv(path, header=0, index_col=1)
     return sensors
 
