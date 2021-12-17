@@ -1,10 +1,14 @@
 import pandas as pd
 import numpy as np
+from openpyxl import load_workbook
+
 
 START_ID = 4
 FLUKSO_TECHNICAL_FILE = "sensors/FluksoTechnical.xlsx"
+UPDATED_FLUKSO_TECHNICAL_FILE = "sensors/updated_sensors.csv"
 COMPACT_SENSOR_FILE = "sensors/sensors_technical.csv"
 GROUPS_FILE = "sensors/grouped_homes_sensors.txt"
+PHASE_TO_MODIF_FILE = "sensors/phases_to_modify.txt"
 
 
 def getHomeIDcolumn(flukso_ids, home_ids):
@@ -78,7 +82,6 @@ def getState(cons, prod, net):
     print(states)
 
     return states
-
 
 
 def getCompactSensorDF():
@@ -176,14 +179,59 @@ def saveToCsv(df):
     df.to_csv(COMPACT_SENSOR_FILE, index=None, header=True)
 
 
+# ==========================================================================
+
+
+def correctPhaseSigns():
+    """
+    functions to modify the signs of different phases (defined in a txt file of the form
+    install_ID:phase1,phase2...)
+    and create a new xls file after
+    """
+    to_modif = {}
+    with open(PHASE_TO_MODIF_FILE) as f:
+        for lign in f:
+            l = lign.split(":")
+            to_modif[l[0]] = l[1].strip().split(",")
+
+    print(to_modif)
+
+    # ===================================================
+
+    # reading the csv file
+    sensors_df = pd.read_csv(COMPACT_SENSOR_FILE)
+
+    print("nb of rows : ", len(sensors_df))
+    for i in range(len(sensors_df)):
+        hid = sensors_df.loc[i, "home_ID"]
+        if hid in to_modif:
+            phase = sensors_df.loc[i, "phase"]
+            if ("-" in phase and phase[:-1] in to_modif[hid]) or (phase in to_modif[hid]):
+                # change phase name
+                if phase[-1] == "-":
+                    sensors_df.loc[i, "phase"] = phase[:-1]
+                elif phase[-1] != "-":
+                    sensors_df.loc[i, "phase"] = phase + "-"
+                # change net sign
+                sensors_df.loc[i, "net"] = str(-1 * int(sensors_df.loc[i, "net"]))
+                # change con sign
+                sensors_df.loc[i, "con"] = str(-1 * int(sensors_df.loc[i, "con"]))
+                # change pro sign
+                sensors_df.loc[i, "pro"] = str(-1 * int(sensors_df.loc[i, "pro"]))
+
+    # writing into the file
+    sensors_df.to_csv(UPDATED_FLUKSO_TECHNICAL_FILE, index=False)
+
+
 def main():
-    compact_df = getCompactSensorDF()
-    saveToCsv(compact_df)
+    # compact_df = getCompactSensorDF()
+    # saveToCsv(compact_df)
 
     # getGroupsFromFluksoIDs()
 
     # getGroupsFromInstallationsIds()
 
+    correctPhaseSigns()
 
 if __name__ == "__main__":
     main()
