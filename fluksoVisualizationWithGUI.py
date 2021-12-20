@@ -122,7 +122,7 @@ class Window(QtWidgets.QWidget):
         canvas = FigureCanvas(fig)
         canvas.setParent(qfigWidget)
         toolbar = NavigationToolbar(canvas, qfigWidget)
-        ax = fig.add_subplot(111)
+        ax = fig.add_sub(111)
         ax.clear()
 
         power_df = home.getPowerDF()
@@ -277,6 +277,28 @@ class Home:
     def getColumnsTotal(self):
         return self.power_df.sum(axis=0, numeric_only=True)
 
+    def getFluksoNames(self):
+        """
+        ex : CDB007 :> {FL08000436: [Main, ...], FL08000437: [Phase L2, ...]}
+        """
+        flukso_names = {}
+        for i in range(len(self.home_sensors)):
+            phase = self.home_sensors.index[i]
+            if self.home_sensors.flukso_id[i] not in flukso_names:
+                flukso_names[self.home_sensors.flukso_id[i]] = [phase]
+            else:
+                flukso_names[self.home_sensors.flukso_id[i]].append(phase)
+        return flukso_names
+
+    def getAggregatedDataPerFlukso(self):
+        fluksos_df = pd.DataFrame()
+        flukso_names = self.getFluksoNames()
+        for fid, phases in flukso_names.items():
+            fluksos_df["{}:{}".format(self.home_id, fid)] = self.power_df.loc[:, phases].sum(axis=1)
+            j = 1
+
+        return fluksos_df
+
     @staticmethod
     def energy2power(energy_df):
         """
@@ -307,8 +329,10 @@ class Home:
         """
         data_dfs = []
 
-        for id in self.home_sensors.sensor_id:
-            # print("{} :".format(id))
+        for i in range(len(self.home_sensors)):
+            # for id in self.home_sensors.sensor_id:
+            id = self.home_sensors.sensor_id[i]
+            fid = self.home_sensors.flukso_id[i]
             # print("- first timestamp : {}".format(self.session.first_timestamp(id)))
             # print("- last timestamp : {}".format(self.session.last_timestamp(id)))
 
@@ -316,10 +340,10 @@ class Home:
                 dff = self.session.series(id, head=self.since_timing)
             else:
                 dff = self.session.series(id, head=self.since_timing, tail=self.to_timing)
-            print(len(dff.index))
+            print("{} - {} : {}".format(fid, id, len(dff.index)))
+
             if len(dff.index) == 0:
                 dff = self.getZeroSeries()
-                print("--> zeros")
             data_dfs.append(dff)
 
         return data_dfs
@@ -344,11 +368,6 @@ class Home:
         power_df.index = ah
 
         power_df.fillna(0, inplace=True)
-        print("len power df : ", len(power_df))
-
-        # print("nb elements : ", len(power_df.index))
-        # print("=======> 10 first elements : ")
-        # print(power_df.head(10))
 
         return power_df
 
@@ -371,7 +390,7 @@ class Home:
             cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * self.power_df[phase]
             cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * self.power_df[phase]
 
-            print(n, p)
+            # print(n, p)
 
         cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
 
@@ -386,14 +405,11 @@ class Home:
         return new_col_names
 
     def appendFluksoData(self, power_df, home_id):
-        print(len(self.power_df), len(power_df))
+        # print(len(self.power_df), len(power_df))
 
         if not self.home_id in self.power_df.columns[0]:
             self.power_df = self.power_df.rename(self.getColNamesWithID(self.power_df, self.home_id), axis=1)
         power_df = power_df.rename(self.getColNamesWithID(power_df, home_id), axis=1)
-        print(self.power_df.head(2))
-        print(power_df.head(2))
-
         self.power_df = self.power_df.join(power_df)
 
     def addConsProd(self, cons_prod_df):
@@ -524,18 +540,17 @@ def generateGroupedHomes(homes, groups):
         print("========================= GROUP {} ====================".format(i + 1))
         home = copy.copy(homes[group[0]])
         for j in range(1, len(group)):
+            print(homes[group[j]].getHomeID())
             home.appendFluksoData(homes[group[j]].getPowerDF(), homes[group[j]].getHomeID())
             home.addConsProd(homes[group[j]].getConsProdDF())
         home.setHomeID("group_" + str(i + 1))
 
-        print(home.getPowerDF().head(1))
         grouped_homes.append(home)
 
     return grouped_homes
 
 
 def visualizeFluksoData(homes, grouped_homes):
-    print(homes)
     plt.style.use('ggplot')  # plot style
     plt.style.use("tableau-colorblind10")
 
@@ -606,6 +621,40 @@ def getFLuksoGroups():
     return groups
 
 
+def showFluksosActivity(homes):
+    activity_df = None
+    for hid, home in homes.items():
+        fluksos_df = home.getAggregatedDataPerFlukso()
+
+        if activity_df is None:
+            activity_df = fluksos_df
+        else:
+            activity_df = activity_df.join(fluksos_df)
+
+    i = 10
+    ticks = []
+    for fid in activity_df.columns:
+        ticks.append(i)
+        activity_df[fid] = activity_df[fid].mask(activity_df[fid] > 0.0, i)
+        activity_df[fid] = activity_df[fid].mask(activity_df[fid] == 0.0, 0)
+        i += 10
+
+    activity_df.fillna(0, inplace=True)
+
+    # plot flukso activity
+    activity_df.plot(color="black",
+                     linewidth=0,
+                     marker='.',
+                     markersize=3,
+                     title='Flukso Activity plot',
+                     legend=None)
+
+    plt.yticks(ticks, activity_df.columns)
+    plt.xlabel('Time')
+    plt.ylabel('Flukso activity')
+    plt.show()
+
+
 def main():
     # TODO : add argument for choosing between different features (visualizeFluksoData, identifyPhaseState)
     argparser = argparse.ArgumentParser(
@@ -650,12 +699,12 @@ def main():
     groups = getFLuksoGroups()
     print("groups : ", groups)
     homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids)
-    grouped_homes = generateGroupedHomes(homes, groups)
-
-    saveFluksoData(homes.values())
-    saveFluksoData(grouped_homes)
-
-    visualizeFluksoData(homes, grouped_homes)
+    # grouped_homes = generateGroupedHomes(homes, groups)
+    #
+    # saveFluksoData(homes.values())
+    # saveFluksoData(grouped_homes)
+    #
+    # visualizeFluksoData(homes, grouped_homes)
 
     # identifyPhaseState(getProgDir(), home_ids, session, sensors, "", 0, 0)
 
@@ -664,6 +713,8 @@ def main():
 
     # 17-12-2021 from Midnight to midnight :
     # --since s2021-12-17-00-00-00 --to s2021-12-18-00-00-00
+
+    showFluksosActivity(homes)
 
 
 if __name__ == "__main__":
