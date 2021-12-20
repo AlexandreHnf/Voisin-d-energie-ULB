@@ -316,6 +316,7 @@ class Home:
                 dff = self.session.series(id, head=self.since_timing)
             else:
                 dff = self.session.series(id, head=self.since_timing, tail=self.to_timing)
+            print(len(dff.index))
             if len(dff.index) == 0:
                 dff = self.getZeroSeries()
                 print("--> zeros")
@@ -328,22 +329,22 @@ class Home:
         create a dataframe where the colums are the phases of the Flukso and the rows are the
         data : 1 row = 1 timestamp = 1 power value
         """
+        hid = self.home_id
         data_dfs = self.createSeries()
         energy_df = pd.concat(data_dfs, axis=1)
         del data_dfs
         # print("nb index : ", len(energy_df.index))
         energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
-        energy_df.columns = self.home_sensors.index
+        energy_df.columns = list(self.home_sensors.index)
         power_df = self.energy2power(energy_df)
         del energy_df
 
         ah = getLocalTimestampsIndex(power_df)
         ah = [tps for tps in ah]
-        # print(ah[0], ah[-1])
         power_df.index = ah
 
-
         power_df.fillna(0, inplace=True)
+        print("len power df : ", len(power_df))
 
         # print("nb elements : ", len(power_df.index))
         # print("=======> 10 first elements : ")
@@ -402,11 +403,11 @@ class Home:
 # ====================================================================================
 
 
-def read_sensor_info(path):
+def read_sensor_info(path, sensor_file):
     """
     read csv file of sensors data
     """
-    path += UPDATED_SENSORS_FILE
+    path += sensor_file
     sensors = pd.read_csv(path, header=0, index_col=1)
     return sensors
 
@@ -459,19 +460,6 @@ def getPhasesIndexes(sensors, home_ids):
         indexes[hid]["prod"]["-"] = list(home_df.loc[home_df['state'] == "--"].index)
 
     return indexes
-
-
-# def getHomePhases(sensors, home_ids):
-#     """
-#     return a dictionary of the form :
-#     {hid: [fid1, fid2, ...]}
-#     """
-#     home_phases = {}
-#     for hid in home_ids:
-#         phases = list(sensors.loc[sensors["home_ID"] == hid].index)
-#         home_phases[hid] = phases
-#
-#     return home_phases
 
 
 def getProgDir():
@@ -587,14 +575,14 @@ def identifyPhaseState(path, home_ids, session, sensors, since, since_timing, to
     updated_sensors_states.to_csv(path + UPDATED_SENSORS_FILE)
 
 
-def getFluksoData(path=""):
+def getFluksoData(sensor_file, path=""):
     """
     get Flukso data (via API) then visualize the data
     """
     if not path:
         path = getProgDir()
 
-    sensors = read_sensor_info(path)
+    sensors = read_sensor_info(path, sensor_file)
     print(sensors.head(5))
     session = tmpo.Session(path)
     for hid, hn, sid, tk, n, c, p, st in sensors.values:
@@ -650,7 +638,7 @@ def main():
 
     start_timing = getTiming(since)
     to_timing = getTiming(to)
-    sensors, session = getFluksoData()
+    sensors, session = getFluksoData(UPDATED_SENSORS_FILE)
 
     home_ids = set(sensors["home_ID"])
     nb_homes = len(home_ids)
@@ -671,8 +659,7 @@ def main():
 
     # identifyPhaseState(getProgDir(), home_ids, session, sensors, "", 0, 0)
 
-    # 29-10-2021 from Midnight to midnight (-2 for the UTC timestamps) :
-    # --since s2021-10-28-22-00-00 --to s2021-10-29-22-00-00
+    # 29-10-2021 from Midnight to midnight :
     # --since s2021-10-29-00-00-00 --to s2021-10-30-00-00-00
 
 
