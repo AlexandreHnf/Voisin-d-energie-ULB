@@ -652,8 +652,8 @@ def main():
     homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids)
     grouped_homes = generateGroupedHomes(homes, groups)
 
-    # saveFluksoData(homes.values())
-    # saveFluksoData(grouped_homes)
+    saveFluksoData(homes.values())
+    saveFluksoData(grouped_homes)
 
     visualizeFluksoData(homes, grouped_homes)
 
