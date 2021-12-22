@@ -122,7 +122,7 @@ class Window(QtWidgets.QWidget):
         canvas = FigureCanvas(fig)
         canvas.setParent(qfigWidget)
         toolbar = NavigationToolbar(canvas, qfigWidget)
-        ax = fig.add_sub(111)
+        ax = fig.add_subplot(111)
         ax.clear()
 
         power_df = home.getPowerDF()
@@ -699,22 +699,22 @@ def main():
     groups = getFLuksoGroups()
     print("groups : ", groups)
     homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids)
-    # grouped_homes = generateGroupedHomes(homes, groups)
-    #
-    # saveFluksoData(homes.values())
-    # saveFluksoData(grouped_homes)
-    #
-    # visualizeFluksoData(homes, grouped_homes)
+    grouped_homes = generateGroupedHomes(homes, groups)
+
+    saveFluksoData(homes.values())
+    saveFluksoData(grouped_homes)
+
+    visualizeFluksoData(homes, grouped_homes)
 
     # identifyPhaseState(getProgDir(), home_ids, session, sensors, "", 0, 0)
 
     # 29-10-2021 from Midnight to midnight :
     # --since s2021-10-29-00-00-00 --to s2021-10-30-00-00-00
-
     # 17-12-2021 from Midnight to midnight :
     # --since s2021-12-17-00-00-00 --to s2021-12-18-00-00-00
 
-    showFluksosActivity(homes)
+    # ACTIVITY PLOT
+    # showFluksosActivity(homes)
 
 
 if __name__ == "__main__":
