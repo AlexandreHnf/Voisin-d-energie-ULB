@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import webapp.pyToCassandra as ptc
 
 
 FLUKSO_TECHNICAL_FILE = "sensors/FluksoTechnical.xlsx"
@@ -37,14 +38,17 @@ def getFluksosDic(installation_ids_df):
 
 def getInstallationsIds(flukso_ids, fluksos):
     """ 
-    return a list of all the available installations ids
+    return a list of all the installations ids in the excel column, but
+    only those whose fluksos are available. (an id can appear several times)
     """
     installation_id_col = []
+    nb_unknowns = 0
     for fi in flukso_ids:
         if fi in fluksos:
             installation_id_col.append(fluksos[fi])
         else:
-            installation_id_col.append("unknown")
+            installation_id_col.append("unknown" + str(nb_unknowns))
+            nb_unknowns += 1
 
     return installation_id_col
 
@@ -187,17 +191,42 @@ def correctPhaseSigns(sensors_df=None):
 # ==========================================================================
 
 
+def createInstallationsTables(compact_df):
+    """ 
+    compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
+    1 installation = 1 table
+    """
+    session = ptc.connectToCluster("test")
+    home_ids = set(compact_df.home_ID)
+    for home_id in home_ids:
+        columns = ["timestamp TEXT"]
+        home_df = compact_df.loc[compact_df["home_ID"] == home_id]
+        for hid, phase, fid, sid, t, n, c, p in home_df.values:
+            print("{}-{}".format(fid, phase))
+            phase = phase.replace(" ", "_")
+            phase = phase.replace("-", "1")
+            columns.append("{}_{} DECIMAL".format(fid, phase))
+        
+        print(home_id, columns, end="\n\n")
+
+        ptc.createTable(session, "test", home_id, columns, "timestamp")
+
+
+# ==========================================================================
+
+
 def main():
     # STEP 1 : get the useful flukso sensors data in a compact csv
     compact_df = getCompactSensorDF()
-    saveToCsv(compact_df)
+    createInstallationsTables(compact_df)
+    # saveToCsv(compact_df)
 
     # STEP 2 : setup the groups of flukso in a txt file 
     # getGroupsFromFluksoIDs()
     # getGroupsFromInstallationsIds()
 
     # STEP 3 : correct phase signs
-    correctPhaseSigns(compact_df)  # TODO : put the sensor_df in parameter to directly correct
+    # correctPhaseSigns(compact_df)
 
 if __name__ == "__main__":
     main()

@@ -43,12 +43,18 @@ def createTable(session, keyspace, table, columns, primary_key):
 # ==========================================================================
 
 
-def main():
+def connectToCluster(keyspace):
     # create the cluster : connects to localhost (127.0.0.1:9042) by default
     cluster = Cluster()
 
     # connect to the keyspace or create one if it doesn't exist
-    session = cluster.connect('test')
+    session = cluster.connect(keyspace)
+
+    return session
+
+
+def main():
+    session = connectToCluster("test")
 
     # createKeyspace(session, "test", "SimpleStrategy", "1")
 
