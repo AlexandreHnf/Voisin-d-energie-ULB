@@ -238,13 +238,12 @@ class Window(QtWidgets.QWidget):
 
 class Home:
 
-    def __init__(self, session, sensors, since, since_timing, to_timing, indexes, home_id):
+    def __init__(self, session, sensors, since, since_timing, to_timing, home_id):
         self.session = session
         self.home_sensors = sensors.loc[sensors["home_ID"] == home_id]
         self.since = since
         self.since_timing = since_timing
         self.to_timing = to_timing
-        self.indexes = indexes
         self.home_id = home_id
 
         self.power_df = self.createFluksoPowerDF()
@@ -461,23 +460,6 @@ def getTiming(t):
     return timing
 
 
-def getPhasesIndexes(sensors, home_ids):
-    """
-    return a dictionary of the form :
-    {hid1 : {"cons": []}}
-    """
-    indexes = {}
-    for hid in home_ids:
-        indexes[hid] = {"cons": {}, "prod": {}}
-        home_df = sensors.loc[sensors["home_ID"] == hid]
-        indexes[hid]["cons"]["+"] = list(home_df.loc[home_df['state'] == "++"].index)
-        indexes[hid]["prod"]["+"] = list(home_df.loc[home_df['state'] == "-+"].index)
-        indexes[hid]["cons"]["-"] = list(home_df.loc[home_df['state'] == "+-"].index)
-        indexes[hid]["prod"]["-"] = list(home_df.loc[home_df['state'] == "--"].index)
-
-    return indexes
-
-
 def getProgDir():
     import __main__
     main_path = os.path.abspath(__main__.__file__)
@@ -519,16 +501,11 @@ def sortHomesByName(homes):
 
 
 def generateHomes(session, sensors, since, since_timing, to_timing, home_ids):
-    indexes = getPhasesIndexes(sensors, home_ids)
-    # print("home phases: ", getHomePhases(sensors, home_ids))
-    print("indexes : ", indexes)
-
     homes = {}
 
-    # for hid in range(1, nb_homes + 1):
     for hid in home_ids:
         print("========================= HOME {} =====================".format(hid))
-        home = Home(session, sensors, since, since_timing, to_timing, indexes[hid], hid)
+        home = Home(session, sensors, since, since_timing, to_timing, hid)
         homes[hid] = home
 
     return homes
@@ -563,33 +540,6 @@ def visualizeFluksoData(homes, grouped_homes):
     # app.exec_()
 
 
-def identifyPhaseState(path, home_ids, session, sensors, since, since_timing, to_timing):
-    states_df = pd.DataFrame(columns=["tot_power", "state"])
-    indexes = getPhasesIndexes(sensors, home_ids)
-
-    for hid in home_ids:
-        col_names = indexes[hid]["+"] + indexes[hid]["-"]
-        # session, sensors, since, since_timing, to_timing, indexes, home_id
-        home = Home(session, sensors, since, since_timing, to_timing, indexes[hid], hid)
-        sums = home.getColumnsTotal()
-        sums = sums.to_frame()  # to dataframe
-        sums.columns = ["tot_power"]
-        sums = sums.assign(state=np.where(sums["tot_power"] > 0.0, '+', '-'))
-        states_df = states_df.append(sums)
-
-        print("sums home " + str(hid))
-        print(sums)
-
-    updated_sensors_states = sensors
-    updated_sensors_states["state"] = states_df["state"]
-
-    print(states_df)
-    print(updated_sensors_states)
-
-    print(path + UPDATED_SENSORS_FILE)
-    updated_sensors_states.to_csv(path + UPDATED_SENSORS_FILE)
-
-
 def getFluksoData(sensor_file, path=""):
     """
     get Flukso data (via API) then visualize the data
@@ -600,7 +550,7 @@ def getFluksoData(sensor_file, path=""):
     sensors = read_sensor_info(path, sensor_file)
     print(sensors.head(5))
     session = tmpo.Session(path)
-    for hid, hn, sid, tk, n, c, p, st in sensors.values:
+    for hid, hn, sid, tk, n, c, p in sensors.values:
         session.add(sid, tk)
 
     session.sync()
@@ -704,7 +654,7 @@ def main():
     saveFluksoData(homes.values())
     saveFluksoData(grouped_homes)
 
-    visualizeFluksoData(homes, grouped_homes)
+    # visualizeFluksoData(homes, grouped_homes)
 
     # identifyPhaseState(getProgDir(), home_ids, session, sensors, "", 0, 0)
 

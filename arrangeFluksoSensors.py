@@ -1,9 +1,7 @@
 import pandas as pd
 import numpy as np
-from openpyxl import load_workbook
 
 
-START_ID = 4
 FLUKSO_TECHNICAL_FILE = "sensors/FluksoTechnical.xlsx"
 UPDATED_FLUKSO_TECHNICAL_FILE = "sensors/updated_sensors.csv"
 COMPACT_SENSOR_FILE = "sensors/sensors_technical.csv"
@@ -21,6 +19,11 @@ def getHomeIDcolumn(flukso_ids, home_ids):
 
 
 def getFluksosDic(installation_ids_df):
+    """ 
+    Return a dictionary, 
+    key = flukso id, value = installation id 
+    ex : {'FL08000475': 'CDB001'}
+    """
     fluksos = {}
 
     for i in range(len(installation_ids_df)):
@@ -39,6 +42,9 @@ def getFluksosDic(installation_ids_df):
 
 
 def getInstallationsIds(flukso_ids, fluksos):
+    """ 
+    return a list of all the available installations ids
+    """
     installation_id_col = []
     for fi in flukso_ids:
         if fi in fluksos:
@@ -47,41 +53,6 @@ def getInstallationsIds(flukso_ids, fluksos):
             installation_id_col.append("unknown")
 
     return installation_id_col
-
-
-def getStateFromPhase(phase_names):
-    states = []
-    for phase in phase_names:
-        if phase[-1] == "-":
-            states.append("-")
-        else:
-            states.append("+")
-
-    return states
-
-
-def getSign(x):
-    if x == 1:
-        return "+"
-    elif x == -1:
-        return "-"
-
-
-def getState(cons, prod, net):
-    states = []
-    for i in range(len(cons)):
-        if str(prod[i]) != "nan":  # if prod
-            states.append("-{}".format(getSign(prod[i])))
-        else:
-            if str(cons[i]) != "nan":
-                states.append("+{}".format(getSign(cons[i])))
-            else:
-                states.append("+{}".format(getSign(net[i])))
-        print(cons[i], prod[i])
-
-    print(states)
-
-    return states
 
 
 def getCompactSensorDF():
@@ -98,8 +69,7 @@ def getCompactSensorDF():
                                        "token",
                                        "net",
                                        "con",
-                                       "pro",
-                                       "state"])
+                                       "pro"])
 
     compact_df["phase"] = sensors_df["Function"]
     compact_df["flukso_id"] = sensors_df["FlmId"]
@@ -111,20 +81,13 @@ def getCompactSensorDF():
 
     compact_df.fillna(0, inplace=True)
 
-    # home_ids = getHomeIDs()
     installation_ids_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Flukso")
     fluksos = getFluksosDic(installation_ids_df)
     installation_ids_col = getInstallationsIds(sensors_df["FlmId"], fluksos)
     print(installation_ids_col)
     compact_df["home_ID"] = installation_ids_col
 
-    states = getState(sensors_df["Cons"], sensors_df["Prod"], sensors_df["Network"])
-    # states = getStateFromPhase(compact_df["phase"])
-    compact_df["state"] = states
-
     compact_df.sort_values(by=["home_ID"])
-
-    print(compact_df.head(68))
 
     return compact_df
 
@@ -182,11 +145,11 @@ def saveToCsv(df):
 # ==========================================================================
 
 
-def correctPhaseSigns():
+def correctPhaseSigns(sensors_df=None):
     """
     functions to modify the signs of different phases (defined in a txt file of the form
     install_ID:phase1,phase2...)
-    and create a new xls file after
+    and write the corrected content in another csv file
     """
     to_modif = {}
     with open(PHASE_TO_MODIF_FILE) as f:
@@ -199,7 +162,8 @@ def correctPhaseSigns():
     # ===================================================
 
     # reading the csv file
-    sensors_df = pd.read_csv(COMPACT_SENSOR_FILE)
+    if sensors_df is None:
+        sensors_df = pd.read_csv(COMPACT_SENSOR_FILE)
 
     print("nb of rows : ", len(sensors_df))
     for i in range(len(sensors_df)):
@@ -213,25 +177,30 @@ def correctPhaseSigns():
                 elif phase[-1] != "-":
                     sensors_df.loc[i, "phase"] = phase + "-"
                 # change net sign
-                sensors_df.loc[i, "net"] = str(-1 * int(sensors_df.loc[i, "net"]))
+                sensors_df.loc[i, "net"] = str(-1 * float(sensors_df.loc[i, "net"]))
                 # change con sign
-                sensors_df.loc[i, "con"] = str(-1 * int(sensors_df.loc[i, "con"]))
+                sensors_df.loc[i, "con"] = str(-1 * float(sensors_df.loc[i, "con"]))
                 # change pro sign
-                sensors_df.loc[i, "pro"] = str(-1 * int(sensors_df.loc[i, "pro"]))
+                sensors_df.loc[i, "pro"] = str(-1 * float(sensors_df.loc[i, "pro"]))
 
     # writing into the file
     sensors_df.to_csv(UPDATED_FLUKSO_TECHNICAL_FILE, index=False)
 
 
+# ===================================================
+
+
 def main():
-    # compact_df = getCompactSensorDF()
-    # saveToCsv(compact_df)
+    # STEP 1 : get the useful flukso sensors data in a compact csv
+    compact_df = getCompactSensorDF()
+    saveToCsv(compact_df)
 
+    # STEP 2 : setup the groups of flukso in a txt file 
     # getGroupsFromFluksoIDs()
-
     # getGroupsFromInstallationsIds()
 
-    correctPhaseSigns()
+    # STEP 3 : correct phase signs
+    correctPhaseSigns(compact_df)  # TODO : put the sensor_df in parameter to directly correct
 
 if __name__ == "__main__":
     main()
