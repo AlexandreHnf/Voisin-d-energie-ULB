@@ -9,13 +9,7 @@ GROUPS_FILE = "sensors/grouped_homes_sensors.txt"
 PHASE_TO_MODIF_FILE = "sensors/phases_to_modify.txt"
 
 
-def getHomeIDcolumn(flukso_ids, home_ids):
-    home_ids_col = []
-    for fi in flukso_ids:
-        home_ids_col.append(home_ids[fi])
-
-    print(home_ids_col)
-    return home_ids_col
+# ==========================================================================
 
 
 def getFluksosDic(installation_ids_df):
@@ -92,6 +86,9 @@ def getCompactSensorDF():
     return compact_df
 
 
+# ==========================================================================
+
+
 def getGroupsFromFluksoIDs():
     """
     get the list of installations IDs based on the flukso sensors ID of a group
@@ -159,7 +156,7 @@ def correctPhaseSigns(sensors_df=None):
 
     print(to_modif)
 
-    # ===================================================
+    # -----------------------------------------------------------------------
 
     # reading the csv file
     if sensors_df is None:
@@ -187,7 +184,7 @@ def correctPhaseSigns(sensors_df=None):
     sensors_df.to_csv(UPDATED_FLUKSO_TECHNICAL_FILE, index=False)
 
 
-# ===================================================
+# ==========================================================================
 
 
 def main():
