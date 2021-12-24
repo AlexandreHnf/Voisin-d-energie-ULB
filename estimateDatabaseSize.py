@@ -1,4 +1,4 @@
-import fluksoVisualizationWithGUI as fv
+import fluksoVisualization as fv
 import os
 import json
 
