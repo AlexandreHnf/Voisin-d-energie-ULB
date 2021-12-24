@@ -204,6 +204,7 @@ def createInstallationsTables(compact_df):
             phase = phase.replace(" ", "_")
             phase = phase.replace("-", "1")
             columns.append("{}_{} DECIMAL".format(fid, phase))
+        columns += ["P_cons DECIMAL", "P_prod DECIMAL", "P_tot DECIMAL"]
         
         print(home_id, columns, end="\n\n")
 
@@ -216,15 +217,15 @@ def createInstallationsTables(compact_df):
 def main():
     # STEP 1 : get the useful flukso sensors data in a compact csv
     compact_df = getCompactSensorDF()
-    # createInstallationsTables(compact_df)
-    saveToCsv(compact_df)
+    createInstallationsTables(compact_df)
+    # saveToCsv(compact_df)
 
     # STEP 2 : setup the groups of flukso in a txt file 
     # getGroupsFromFluksoIDs()
     # getGroupsFromInstallationsIds()
 
     # STEP 3 : correct phase signs
-    correctPhaseSigns(compact_df)
+    # correctPhaseSigns(compact_df)
 
 if __name__ == "__main__":
     main()

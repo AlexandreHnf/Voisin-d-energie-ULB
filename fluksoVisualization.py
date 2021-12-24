@@ -9,19 +9,19 @@ Script to fetch Fluksometer data using the tmpo protocol and
 
 Input
 -----
-This script requires to have a file named `sensors.csv` in the "sensors/" directory.
+This script requires to have a file named `sensors.csv` or `updated_sensors.csv` in the "sensors/" directory.
 This `sensors.csv` file contains the home_ID, home name, sensor ID, sensor token and
-state for each row.
+coefficients for network, consommation and production for each row.
 
 Example input:
 
-> cat sensors.csv
-home_ID,phase,home_name,sensor_id,token,state
-1,phase1+,Flukso1,fed676021dacaaf6a12a8dda7685be34,b371402dc767cc83e41bc294b63f9586,+
+> cat sensors.csv or updated_sensors.csv
+home_ID,phase,home_name,sensor_id,token,net,con,pro
+1,phase1+,Flukso1,fed676021dacaaf6a12a8dda7685be34,b371402dc767cc83e41bc294b63f9586,-1.0,0.0,0.0
 
 Output
 ------
-File `output.csv` in output/
+File `[installation_id].csv` in output/fluksoData
 /!\ The previous file will be overwritten!
 The file contains the power time series, each sensor/phase a column.
 """
@@ -29,6 +29,7 @@ The file contains the power time series, each sensor/phase a column.
 from home import *
 from gui import *
 from constants import *
+import webapp.pyToCassandra as ptc
 
 import argparse
 import os
@@ -184,7 +185,7 @@ def getFluksoData(sensor_file, path=""):
 
 def getFLuksoGroups():
     """
-    Groups format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
+    returns Groups with format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
     """
     groups = []
     with open(GROUPS_FILE) as f:
@@ -193,6 +194,9 @@ def getFLuksoGroups():
             groups.append(line.strip().split(","))
 
     return groups
+
+
+# ====================================================================================
 
 
 def showFluksosActivity(homes):
@@ -227,6 +231,46 @@ def showFluksosActivity(homes):
     plt.xlabel('Time')
     plt.ylabel('Flukso activity')
     plt.show()
+
+
+# ====================================================================================
+
+
+def getColumnsNames(columns):
+    """ 
+    get the right format for the columns names 
+    " " => "_"
+    "-" => "1"
+    ex : PV sur phase L1- => pv_sur_phase_l11
+    """
+    names = []
+    for col in columns:
+        col = col.replace(" ", "_")
+        col = col.replace("-", "1")
+        names.append(col)
+    return names 
+
+def saveFluksoDataToCassandra(homes):
+    """ 
+    Save flukso data to Cassandra cluster
+    """
+    print("saving in Cassandra...")
+    session = ptc.connectToCluster("test")
+
+    for hid, home in homes.items():
+        print(hid)
+        power_df = home.getPowerDF()
+        cons_prod_df = home.getConsProdDF()
+        combined_df = power_df.join(cons_prod_df)
+
+        col_names = ["timestamp"] + getColumnsNames(list(combined_df.columns))
+        print(col_names)
+        for timestamp, row in combined_df.iterrows():
+            # print(timestamp, list(row))
+            values = [str(timestamp)] + list(row)
+            ptc.insert(session, "test", hid, col_names, values)
+
+    print("Successfully Saved in Cassandra")
 
 
 # ====================================================================================
@@ -276,10 +320,12 @@ def main():
     groups = getFLuksoGroups()
     print("groups : ", groups)
     homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids)
-    grouped_homes = generateGroupedHomes(homes, groups)
+    # grouped_homes = generateGroupedHomes(homes, groups)
 
-    saveFluksoData(homes.values())
-    saveFluksoData(grouped_homes)
+    # saveFluksoData(homes.values())
+    # saveFluksoData(grouped_homes)
+
+    saveFluksoDataToCassandra(homes)
 
     # visualizeFluksoData(homes, grouped_homes)
 

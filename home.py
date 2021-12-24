@@ -27,6 +27,7 @@ class Home:
         self.since_timing = since_timing
         self.to_timing = to_timing
         self.home_id = home_id
+        self.columns_names = self.getColumnsNames()
 
         self.power_df = self.createFluksoPowerDF()
         self.cons_prod_df = self.getConsumptionProductionDF()
@@ -79,6 +80,18 @@ class Home:
             j = 1
 
         return fluksos_df
+
+    def getColumnsNames(self):
+        """ 
+        get columns names of the form : 
+        flukso_id phase1, flukso_id phase2, ...
+        """ 
+        col_names = []
+        for phase, row in self.home_sensors.iterrows():
+            name = "{} {}".format(row["flukso_id"], phase)
+            col_names.append(name)
+        
+        return col_names
 
     @staticmethod
     def energy2power(energy_df):
@@ -134,44 +147,41 @@ class Home:
         create a dataframe where the colums are the phases of the Flukso and the rows are the
         data : 1 row = 1 timestamp = 1 power value
         """
-        hid = self.home_id
         data_dfs = self.createSeries()
         energy_df = pd.concat(data_dfs, axis=1)
         del data_dfs
         # print("nb index : ", len(energy_df.index))
         energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
-        energy_df.columns = list(self.home_sensors.index)
+        # energy_df.columns = list(self.home_sensors.index)
+        energy_df.columns = self.columns_names
         power_df = self.energy2power(energy_df)
         del energy_df
 
-        ah = getLocalTimestampsIndex(power_df)
-        ah = [tps for tps in ah]
-        power_df.index = ah
+        local_timestamps = getLocalTimestampsIndex(power_df)
+        power_df.index = [tps for tps in local_timestamps]
 
         power_df.fillna(0, inplace=True)
 
         return power_df
 
     def getConsumptionProductionDF(self):
+        """ 
+        P_cons = P_tot - P_prod
+        P_net = P_prod + P_cons
+        """
         cons_prod_df = pd.DataFrame([[0, 0, 0] for _ in range(len(self.power_df))],
                                     self.power_df.index,
                                     ["P_cons", "P_prod", "P_tot"])
 
-        # P_cons = P_tot - P_prod
-        # P_net = P_prod + P_cons
-
-        # ===============
-
-        for phase in self.home_sensors.index:
+        for i, phase in enumerate(self.home_sensors.index):
+            fluksoid_phase = self.columns_names[i]
             # c = self.home_sensors.loc[phase]["con"]
             p = self.home_sensors.loc[phase]["pro"]
             n = self.home_sensors.loc[phase]["net"]
 
-            # cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + c * self.power_df[phase]
-            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * self.power_df[phase]
-            cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * self.power_df[phase]
-
-            # print(n, p)
+            # cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + c * self.power_df[fluksoid_phase]
+            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * self.power_df[fluksoid_phase]
+            cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * self.power_df[fluksoid_phase]
 
         cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
 

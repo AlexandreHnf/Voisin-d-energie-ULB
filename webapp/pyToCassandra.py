@@ -1,6 +1,17 @@
 from cassandra.cluster import Cluster
 
 
+def getRightFormat(values):
+    res = []
+    for v in values:
+        if type(v) == str:
+            res.append("'" + v + "'")
+        else:
+            res.append(str(v))
+    
+    return res
+
+
 def createKeyspace(session, keyspace_name, replication_class, replication_factor):
     """ 
     Create a new keyspace in the Cassandra database
@@ -21,8 +32,8 @@ def insert(session, keyspace, table, columns, values):
     Insert a new row in the table
     """
     query = "INSERT INTO {}.{} ({}) VALUES ({});" \
-                    .format(keyspace, table, ",".join(columns), ",".join(values))
-    print("===> insert query :", query)
+                    .format(keyspace, table, ",".join(columns), ",".join(getRightFormat(values)))
+    # print("===> insert query :", query)
     session.execute(query)
 
 
@@ -64,7 +75,7 @@ def main():
     #                 (item_id TEXT, name TEXT, price_p_item DECIMAL, PRIMARY KEY (item_id));")
 
     # insert new row
-    insert(session, "test", "fruit_stock", ["item_id", "name", "price_p_item"], ["'a0'", "'apples'", '0.50'])
+    insert(session, "test", "fruit_stock", ["item_id", "name", "price_p_item"], ["a0", "apples", 0.50])
     # session.execute("INSERT INTO test.fruit_stock (item_id, name, price_p_item) \
     #                 VALUES ('a0','apples',0.50);")
 
