@@ -24,11 +24,7 @@ def getFluksosDic(installation_ids_df):
     for i in range(len(installation_ids_df)):
         FlmId = installation_ids_df["FlmId"][i]
         installation_id = installation_ids_df["InstallationId"][i]
-        # FluksoId = installation_ids_df["FluksoId"][i]
         print(FlmId, installation_id)
-
-        # if str(FlmId) == "nan":
-        #     FlmId = FluksoId
 
         fluksos[FlmId] = installation_id
 
@@ -42,13 +38,11 @@ def getInstallationsIds(flukso_ids, fluksos):
     only those whose fluksos are available. (an id can appear several times)
     """
     installation_id_col = []
-    nb_unknowns = 0
     for fi in flukso_ids:
         if fi in fluksos:
             installation_id_col.append(fluksos[fi])
         else:
-            installation_id_col.append("unknown" + str(nb_unknowns))
-            nb_unknowns += 1
+            installation_id_col.append("unknown")
 
     return installation_id_col
 
@@ -80,10 +74,14 @@ def getCompactSensorDF():
     compact_df.fillna(0, inplace=True)
 
     installation_ids_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Flukso")
-    fluksos = getFluksosDic(installation_ids_df)
+    fluksos = getFluksosDic(installation_ids_df)  # {flukso_id : install_id}
     installation_ids_col = getInstallationsIds(sensors_df["FlmId"], fluksos)
     print(installation_ids_col)
     compact_df["home_ID"] = installation_ids_col
+
+    # remove unused fluksos (those without active installations)
+    compact_df = compact_df.drop(compact_df[compact_df.home_ID == "unknown"].index)
+    compact_df.reset_index(inplace=True, drop=True)
 
     compact_df.sort_values(by=["home_ID"])
 
@@ -218,15 +216,15 @@ def createInstallationsTables(compact_df):
 def main():
     # STEP 1 : get the useful flukso sensors data in a compact csv
     compact_df = getCompactSensorDF()
-    createInstallationsTables(compact_df)
-    # saveToCsv(compact_df)
+    # createInstallationsTables(compact_df)
+    saveToCsv(compact_df)
 
     # STEP 2 : setup the groups of flukso in a txt file 
     # getGroupsFromFluksoIDs()
     # getGroupsFromInstallationsIds()
 
     # STEP 3 : correct phase signs
-    # correctPhaseSigns(compact_df)
+    correctPhaseSigns(compact_df)
 
 if __name__ == "__main__":
     main()
