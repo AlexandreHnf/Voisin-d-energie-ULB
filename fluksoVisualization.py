@@ -98,8 +98,10 @@ def saveFluksoData(homes):
         # filepath = "output/fluksoData/{}.csv".format(home.getHomeID())
         power_df = home.getPowerDF()
         cons_prod_df = home.getConsProdDF()
-
         combined_df = power_df.join(cons_prod_df)
+
+        col_names = ["timestamp"] + getColumnsNames(list(combined_df.columns))
+        combined_df = pd.DataFrame(combined_df, columns=col_names)
 
         outname = home.getHomeID() + '.csv'
         outdir = OUTPUT_FILE

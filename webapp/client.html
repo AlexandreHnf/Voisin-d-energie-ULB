@@ -6,6 +6,7 @@
 	<meta charset="UTF-8">
 	<link rel="stylesheet" href="styles.css">
 	<title>Flukso data visualization</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.0/socket.io.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
 
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,6 +21,15 @@
 
 <!-- JAVASCRIPT -->
 <script>
+
+	const socket = io('http://localhost:5000');
+
+	function main() {
+      socket.on('connect_error', function () {
+         console.log('Connection Failed. Server down :-(');
+      });
+   }
+
 	document.write(5 + 6);
 </script>
 
