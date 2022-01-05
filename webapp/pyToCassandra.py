@@ -48,17 +48,32 @@ def getClusteringKeyStr(clustering_keys):
         return "," + ",".join(clustering_keys)
 
 
-def createTable(session, keyspace, table, columns, primary_keys, clustering_keys):
+def getOrdering(ordering):
+    """ 
+    ordering format : {"column_name": "ASC", "column_name2": "DESC"}
+    """
+    res = ""
+    if len(ordering) > 0:
+        res += "WITH CLUSTERING ORDER BY ("
+        for col_name, ordering_type in ordering.items():
+            res += col_name + " " + ordering_type + ","
+        res = res[:-1] + ")"  # replace last "," by ")"
+
+    return res
+
+
+def createTable(session, keyspace, table, columns, primary_keys, clustering_keys, ordering):
     """ 
     Create a new table in the database 
     columns = [column name type, ...]
     """
     # create a new table : 
     query = "CREATE TABLE IF NOT EXISTS {}.{} \
-                    ({}, PRIMARY KEY ({}{}));" \
+                    ({}, PRIMARY KEY ({}{})) {};" \
                     .format(keyspace, table, ",".join(columns), 
                     getCompoundKeyStr(primary_keys),
-                    getClusteringKeyStr(clustering_keys))
+                    getClusteringKeyStr(clustering_keys),
+                    getOrdering(ordering))
 
     print("===>  create table query : ", query)
     session.execute(query) 
@@ -79,7 +94,10 @@ def connectToCluster(keyspace):
 
 def testFruitStock(session):
     # create a new table : 
-    createTable(session, "test", "fruit_stock", ["item_id TEXT", "name TEXT", "price_p_item DECIMAl"], ["item_id"], ["name"])
+    createTable(session, "test", "fruit_stock", 
+                ["item_id TEXT", "name TEXT", "price_p_item DECIMAl"], 
+                ["item_id"], ["name"],
+                {"name": "DESC"})
     # session.execute("CREATE TABLE IF NOT EXISTS test.fruit_stock \
     #                 (item_id TEXT, name TEXT, price_p_item DECIMAL, PRIMARY KEY (item_id));")
 
