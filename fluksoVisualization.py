@@ -266,7 +266,7 @@ def saveFluksoDataToCassandra(homes):
         combined_df = power_df.join(cons_prod_df)
 
         col_names = ["timestamp"] + getColumnsNames(list(combined_df.columns))
-        print(col_names)
+        # print(col_names)
         for timestamp, row in combined_df.iterrows():
             # print(timestamp, list(row))
             values = [str(timestamp)] + list(row)

@@ -197,7 +197,7 @@ def createInstallationsTables(compact_df):
     session = ptc.connectToCluster("test")
     home_ids = set(compact_df.home_ID)
     for home_id in home_ids:
-        columns = ["timestamp TEXT"]
+        columns = ["day TEXT", "ts TIMESTAMP"]
         home_df = compact_df.loc[compact_df["home_ID"] == home_id]
         for hid, phase, fid, sid, t, n, c, p in home_df.values:
             print("{}-{}".format(fid, phase))
@@ -208,7 +208,7 @@ def createInstallationsTables(compact_df):
         
         print(home_id, columns, end="\n\n")
 
-        ptc.createTable(session, "test", home_id, columns, "timestamp")
+        ptc.createTable(session, "test", home_id, columns, ["day"], ["ts"])
 
 
 # ==========================================================================

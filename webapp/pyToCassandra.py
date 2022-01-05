@@ -37,15 +37,28 @@ def insert(session, keyspace, table, columns, values):
     session.execute(query)
 
 
-def createTable(session, keyspace, table, columns, primary_key):
+def getCompoundKeyStr(primary_keys):
+    return "(" + "".join(primary_keys) + ")"
+
+
+def getClusteringKeyStr(clustering_keys):
+    if len(clustering_keys) == 0:
+        return ""
+    else:
+        return "," + ",".join(clustering_keys)
+
+
+def createTable(session, keyspace, table, columns, primary_keys, clustering_keys):
     """ 
     Create a new table in the database 
     columns = [column name type, ...]
     """
     # create a new table : 
     query = "CREATE TABLE IF NOT EXISTS {}.{} \
-                    ({}, PRIMARY KEY ({}));" \
-                    .format(keyspace, table, ",".join(columns), primary_key)
+                    ({}, PRIMARY KEY ({}{}));" \
+                    .format(keyspace, table, ",".join(columns), 
+                    getCompoundKeyStr(primary_keys),
+                    getClusteringKeyStr(clustering_keys))
 
     print("===>  create table query : ", query)
     session.execute(query) 
@@ -64,20 +77,28 @@ def connectToCluster(keyspace):
     return session
 
 
-def main():
-    session = connectToCluster("test")
-
-    # createKeyspace(session, "test", "SimpleStrategy", "1")
-
+def testFruitStock(session):
     # create a new table : 
-    createTable(session, "test", "fruit_stock", ["item_id TEXT", "name TEXT", "price_p_item DECIMAl"], "item_id")
+    createTable(session, "test", "fruit_stock", ["item_id TEXT", "name TEXT", "price_p_item DECIMAl"], ["item_id"], ["name"])
     # session.execute("CREATE TABLE IF NOT EXISTS test.fruit_stock \
     #                 (item_id TEXT, name TEXT, price_p_item DECIMAL, PRIMARY KEY (item_id));")
 
     # insert new row
     insert(session, "test", "fruit_stock", ["item_id", "name", "price_p_item"], ["a0", "apples", 0.50])
+    insert(session, "test", "fruit_stock", ["item_id", "name", "price_p_item"], ["b1", "bananas", 0.40])
+    insert(session, "test", "fruit_stock", ["item_id", "name", "price_p_item"], ["c3", "oranges", 0.35])
+    insert(session, "test", "fruit_stock", ["item_id", "name", "price_p_item"], ["d4", "pineapples", 2.5])
+    insert(session, "test", "fruit_stock", ["item_id", "name", "price_p_item"], ["e5", "grapes", 0.44])
     # session.execute("INSERT INTO test.fruit_stock (item_id, name, price_p_item) \
     #                 VALUES ('a0','apples',0.50);")
+
+
+def main():
+    session = connectToCluster("test")
+
+    # createKeyspace(session, "test", "SimpleStrategy", "1")
+
+    testFruitStock(session)
 
     print("Insertion done.")
 

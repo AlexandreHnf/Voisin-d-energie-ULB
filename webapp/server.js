@@ -77,7 +77,10 @@ function queryGrocery() {
   });
 }
 
-
+function queryFluksoData(table) {
+  var query = `SELECT * FROM test.${table}`
+  pass;
+}
 
 // ==============
 //Idiomatic expression in express to route and respond to a client request
