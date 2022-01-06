@@ -9,6 +9,7 @@ COMPACT_SENSOR_FILE = "sensors/sensors_technical.csv"
 GROUPS_FILE = "sensors/grouped_homes_sensors.txt"
 PHASE_TO_MODIF_FILE = "sensors/phases_to_modify.txt"
 
+CASSANDRA_KEYSPACE = "flukso" 
 
 # ==========================================================================
 
@@ -194,7 +195,7 @@ def createInstallationsTables(compact_df):
     compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
     1 installation = 1 table
     """
-    session = ptc.connectToCluster("test")
+    session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
     home_ids = set(compact_df.home_ID)
     for home_id in home_ids:
         columns = ["day TEXT", "ts TIMESTAMP"]
@@ -208,7 +209,7 @@ def createInstallationsTables(compact_df):
         
         print(home_id, columns, end="\n\n")
 
-        ptc.createTable(session, "test", home_id, columns, ["day"], ["ts"])
+        ptc.createTable(session, CASSANDRA_KEYSPACE, home_id, columns, ["day"], ["ts"], {"ts":"DESC"})
 
 
 # ==========================================================================

@@ -29,6 +29,7 @@ The file contains the power time series, each sensor/phase a column.
 from home import *
 from gui import *
 from constants import *
+from preprocessFluksoSensors import CASSANDRA_KEYSPACE
 import webapp.pyToCassandra as ptc
 
 import argparse
@@ -52,6 +53,7 @@ mpl.rc('figure', max_open_warning=0)
 warnings.simplefilter('ignore', urllib3.exceptions.SecurityWarning)
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
+CASSANDRA_KEYSPACE = "flukso"
 
 # ====================================================================================
 
@@ -100,8 +102,11 @@ def saveFluksoData(homes):
         cons_prod_df = home.getConsProdDF()
         combined_df = power_df.join(cons_prod_df)
 
-        col_names = ["timestamp"] + getColumnsNames(list(combined_df.columns))
-        combined_df = pd.DataFrame(combined_df, columns=col_names)
+        # col_names = ["timestamp"] + getColumnsNames(list(combined_df.columns))
+        # combined_df = pd.DataFrame(combined_df, columns=col_names)
+
+        # print(power_df.head(5))
+        # print(combined_df.head(5))
 
         outname = home.getHomeID() + '.csv'
         outdir = OUTPUT_FILE
@@ -169,13 +174,13 @@ def visualizeFluksoData(homes, grouped_homes):
 
 def getFluksoData(sensor_file, path=""):
     """
-    get Flukso data (via API) then visualize the data
+    get Flukso data (via API) 
     """
     if not path:
         path = getProgDir()
 
     sensors = read_sensor_info(path, sensor_file)
-    print(sensors.head(5))
+    # print(sensors.head(5))
     session = tmpo.Session(path)
     for hid, hn, sid, tk, n, c, p in sensors.values:
         session.add(sid, tk)
@@ -257,7 +262,7 @@ def saveFluksoDataToCassandra(homes):
     Save flukso data to Cassandra cluster
     """
     print("saving in Cassandra...")
-    session = ptc.connectToCluster("test")
+    session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
     for hid, home in homes.items():
         print(hid)
@@ -265,12 +270,14 @@ def saveFluksoDataToCassandra(homes):
         cons_prod_df = home.getConsProdDF()
         combined_df = power_df.join(cons_prod_df)
 
-        col_names = ["timestamp"] + getColumnsNames(list(combined_df.columns))
+        col_names = ["day", "ts"] + getColumnsNames(list(combined_df.columns))
         # print(col_names)
         for timestamp, row in combined_df.iterrows():
             # print(timestamp, list(row))
-            values = [str(timestamp)] + list(row)
-            ptc.insert(session, "test", hid, col_names, values)
+            day = str(timestamp.date())
+            ts = str(timestamp)
+            values = [day, ts] + list(row)
+            ptc.insert(session, CASSANDRA_KEYSPACE, hid, col_names, values)
 
     print("Successfully Saved in Cassandra")
 
@@ -324,10 +331,10 @@ def main():
     homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids)
     # grouped_homes = generateGroupedHomes(homes, groups)
 
-    # saveFluksoData(homes.values())
+    saveFluksoData(homes.values())
     # saveFluksoData(grouped_homes)
 
-    saveFluksoDataToCassandra(homes)
+    # saveFluksoDataToCassandra(homes)
 
     # visualizeFluksoData(homes, grouped_homes)
 

@@ -75,7 +75,7 @@ def createTable(session, keyspace, table, columns, primary_keys, clustering_keys
                     getClusteringKeyStr(clustering_keys),
                     getOrdering(ordering))
 
-    print("===>  create table query : ", query)
+    # print("===>  create table query : ", query)
     session.execute(query) 
 
 

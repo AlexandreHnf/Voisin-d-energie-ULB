@@ -161,6 +161,7 @@ class Home:
         power_df.index = [tps for tps in local_timestamps]
 
         power_df.fillna(0, inplace=True)
+        power_df = power_df.round(1)  # round with 2 decimals
 
         return power_df
 
@@ -184,6 +185,8 @@ class Home:
             cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * self.power_df[fluksoid_phase]
 
         cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
+
+        cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
 
         return cons_prod_df
 
