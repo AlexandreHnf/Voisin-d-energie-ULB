@@ -42,9 +42,15 @@
 
 		<br>
 
+		<form onsubmit=processDateQuery()>
+			<label for="day">Specific day: </label>
+			<input type="date" id="day" name="day">
+			<button type="submit" id="buttonDay" class="btn btn-dark">Ok</button>
+		</form>
+
 
 		<!-- form for the timings input -->
-		<form onsubmit="validateTimingInput();return false">
+		<!-- <form onsubmit="validateTimingInput();return false">
 			<div class="form-group">
 				<label for="from">From</label><br>
 				<input type="text" id="from" name="from"><br>
@@ -55,7 +61,7 @@
 			</div>
 			<button type="submit" id="buttonShow" class="btn btn-primary">Show</button>
 		</form> 
-		<p id="login_err_msg"></p>
+		<p id="login_err_msg"></p> -->
 
 		<!-- inline form -->
 		<!-- <form class="form-inline" onsubmit="validateTimingInput();return false">
