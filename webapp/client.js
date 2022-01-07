@@ -1,4 +1,4 @@
-const socket = io('http://localhost:5000');
+var socket;
 
 var timing_button = document.getElementById("buttonShow");
 
@@ -6,6 +6,10 @@ let charts = [null]; // list of ChartJS object
 
 function validateTimingInput() {
     document.getElementById("login_err_msg").innerHTML = "OK c'est bon";
+}
+
+function processDateQuery() {
+	document.getElementById("date_msg").innerHTML = "=> " + document.getElementById("day").value;
 }
 
 //Create the Charts
@@ -29,6 +33,8 @@ function createChart(i) {
  }
 
 function main() {
+	socket = io('http://localhost:5000');
+	console.log("Socket setup : OK");
     
     // for (let i = 0; i < charts.length; i++) {
     //     createChart(i);

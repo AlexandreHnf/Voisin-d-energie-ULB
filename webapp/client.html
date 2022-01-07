@@ -45,8 +45,11 @@
 		<form onsubmit=processDateQuery()>
 			<label for="day">Specific day: </label>
 			<input type="date" id="day" name="day">
-			<button type="submit" id="buttonDay" class="btn btn-dark">Ok</button>
+			<input id="DaySubmit" type="submit" value="OK"><br>
 		</form>
+		<p id="date_msg"></p>
+
+		<br>
 
 
 		<!-- form for the timings input -->
@@ -88,28 +91,61 @@
 		
 		  <!-- Tab panes -->
 		  <div class="tab-content">
-			<div id="home" class="container tab-pane active"><br>
+
+			<!-- HOMES TAB -->
+			<div id="home" class="container-fluid tab-pane active"><br>
 			  <h3>All homes</h3>
 			  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-			 
-			  <!-- list of items -->
-			  <ul class="list-group">
-				<li class="list-group-item">
-					<div>
-						Cras justo odio
-						<canvas id="chartCanvas1"></canvas>
-					</div>
-				</li>
-				<li class="list-group-item">Dapibus ac facilisis in</li>
-				<li class="list-group-item">Morbi leo risus</li>
-				<li class="list-group-item">Porta ac consectetur ac</li>
-				<li class="list-group-item">Vestibulum at eros</li>
-			  </ul>
+			  
+			  <!--  2 columns -->
+			  <div class="container-fluid">
+				<div class="row">
+				  <div class="col-sm">
+					Column 1
+					<!-- list of items -->
+					<ul class="list-group">
+						<li class="list-group-item">
+							<div>
+								Cras justo odio
+								<canvas id="chartCanvas1"></canvas>
+							</div>
+						</li>
+						<li class="list-group-item">Dapibus ac facilisis in</li>
+						<li class="list-group-item">Morbi leo risus</li>
+						<li class="list-group-item">Porta ac consectetur ac</li>
+						<li class="list-group-item">Vestibulum at eros</li>
+					</ul> 
+
+				  </div>
+				  <div class="col-sm">
+					Column 2
+					<!-- list of items -->
+					<ul class="list-group">
+						<li class="list-group-item">
+							<div>
+								Cras justo odio
+								<canvas id="chartCanvas1"></canvas>
+							</div>
+						</li>
+						<li class="list-group-item">Dapibus ac facilisis in</li>
+						<li class="list-group-item">Morbi leo risus</li>
+						<li class="list-group-item">Porta ac consectetur ac</li>
+						<li class="list-group-item">Vestibulum at eros</li>
+					</ul> 
+					
+				  </div>
+				</div>
+			  </div>
+
 			</div>
+
+			<!-- GROUPS TAB -->
 			<div id="menu1" class="container tab-pane fade"><br>
 			  <h3>Groups of homes</h3>
 			  <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
 			</div>
+
+			<!-- ACTIVITY TAB -->
 			<div id="menu2" class="container tab-pane fade"><br>
 			  <h3>Flukso activity</h3>
 			  <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam.</p>
