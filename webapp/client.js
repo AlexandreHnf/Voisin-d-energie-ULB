@@ -29,6 +29,7 @@ async function sendDateQuery(date) {
 	const resdata = await response.json();
 
 	var msg = resdata.msg;
+	console.log("date sent to server...");
 	console.log("msg : " + msg);
 }
 
