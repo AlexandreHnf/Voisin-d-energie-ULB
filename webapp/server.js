@@ -6,7 +6,12 @@ var cassandra = require('cassandra-driver');
 const http = require("http")
 const io = require("socket.io")
 const express = require('express'); //Import the express dependency
+const bodyParser = require("body-parser");
+const router = express.Router();
 const app = express();              //Instantiate an express app, the main work horse of this server
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+app.use("/", router);
 const port = 5000;                  //Save the port number where your server will be listening
 const server = require('http').createServer(app);  //  express = request handler functions passed to http Server instances
 
@@ -79,7 +84,6 @@ function queryGrocery() {
 
 function queryFluksoData(table) {
   var query = `SELECT * FROM test.${table}`
-  pass;
 }
 
 // ==============
@@ -102,6 +106,14 @@ app.get('/styles.css', function(req, res) {
 // app.listen(port, () => {            //server starts listening for any attempts from a client to connect at port: {port}
 //     console.log(`Now listening on port ${port}`); 
 // });
+
+router.post('/date', (request, response) => {
+	// client request flukso data of a specific day
+	console.log("> date request");
+	const date = request.body.date;
+	console.log("date: " + date);
+	response.json({msg: "date well received!"});
+});
 
 
 async function main() {

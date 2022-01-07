@@ -1,4 +1,4 @@
-var socket;
+const socket = io('http://localhost:5000');
 
 var timing_button = document.getElementById("buttonShow");
 
@@ -9,7 +9,27 @@ function validateTimingInput() {
 }
 
 function processDateQuery() {
-	document.getElementById("date_msg").innerHTML = "=> " + document.getElementById("day").value;
+	var date = document.getElementById("day").value;
+	console.log("date: "+ date);
+	document.getElementById("date_msg").innerHTML = "=> " + date;
+	sendDateQuery(date.toString());
+}
+
+async function sendDateQuery(date) {
+	// send pseudo to server
+	var testdata = "post_test";
+    const data = { date };
+    const options = {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    };
+
+	const response = await fetch('/date', options);
+	const resdata = await response.json();
+
+	var msg = resdata.msg;
+	console.log("msg : " + msg);
 }
 
 //Create the Charts
@@ -33,12 +53,11 @@ function createChart(i) {
  }
 
 function main() {
-	socket = io('http://localhost:5000');
-	console.log("Socket setup : OK");
     
     // for (let i = 0; i < charts.length; i++) {
     //     createChart(i);
     // }
+	console.log("creating charts...")
     createChart(1);
 
     socket.on('connect_error', function () {
