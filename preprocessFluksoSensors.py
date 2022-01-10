@@ -233,10 +233,10 @@ def createInstallationsTables(compact_df):
             index = "0" + index
         columns.append("phase{} DECIMAL".format(i+1))
 
-    ptc.createTable(session, CASSANDRA_KEYSPACE, "raw_data", columns, ["home_id, day"], ["ts"], {"ts":"DESC"})
+    ptc.createTable(session, CASSANDRA_KEYSPACE, "raw_data", columns, ["home_id, day"], ["ts"], {"ts":"ASC"})
 
     stats_cols = ["home_id TEXT", "day TEXT", "ts TIMESTAMP", "P_cons DECIMAL", "P_prod DECIMAL", "P_tot DECIMAL"]
-    ptc.createTable(session, CASSANDRA_KEYSPACE, "stats", stats_cols, ["home_id, day"], ["ts"], {"ts":"DESC"})
+    ptc.createTable(session, CASSANDRA_KEYSPACE, "stats", stats_cols, ["home_id, day"], ["ts"], {"ts":"ASC"})
 
 
 # ==========================================================================
