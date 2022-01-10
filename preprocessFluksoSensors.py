@@ -190,7 +190,7 @@ def correctPhaseSigns(sensors_df=None):
 # ==========================================================================
 
 
-def createInstallationsTables(compact_df):
+def createTablePerInstallation(compact_df):
     """ 
     compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
     1 installation = 1 table
@@ -210,6 +210,33 @@ def createInstallationsTables(compact_df):
         print(home_id, columns, end="\n\n")
 
         ptc.createTable(session, CASSANDRA_KEYSPACE, home_id, columns, ["day"], ["ts"], {"ts":"DESC"})
+
+
+def createInstallationsTables(compact_df):
+    """ 
+    compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
+    1 table = home_id, day, timestamp, phase 1, ... phase n
+    1 table = home_id, day, timestamp, p_cons, p_prod, p_tot
+    """
+    session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+    home_ids = set(compact_df.home_ID)
+    max_nb_phases = 0
+    for home_id in home_ids:
+        nb_phases = len(compact_df.loc[compact_df["home_ID"] == home_id])
+        if nb_phases > max_nb_phases:
+            max_nb_phases = nb_phases
+
+    columns = ["home_id TEXT", "day TEXT", "ts TIMESTAMP"]
+    for i in range(max_nb_phases):
+        index = "i+1"
+        if len(index) == 1:
+            index = "0" + index
+        columns.append("phase{} DECIMAL".format(i+1))
+
+    ptc.createTable(session, CASSANDRA_KEYSPACE, "raw_data", columns, ["home_id, day"], ["ts"], {"ts":"DESC"})
+
+    stats_cols = ["home_id TEXT", "day TEXT", "ts TIMESTAMP", "P_cons DECIMAL", "P_prod DECIMAL", "P_tot DECIMAL"]
+    ptc.createTable(session, CASSANDRA_KEYSPACE, "stats", stats_cols, ["home_id, day"], ["ts"], {"ts":"DESC"})
 
 
 # ==========================================================================
