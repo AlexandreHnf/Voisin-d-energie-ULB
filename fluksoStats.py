@@ -54,8 +54,10 @@ def getRawData(session, since):
     where_clause = "home_id = {} and day IN ({}) AND ts > {}".format("'CDB011'", dates, "'"+str(timing)+"'")
     data = ptc.selectQuery(session, CASSANDRA_KEYSPACE, "raw_data", "*", where_clause, "LIMIT 10")
 
-    for row in data:
-        print(row)
+    # for row in data:
+    #     print(row)
+
+    print(data)
         
 
 def main():

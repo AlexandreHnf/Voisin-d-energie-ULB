@@ -1,4 +1,5 @@
 from cassandra.cluster import Cluster
+import pandas as pd
 
 
 def getRightFormat(values):
@@ -79,6 +80,19 @@ def createTable(session, keyspace, table, columns, primary_keys, clustering_keys
     session.execute(query) 
 
 
+def pandas_factory(colnames, rows):
+    return pd.DataFrame(rows, columns=colnames)
+
+def selectResToDf(session, query):
+
+    session.row_factory = pandas_factory
+    session.default_fetch_size = None
+
+    rslt = session.execute(query, timeout=None)
+    df = rslt._current_rows
+    return df
+
+
 def selectQuery(session, keyspace, table, columns, where_clause, limit):
     """ 
     columns = * or a list of columns
@@ -90,7 +104,7 @@ def selectQuery(session, keyspace, table, columns, where_clause, limit):
     )
 
     print("===> select query : ", query)
-    rows = session.execute(query)
+    rows = selectResToDf(session, query)
 
     return rows
 
