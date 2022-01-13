@@ -13,3 +13,6 @@ GROUPS_FILE = "sensors/grouped_homes_sensors.txt"
 
 # sample frequency
 FREQ = [8, "S"]  # 8 sec.
+
+# cassandra keyspaces
+CASSANDRA_KEYSPACE = "flukso" 

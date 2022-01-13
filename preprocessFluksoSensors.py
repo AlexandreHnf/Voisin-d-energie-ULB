@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-import webapp.pyToCassandra as ptc
+from constants import *
+import pyToCassandra as ptc
 
 
 FLUKSO_TECHNICAL_FILE = "sensors/FluksoTechnical.xlsx"
@@ -8,8 +9,6 @@ UPDATED_FLUKSO_TECHNICAL_FILE = "sensors/updated_sensors.csv"
 COMPACT_SENSOR_FILE = "sensors/sensors_technical.csv"
 GROUPS_FILE = "sensors/grouped_homes_sensors.txt"
 PHASE_TO_MODIF_FILE = "sensors/phases_to_modify.txt"
-
-CASSANDRA_KEYSPACE = "flukso" 
 
 # ==========================================================================
 

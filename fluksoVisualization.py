@@ -29,8 +29,7 @@ The file contains the power time series, each sensor/phase a column.
 from home import *
 from gui import *
 from constants import *
-from preprocessFluksoSensors import CASSANDRA_KEYSPACE
-import webapp.pyToCassandra as ptc
+import pyToCassandra as ptc
 
 import argparse
 import os

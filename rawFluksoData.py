@@ -9,8 +9,7 @@ Script to fetch Fluksometer data using the tmpo protocol and
 from home import *
 from gui import *
 from constants import *
-from preprocessFluksoSensors import CASSANDRA_KEYSPACE
-import webapp.pyToCassandra as ptc
+import pyToCassandra as ptc
 
 import argparse
 import os
@@ -32,8 +31,6 @@ mpl.rc('figure', max_open_warning=0)
 # security warning & Future warning
 warnings.simplefilter('ignore', urllib3.exceptions.SecurityWarning)
 warnings.simplefilter(action='ignore', category=FutureWarning)
-
-CASSANDRA_KEYSPACE = "flukso"
 
 # ====================================================================================
 
@@ -145,7 +142,7 @@ def getColumnsNames(columns):
 
 
 def saveFluksoDataToCassandra(homes):
-    """ 
+    """
     Save flukso data to Cassandra cluster
     """
     print("saving in Cassandra...")
