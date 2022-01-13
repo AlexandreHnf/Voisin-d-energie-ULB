@@ -99,7 +99,24 @@ def getConsumptionProductionDF(sensors, homes_rawdata, home_ids):
         return homes_stats
 
 
+def saveStatsToCassandra(session, homes_stats):
+    """ 
+    Save the stats (P_cons, P_prod, P_tot) of the raw data
+    of some period of time in Cassandra
+    """
+    print("saving in Cassandra : flukso.stats table...")
 
+    for hid, cons_prod_df in homes_stats.items():
+        print(hid)
+        
+        col_names = list(cons_prod_df.columns)
+        for _, row in cons_prod_df.iterrows():
+            values = list(row)
+            values[2] = str(values[2])  # timestamp (ts)
+            print(values)
+            ptc.insert(session, CASSANDRA_KEYSPACE, "stats", col_names, values)
+
+    print("Successfully saved stats in Cassandra")
 
 
 def main():
