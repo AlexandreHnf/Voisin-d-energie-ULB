@@ -203,8 +203,8 @@ def createTablePerInstallation(compact_df):
             print("{}-{}".format(fid, phase))
             phase = phase.replace(" ", "_")
             phase = phase.replace("-", "1")
-            columns.append("{}_{} DECIMAL".format(fid, phase))
-        columns += ["P_cons DECIMAL", "P_prod DECIMAL", "P_tot DECIMAL"]
+            columns.append("{}_{} FLOAT".format(fid, phase))
+        columns += ["P_cons FLOAT", "P_prod FLOAT", "P_tot FLOAT"]
         
         print(home_id, columns, end="\n\n")
 
@@ -230,11 +230,11 @@ def createInstallationsTables(compact_df):
         index = "i+1"
         if len(index) == 1:
             index = "0" + index
-        columns.append("phase{} DECIMAL".format(i+1))
+        columns.append("phase{} FLOAT".format(i+1))
 
     ptc.createTable(session, CASSANDRA_KEYSPACE, "raw_data", columns, ["home_id, day"], ["ts"], {"ts":"ASC"})
 
-    stats_cols = ["home_id TEXT", "day TEXT", "ts TIMESTAMP", "P_cons DECIMAL", "P_prod DECIMAL", "P_tot DECIMAL"]
+    stats_cols = ["home_id TEXT", "day TEXT", "ts TIMESTAMP", "P_cons FLOAT", "P_prod FLOAT", "P_tot FLOAT"]
     ptc.createTable(session, CASSANDRA_KEYSPACE, "stats", stats_cols, ["home_id, day"], ["ts"], {"ts":"ASC"})
 
 
