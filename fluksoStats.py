@@ -1,3 +1,4 @@
+from turtle import home
 from constants import *
 import pyToCassandra as ptc
 
@@ -38,7 +39,7 @@ def getTiming(t, now):
     return timing
 
 
-def getRawData(session, since):
+def getRawData(session, since, home_ids):
     """ 
     get raw flukso data from cassandra since a certain amount of time
     """
@@ -49,53 +50,73 @@ def getRawData(session, since):
     print("now date : ", str(now.date()))
     dates = list(set(["'"+str(timing.date())+"'", "'"+str(now.date())+"'"]))
     print(dates)
-
     dates = ",".join(dates)
-    where_clause = "home_id = {} and day IN ({}) AND ts > {}".format("'CDB011'", dates, "'"+str(timing)+"'")
-    data = ptc.selectQuery(session, CASSANDRA_KEYSPACE, "raw_data", "*", where_clause, "LIMIT 10")
 
-    print(data)
-    return data
+    homes_rawdata = {}
+    for home_id in home_ids:
+        
+        where_clause = "home_id = {} and day IN ({}) AND ts > {}".format("'"+home_id+"'", dates, "'"+str(timing)+"'")
+        data = ptc.selectQuery(session, CASSANDRA_KEYSPACE, "raw_data", "*", where_clause, "LIMIT 5")
+
+        # print(home_id)
+        # print(data)
+
+        homes_rawdata[home_id] = data
+
+    return homes_rawdata
         
 
-def getConsumptionProductionDF(sensors, power_df):
+def getConsumptionProductionDF(sensors, homes_rawdata, home_ids):
         """ 
         P_cons = P_tot - P_prod
         P_net = P_prod + P_cons
         """
-        home_id = "CDB011"
-        home_sensors = sensors.loc[sensors["home_ID"] == home_id]
-        cons_prod_df = power_df[["home_id","day", "ts"]].copy()
-        cons_prod_df["P_cons"] = 0
-        cons_prod_df["P_prod"] = 0
-        cons_prod_df["P_tot"] = 0
-        # cons_prod_df = pd.DataFrame([[0, 0, 0] for _ in range(len(power_df))],
-        #                             self.power_df.index,
-        #                             ["P_cons", "P_prod", "P_tot"])
+        homes_stats = {}
+        for home_id in home_ids:
+            power_df = homes_rawdata[home_id]
+            home_sensors = sensors.loc[sensors["home_ID"] == home_id]
+            cons_prod_df = power_df[["home_id","day", "ts"]].copy()
+            cons_prod_df["P_cons"] = 0
+            cons_prod_df["P_prod"] = 0
+            cons_prod_df["P_tot"] = 0
 
-        for i, phase in enumerate(home_sensors.index):
-            phase_i = "phase" + str(i+1)
-            p = home_sensors.loc[phase]["pro"]
-            n = home_sensors.loc[phase]["net"]
+            for i, phase in enumerate(home_sensors.index):
+                phase_i = "phase" + str(i+1)
+                p = home_sensors.loc[phase]["pro"]
+                n = home_sensors.loc[phase]["net"]
 
-            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * power_df[phase_i]
-            cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * power_df[phase_i]
+                cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * power_df[phase_i]
+                cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * power_df[phase_i]
 
-        cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
+            cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
 
-        cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
+            cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
+            homes_stats[home_id] = cons_prod_df
 
-        return cons_prod_df
+            # print(home_id)
+            # print(cons_prod_df)
+
+        return homes_stats
+
+
+
 
 
 def main():
     session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-    since = "s2022-01-10-16-24-32"
-    data = getRawData(session, since) 
-
     sensors = read_sensor_info(UPDATED_SENSORS_FILE)
-    cons_prod_df = getConsumptionProductionDF(sensors, data)
-    print(cons_prod_df)
+    home_ids = set(sensors.home_ID)
+
+    # test raw data retrieval
+    since = "s2022-01-13-16-26-56"
+    homes_rawdata = getRawData(session, since, home_ids) 
+
+    print("==============================================")
+
+    # test stats computations
+    homes_stats = getConsumptionProductionDF(sensors, homes_rawdata, home_ids)
+
+    saveStatsToCassandra(session, homes_stats)
 
 
 if __name__ == "__main__":
