@@ -82,8 +82,13 @@ function queryGrocery() {
   });
 }
 
-function queryFluksoData(table) {
-  var query = `SELECT * FROM test.${table}`
+function queryRawFluksoData(home_id, date) {
+  var query = `SELECT * FROM flukso.raw_data WHERE home_id = ? AND day = ? ALLOW FILTERING;`
+  var q1 = execute(query, [home_id, date], (err, result) => {
+	  assert.ifError(err);
+	  console.log(result.rows[0]);
+	});
+
 }
 
 // ==============
@@ -113,6 +118,7 @@ router.post('/date', (request, response) => {
 	const date = request.body.date;
 	console.log("date: " + date);
 	response.json({msg: "date well received!"});
+	queryRawFluksoData('CDB011', date);
 });
 
 
