@@ -92,7 +92,7 @@ function queryRawFluksoData(home_id, date, response) {
 	}).then((result) => {
     console.log("DANS LE THEN : ");
     console.log(result.rows[1]);
-    response.json({raw_data: result});
+    response.json({msg: "date well received!", raw_data: result});
   });
 }
 
@@ -113,6 +113,11 @@ app.get('/styles.css', function(req, res) {
   res.sendFile('/styles.css', {root: __dirname});
 });
 
+// send the chartjs utils file
+app.get('/chart.utils.js', function(req, res) {
+  res.sendFile('/chart.utils.js', {root: __dirname});
+});
+
 // app.listen(port, () => {            //server starts listening for any attempts from a client to connect at port: {port}
 //     console.log(`Now listening on port ${port}`); 
 // });
@@ -124,8 +129,6 @@ router.post('/date', (request, response) => {
 	console.log("date: " + date);
 	// response.json({msg: "date well received!"});
   queryRawFluksoData('CDB011', date, response);
-  // console.log(rawdata);
-  // response.json({raw_data: rawdata});
 });
 
 
