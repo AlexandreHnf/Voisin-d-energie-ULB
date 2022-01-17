@@ -7,6 +7,7 @@ const http = require("http")
 const io = require("socket.io")
 const express = require('express'); //Import the express dependency
 const bodyParser = require("body-parser");
+const { resolve } = require('path');
 const router = express.Router();
 const app = express();              //Instantiate an express app, the main work horse of this server
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -60,7 +61,7 @@ function execute(query, params, callback) {
         reject()
       } else {
         callback(err, result);
-        resolve()
+        resolve(result);
       }
     });
   });
@@ -82,13 +83,17 @@ function queryGrocery() {
   });
 }
 
-function queryRawFluksoData(home_id, date) {
+function queryRawFluksoData(home_id, date, response) {
   var query = `SELECT * FROM flukso.raw_data WHERE home_id = ? AND day = ? ALLOW FILTERING;`
-  var q1 = execute(query, [home_id, date], (err, result) => {
+  var raw_data = execute(query, [home_id, date], (err, result) => {
 	  assert.ifError(err);
-	  console.log(result.rows[0]);
-	});
-
+    console.log(result.rows[0]);
+    
+	}).then((result) => {
+    console.log("DANS LE THEN : ");
+    console.log(result.rows[1]);
+    response.json({raw_data: result});
+  });
 }
 
 // ==============
@@ -117,8 +122,10 @@ router.post('/date', (request, response) => {
 	console.log("> date request");
 	const date = request.body.date;
 	console.log("date: " + date);
-	response.json({msg: "date well received!"});
-	queryRawFluksoData('CDB011', date);
+	// response.json({msg: "date well received!"});
+  queryRawFluksoData('CDB011', date, response);
+  // console.log(rawdata);
+  // response.json({raw_data: rawdata});
 });
 
 

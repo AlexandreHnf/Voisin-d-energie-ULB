@@ -28,9 +28,10 @@ async function sendDateQuery(date) {
 	const response = await fetch('/date', options);
 	const resdata = await response.json();
 
-	var msg = resdata.msg;
+	var raw_data = resdata.raw_data;
 	console.log("date sent to server...");
-	console.log("msg : " + msg);
+	console.log("msg : " + raw_data.msg);
+    console.log(raw_data.rows[0]);
 }
 
 //Create the Charts
