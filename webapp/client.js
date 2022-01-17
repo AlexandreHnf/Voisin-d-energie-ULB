@@ -34,13 +34,24 @@ async function sendDateQuery(date) {
     console.log(raw_data.rows[0]);
 }
 
+
+// create html chart canvas : 
+function createChartCanvas(row_id, chart_id, row_name) {
+    let div = document.createElement("div");
+    div.innerHTML += `<canvas id="chartCanvas${row_id}_${chart_id}"></canvas>`;
+    console.log(`<canvas id="chartCanvas${row_id}_${chart_id}"></canvas>`);
+    document.getElementById(`${row_name}`).appendChild(div);
+    // console.log(document.getElementById(`${row_name}`).innerHTML);
+}
+
 //Create the Charts
-function createChart(i) {
+function createChart(row_id, chart_id) {
     // if (charts[i] !== null) {
     //     console.log("ah")
     //    charts[i].destroy();
     // }
-    charts[i] = new Chart(document.getElementById(`chartCanvas${i}`).getContext('2d'), {
+    console.log(`chartCanvas${row_id}_${chart_id}`);
+    charts[chart_id] = new Chart(document.getElementById(`chartCanvas${row_id}_${chart_id}`).getContext('2d'), {
        type: 'line',
        data: {
           labels: ['January', 'February', 'March', 'April', 'May', 'June'],
@@ -60,7 +71,14 @@ function main() {
     //     createChart(i);
     // }
 	console.log("creating charts...")
-    createChart(1);
+
+    // row 0
+    createChartCanvas(0, 1, "raw_data_charts");
+    createChart(0, 1);
+
+    // row 1 
+    createChartCanvas(1, 1, "stats_charts");
+    createChart(1, 1);
 
     socket.on('connect_error', function () {
         console.log('Connection Failed. Server down :-(');
