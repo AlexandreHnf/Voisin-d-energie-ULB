@@ -7,6 +7,8 @@ let charts_stats_today = [null];
 let charts_raw_day = [null]; // list of ChartJS object for data of a specific day
 let charts_stats_day = [null];
 
+let ids = {}
+
 function validateTimingInput() {
     document.getElementById("login_err_msg").innerHTML = "OK c'est bon";
 }
@@ -214,6 +216,16 @@ function createChartRaw(charts, row_id, chart_id) {
   });
 }
 
+async function getIds() {
+  // get all products from server replica set
+  const response = await fetch('/ids');
+  const data = await response.json();
+
+  ids = data.ids;
+
+  console.log(ids.CDB008);
+}
+
 function main() {
     
     // for (let i = 0; i < charts.length; i++) {
@@ -232,6 +244,8 @@ function main() {
     socket.on('connect_error', function () {
         console.log('Connection Failed. Server down :-(');
     });
+
+    getIds();
 }
 
 main();

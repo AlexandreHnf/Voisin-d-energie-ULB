@@ -1,4 +1,4 @@
-
+var fs = require('fs')
 var assert = require('assert');
 // ”cassandra-driver” is in the node_modules folder. Redirect if necessary.
 var cassandra = require('cassandra-driver');
@@ -17,6 +17,7 @@ const port = 5000;                  //Save the port number where your server wil
 const server = require('http').createServer(app);  //  express = request handler functions passed to http Server instances
 
 // ===================== GLOBAL VARIABLES =========================== 
+let ids = JSON.parse(fs.readFileSync('../sensors/ids.json', 'utf8'));
 // Connection to localhost cassandra database1
 const client = new cassandra.Client({
   contactPoints: ['ce97f9db-6e4a-4a2c-bd7a-2c97e31e3150', '127.0.0.1'],
@@ -122,6 +123,12 @@ app.get('/chart.utils.js', function(req, res) {
 //     console.log(`Now listening on port ${port}`); 
 // });
 
+app.get('/ids', (request, response) => {
+  // client wants the ids of the homes
+  console.log("client wants ids")
+  response.json({ids: ids});
+});
+
 router.post('/date', (request, response) => {
 	// client request flukso data of a specific day
 	console.log("> date request");
@@ -137,6 +144,7 @@ async function main() {
   server.listen(port, () => {
     console.log(`> Server listening on http://localhost:${port}`);
  });
+ // console.log(ids);
  queryGrocery();
  io(server).on("connection", onUserConnected);
 }
