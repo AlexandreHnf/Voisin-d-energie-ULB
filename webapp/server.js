@@ -139,6 +139,13 @@ router.post('/date', (request, response) => {
 });
 
 
+function sendIdsToClient(socket) {
+  console.log("sending init data to client (ids)")
+  socket.emit("init", {
+    "ids": ids
+  });
+}
+
 async function main() {
   //Authorize clients only after updating the server's data
   server.listen(port, () => {
@@ -153,6 +160,7 @@ async function main() {
 //Function that handles a new connection from a user and start listening for its queries
 function onUserConnected(socket) {
   console.log('-> New user connected');
+  sendIdsToClient(socket);
   socket.on('disconnect', () => {
      console.log('-> User disconnected');
   });

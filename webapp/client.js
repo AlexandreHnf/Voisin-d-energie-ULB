@@ -41,42 +41,24 @@ async function sendDateQuery(date) {
 
 
 // create html chart canvas : 
-function createChartCanvas(row_id, chart_id, row_name) {
+function createChartCanvas(col_name) {
+  let chart_id = 0;
+
+  for (const hid in ids) {
+    console.log(hid);
+
     let div = document.createElement("div");
-    div.innerHTML += `<canvas id="chartCanvas${row_id}_${chart_id}"></canvas>`;
-    console.log(`<canvas id="chartCanvas${row_id}_${chart_id}"></canvas>`);
-    document.getElementById(`${row_name}`).appendChild(div);
-    // console.log(document.getElementById(`${row_name}`).innerHTML);
+    div.innerHTML += `<p> ${hid}></p>
+                      <canvas id="chartCanvas${col_name}_${chart_id}"></canvas>`;
+    console.log(`<canvas id="chartCanvas${col_name}_${chart_id}"></canvas>`);
+    document.getElementById(`${col_name}`).appendChild(div);
+    // console.log(document.getElementById(`${col_name}`).innerHTML);
+
+    chart_id++;
+  }
 }
 
-//Create the Charts with raw data of a specific day
-function createChartRaw2(row_id, chart_id, raw_data) {
-  console.log("chart id : " + chart_id);
-    console.log(charts)
-    if (charts[chart_id] !== null) {
-        console.log("destroying previous charts...");
-        charts[chart_id].destroy();
-    }
-    let labels = [];
-    let data = [];
-    raw_data.foreach(row => {
-      labels.push(row.ts);
-      data.push(row.phase1);
-    })
-    console.log(`chartCanvas${row_id}_${chart_id}`);
-    charts[chart_id] = new Chart(document.getElementById(`chartCanvas${row_id}_${chart_id}`).getContext('2d'), {
-    type: 'line',
-    data: {
-        labels: ['January', 'February', 'March', 'April', 'May', 'June'],
-        datasets: [{
-            label: 'My First dataset',
-            borderColor: 'rgb(255, 99, 132)',  // red
-            data: [0, 10, 5, 2, 20, 30, 45],
-        }]
-    },
-    options: {responsive: true}
-  });
-}
+
 
 // Create Charts stats (prototype)
 function createChartStats(charts, row_id, chart_id) {
@@ -216,6 +198,35 @@ function createChartRaw(charts, row_id, chart_id) {
   });
 }
 
+//Create the Charts with raw data of a specific day
+function createChartRaw2(row_id, chart_id, raw_data) {
+  console.log("chart id : " + chart_id);
+    console.log(charts)
+    if (charts[chart_id] !== null) {
+        console.log("destroying previous charts...");
+        charts[chart_id].destroy();
+    }
+    let labels = [];
+    let data = [];
+    raw_data.foreach(row => {
+      labels.push(row.ts);
+      data.push(row.phase1);
+    })
+    console.log(`chartCanvas${row_id}_${chart_id}`);
+    charts[chart_id] = new Chart(document.getElementById(`chartCanvas${row_id}_${chart_id}`).getContext('2d'), {
+    type: 'line',
+    data: {
+        labels: ['January', 'February', 'March', 'April', 'May', 'June'],
+        datasets: [{
+            label: 'My First dataset',
+            borderColor: 'rgb(255, 99, 132)',  // red
+            data: [0, 10, 5, 2, 20, 30, 45],
+        }]
+    },
+    options: {responsive: true}
+  });
+}
+
 async function getIds() {
   // get all products from server replica set
   const response = await fetch('/ids');
@@ -223,7 +234,22 @@ async function getIds() {
 
   ids = data.ids;
 
-  console.log(ids.CDB008);
+  console.log(ids);
+
+  // for (const hid in ids) {
+  //   console.log(hid);
+  //   console.log(ids[hid]);
+  // }
+}
+
+function createPage() {
+  // row 0
+  createChartCanvas("raw_data_charts");
+  createChartRaw(charts_raw_day, 0, 0);
+
+  // row 1 
+  createChartCanvas("stats_charts");
+  createChartStats(charts_stats_day, 1, 0);
 }
 
 function main() {
@@ -233,19 +259,21 @@ function main() {
     // }
 	console.log("creating charts...")
 
-    // row 0
-    createChartCanvas(0, 0, "raw_data_charts");
-    createChartRaw(charts_raw_day, 0, 0);
+  socket.once("init", (data) => {
+    ids = data.ids;
 
-    // row 1 
-    createChartCanvas(1, 0, "stats_charts");
-    createChartStats(charts_stats_day, 1, 0);
+    console.log(ids);
+    // create html charts (2 columns)
+    createPage();
+  });
 
-    socket.on('connect_error', function () {
-        console.log('Connection Failed. Server down :-(');
-    });
+  socket.on('connect_error', function () {
+      console.log('Connection Failed. Server down !');
+  });
 
-    getIds();
+  // getIds();
+
+  
 }
 
 main();

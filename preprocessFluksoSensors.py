@@ -247,9 +247,10 @@ def saveHomeIds(compact_df):
     """ 
     Take the compact df of the form "home_ID,phase,flukso_id,sensor_id,token,net,con,pro"
     and save the ids for each home :
-    {home_id1 : {flukso_id1_phase1, ..., flukso_id1_phaseN]}, home_id2: {...} ...}
+    [{hid: home_id1, phases: [flukso_id1_phase1, ..., flukso_id1_phaseN]}, 
+     {hid: home_id2, phases: [...]}, ...}
     """
-    ids = {}
+    ids = []
     for hid, phase, fid, sid, t, n, c, p in compact_df.values:
         if hid not in ids:
             ids[hid] = []
