@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from constants import *
 import pyToCassandra as ptc
+import json
 
 
 FLUKSO_TECHNICAL_FILE = "sensors/FluksoTechnical.xlsx"
@@ -9,6 +10,8 @@ UPDATED_FLUKSO_TECHNICAL_FILE = "sensors/updated_sensors.csv"
 COMPACT_SENSOR_FILE = "sensors/sensors_technical.csv"
 GROUPS_FILE = "sensors/grouped_homes_sensors.txt"
 PHASE_TO_MODIF_FILE = "sensors/phases_to_modify.txt"
+
+IDS_FILE = "sensors/ids.json"
 
 # ==========================================================================
 
@@ -240,19 +243,48 @@ def createInstallationsTables(compact_df):
 
 # ==========================================================================
 
+def saveHomeIds(compact_df):
+    """ 
+    Take the compact df of the form "home_ID,phase,flukso_id,sensor_id,token,net,con,pro"
+    and save the ids for each home :
+    {home_id1 : {flukso_id1_phase1, ..., flukso_id1_phaseN]}, home_id2: {...} ...}
+    """
+    ids = {}
+    for hid, phase, fid, sid, t, n, c, p in compact_df.values:
+        if hid not in ids:
+            ids[hid] = []
+        else:
+            ids[hid].append("{}_{}".format(fid, phase))
+
+    print(ids)
+
+    with open(IDS_FILE, "w") as f:
+        json.dump(ids, f, indent = 4)
+
+
+# ==========================================================================
+
+
+
+
 
 def main():
-    # STEP 1 : get the useful flukso sensors data in a compact csv
+    # > get the useful flukso sensors data in a compact csv
     compact_df = getCompactSensorDF()
-    createInstallationsTables(compact_df)
     # saveToCsv(compact_df)
 
-    # STEP 2 : setup the groups of flukso in a txt file 
+    # > setup the groups of flukso in a txt file 
     # getGroupsFromFluksoIDs()
     # getGroupsFromInstallationsIds()
 
-    # STEP 3 : correct phase signs
+    # > correct phase signs
     # correctPhaseSigns(compact_df)
+
+    # > create cassandra tables 
+    # createInstallationsTables(compact_df)
+
+    # > save home ids to json
+    saveHomeIds(compact_df)
 
 if __name__ == "__main__":
     main()
