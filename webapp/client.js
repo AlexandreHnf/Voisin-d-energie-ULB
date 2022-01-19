@@ -22,13 +22,12 @@ function processDateQuery() {
 
 async function sendDateQuery(date) {
 	// send pseudo to server
-	var testdata = "post_test";
-    const data = { date };
-    const options = {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-    };
+  const data = { date };
+  const options = {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+  };
 
 	const response = await fetch('/date', options);
 	const resdata = await response.json();
@@ -37,6 +36,10 @@ async function sendDateQuery(date) {
 	console.log("date sent to server...");
 	console.log("msg : " + raw_data.msg);
   console.log(raw_data.rows[0]);
+  console.log("phase 1 value : " + raw_data.rows[0]["phase1"]);
+  console.log("nb of rows received : " + raw_data.rows.length);
+
+  createChartRaw2(raw_data);
 }
 
 
@@ -44,12 +47,12 @@ async function sendDateQuery(date) {
 function createChartCanvas(col_id, col_name) {
 
   for (const hid in ids) { // for each home, create a chart canvas
-    console.log(hid);
+    // console.log(hid);
 
     let div = document.createElement("div");
     div.innerHTML += `<p>${hid}</p>
                       <canvas id="chartCanvas${col_id}_${hid}"></canvas>`;
-    console.log(`<canvas id="chartCanvas${col_id}_${hid}"></canvas>`);
+    // console.log(`<canvas id="chartCanvas${col_id}_${hid}"></canvas>`);
     document.getElementById(`${col_name}`).appendChild(div);
     // console.log(document.getElementById(`${col_name}`).innerHTML);
 
@@ -58,41 +61,41 @@ function createChartCanvas(col_id, col_name) {
 
 // init each chart with empty dataset, but proper labels from the home ids
 function initRawCharts() {
+
   for (const hid in ids) {
-    charts_raw_day[hid] = null;
-    charts_raw_today[hid] = null;
-    charts_stats_day[hid] = null;
-    charts_stats_today[hid] = null;
+    // first destroy previous charts if any
+    if (charts_raw_day[hid] !== null) {
+      // console.log("destroying previous charts...");
+      charts_raw_day[hid].destroy();
+    }
+
+    // create empty charts with labels
+    datasets = []
+    for (let i = 0; i < ids[hid].length; i++){
+      datasets.push({
+        label: ids[hid][i],  // phase name
+        //borderColor: COLORS[i],
+        data: []
+      });
+    }
+
+    // console.log(`chartCanvas${0}_${hid}`);
+    charts_raw_day[hid] = new Chart(document.getElementById(`chartCanvas${0}_${hid}`).getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: datasets
+      },
+      options: {responsive: true}
+    });
   }
-
-  // for (const hid in ids) {
-  //   datasets = []
-  //   for (let i = 0; i < ids[hid].length; i++){
-  //     datasets.push({
-  //       label: ids[hid][i],  // phase name
-  //       borderColor: COLORS[i],
-  //       data: []
-  //     });
-  //   }
-
-  //   console.log(`chartCanvas${0}_${hid}`);
-  //   charts_raw_day[hid] = new Chart(document.getElementById(`chartCanvas${0}_${hid}`).getContext('2d'), {
-  //     type: 'line',
-  //     data: {
-  //       labels: [],
-  //       datasets: datasets
-  //     },
-  //     options: {responsive: true}
-  //   });
-  // }
 }
-
 
 
 // Create Charts stats (prototype)
 function createChartStats(charts, col_id, home_id) {
-  console.log("chart id : " + home_id);
-    console.log(charts)
+  // console.log("chart id : " + home_id);
+    //console.log(charts)
     if (charts[home_id] !== null) {
         console.log("destroying previous charts...");
         charts[home_id].destroy();
@@ -113,6 +116,8 @@ function createChartStats(charts, col_id, home_id) {
     const generateData = () => (Samples.utils.numbers(inputs));
     
     Samples.utils.srand(42);
+
+    COLORS = [];
 
     const data = {
       labels: generateLabels(),
@@ -227,33 +232,22 @@ function createChartRaw(charts, col_id, home_id) {
   });
 }
 
-//Create the Charts with raw data of a specific day
-function createChartRaw2(col_id, home_id, raw_data) {
-  console.log("chart id : " + home_id);
-    console.log(charts)
-    if (charts[home_id] !== null) {
-        console.log("destroying previous charts...");
-        charts[home_id].destroy();
+// Create the Charts with raw data of a specific day
+function createChartRaw2(raw_data) {
+    initRawCharts();
+
+    for (let i = 0; i < raw_data.rows.length; i++) {
+      // row = {home_id; day, ts, phase1... phaseN}
+      let row = raw_data.rows[i];
+      charts_raw_day[row.home_id].data.labels.push(row.ts);
+      let j = 1;
+      for (let j = 0; j < charts_raw_day[row.home_id].data.datasets.length; j++) {
+        dataset = charts_raw_day[row.home_id].data.datasets[j];
+        phase = "phase" + j;
+        dataset.data.push(row[phase]);
+      }
+      charts_raw_day[row.home_id].update();
     }
-    let labels = [];
-    let data = [];
-    raw_data.foreach(row => {
-      labels.push(row.ts);
-      data.push(row.phase1);
-    })
-    console.log(`chartCanvas${col_id}_${home_id}`);
-    charts[home_id] = new Chart(document.getElementById(`chartCanvas${col_id}_${home_id}`).getContext('2d'), {
-    type: 'line',
-    data: {
-        labels: ['January', 'February', 'March', 'April', 'May', 'June'],
-        datasets: [{
-            label: 'My First dataset',
-            borderColor: 'rgb(255, 99, 132)',  // red
-            data: [0, 10, 5, 2, 20, 30, 45],
-        }]
-    },
-    options: {responsive: true}
-  });
 }
 
 async function getIds() {
@@ -263,7 +257,7 @@ async function getIds() {
 
   ids = data.ids;
 
-  console.log(ids);
+  console.log("ids : " + ids);
 
   // for (const hid in ids) {
   //   console.log(hid);
@@ -272,14 +266,22 @@ async function getIds() {
 }
 
 function createPage() {
-  initRawCharts();
+  for (const hid in ids) {
+    charts_raw_day[hid] = null;
+    charts_raw_today[hid] = null;
+    charts_stats_day[hid] = null;
+    charts_stats_today[hid] = null;
+  }
   // row 0
   createChartCanvas(0, "raw_data_charts");
-  createChartRaw(charts_raw_day, 0, 'CDB011');
+  initRawCharts();
+  // createChartRaw(charts_raw_day, 0, 'CDB011');
+  // createChartRaw2()
 
   // row 1 
   createChartCanvas(1, "stats_charts");
   createChartStats(charts_stats_day, 1, 'CDB011');
+  
 }
 
 function main() {
@@ -292,7 +294,7 @@ function main() {
   socket.once("init", (data) => {
     ids = data.ids;
 
-    console.log(ids);
+    console.log("ids : " + ids);
     // create html charts (2 columns)
     createPage();
   });
