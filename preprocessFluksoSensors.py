@@ -250,7 +250,7 @@ def saveHomeIds(compact_df):
     [{hid: home_id1, phases: [flukso_id1_phase1, ..., flukso_id1_phaseN]}, 
      {hid: home_id2, phases: [...]}, ...}
     """
-    ids = []
+    ids = {}
     for hid, phase, fid, sid, t, n, c, p in compact_df.values:
         if hid not in ids:
             ids[hid] = []
@@ -260,7 +260,7 @@ def saveHomeIds(compact_df):
     print(ids)
 
     with open(IDS_FILE, "w") as f:
-        json.dump(ids, f, indent = 4)
+        json.dump(ids, f, indent = 4, sort_keys=True)
 
 
 # ==========================================================================

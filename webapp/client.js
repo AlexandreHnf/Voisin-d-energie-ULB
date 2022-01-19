@@ -41,16 +41,16 @@ async function sendDateQuery(date) {
 
 
 // create html chart canvas : 
-function createChartCanvas(col_name) {
+function createChartCanvas(col_id, col_name) {
   let chart_id = 0;
 
   for (const hid in ids) {
     console.log(hid);
 
     let div = document.createElement("div");
-    div.innerHTML += `<p> ${hid}></p>
-                      <canvas id="chartCanvas${col_name}_${chart_id}"></canvas>`;
-    console.log(`<canvas id="chartCanvas${col_name}_${chart_id}"></canvas>`);
+    div.innerHTML += `<p>${hid}</p>
+                      <canvas id="chartCanvas${col_id}_${chart_id}"></canvas>`;
+    console.log(`<canvas id="chartCanvas${col_id}_${chart_id}"></canvas>`);
     document.getElementById(`${col_name}`).appendChild(div);
     // console.log(document.getElementById(`${col_name}`).innerHTML);
 
@@ -244,11 +244,11 @@ async function getIds() {
 
 function createPage() {
   // row 0
-  createChartCanvas("raw_data_charts");
+  createChartCanvas(0, "raw_data_charts");
   createChartRaw(charts_raw_day, 0, 0);
 
   // row 1 
-  createChartCanvas("stats_charts");
+  createChartCanvas(1, "stats_charts");
   createChartStats(charts_stats_day, 1, 0);
 }
 
