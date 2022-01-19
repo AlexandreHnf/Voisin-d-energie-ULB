@@ -2,10 +2,10 @@ const socket = io('http://localhost:5000');
 
 var timing_button = document.getElementById("buttonShow");
 
-let charts_raw_today = [null];  // list of ChartJS object for today's data (updated throughout the day)
-let charts_stats_today = [null];
-let charts_raw_day = [null]; // list of ChartJS object for data of a specific day
-let charts_stats_day = [null];
+let charts_raw_today = {};  // list of ChartJS object for today's data (updated throughout the day)
+let charts_stats_today = {};
+let charts_raw_day = {}; // list of ChartJS object for data of a specific day
+let charts_stats_day = {};
 
 let ids = {}
 
@@ -36,37 +36,66 @@ async function sendDateQuery(date) {
 	var raw_data = resdata.raw_data;
 	console.log("date sent to server...");
 	console.log("msg : " + raw_data.msg);
-    console.log(raw_data.rows[0]);
+  console.log(raw_data.rows[0]);
 }
 
 
 // create html chart canvas : 
 function createChartCanvas(col_id, col_name) {
-  let chart_id = 0;
 
-  for (const hid in ids) {
+  for (const hid in ids) { // for each home, create a chart canvas
     console.log(hid);
 
     let div = document.createElement("div");
     div.innerHTML += `<p>${hid}</p>
-                      <canvas id="chartCanvas${col_id}_${chart_id}"></canvas>`;
-    console.log(`<canvas id="chartCanvas${col_id}_${chart_id}"></canvas>`);
+                      <canvas id="chartCanvas${col_id}_${hid}"></canvas>`;
+    console.log(`<canvas id="chartCanvas${col_id}_${hid}"></canvas>`);
     document.getElementById(`${col_name}`).appendChild(div);
     // console.log(document.getElementById(`${col_name}`).innerHTML);
 
-    chart_id++;
   }
+}
+
+// init each chart with empty dataset, but proper labels from the home ids
+function initRawCharts() {
+  for (const hid in ids) {
+    charts_raw_day[hid] = null;
+    charts_raw_today[hid] = null;
+    charts_stats_day[hid] = null;
+    charts_stats_today[hid] = null;
+  }
+
+  // for (const hid in ids) {
+  //   datasets = []
+  //   for (let i = 0; i < ids[hid].length; i++){
+  //     datasets.push({
+  //       label: ids[hid][i],  // phase name
+  //       borderColor: COLORS[i],
+  //       data: []
+  //     });
+  //   }
+
+  //   console.log(`chartCanvas${0}_${hid}`);
+  //   charts_raw_day[hid] = new Chart(document.getElementById(`chartCanvas${0}_${hid}`).getContext('2d'), {
+  //     type: 'line',
+  //     data: {
+  //       labels: [],
+  //       datasets: datasets
+  //     },
+  //     options: {responsive: true}
+  //   });
+  // }
 }
 
 
 
 // Create Charts stats (prototype)
-function createChartStats(charts, row_id, chart_id) {
-  console.log("chart id : " + chart_id);
+function createChartStats(charts, col_id, home_id) {
+  console.log("chart id : " + home_id);
     console.log(charts)
-    if (charts[chart_id] !== null) {
+    if (charts[home_id] !== null) {
         console.log("destroying previous charts...");
-        charts[chart_id].destroy();
+        charts[home_id].destroy();
     }
         
     const inputs = {
@@ -149,8 +178,8 @@ function createChartStats(charts, row_id, chart_id) {
           },
         },
       };
-      console.log(`chartCanvas${row_id}_${chart_id}`);
-      charts[chart_id] = new Chart(document.getElementById(`chartCanvas${row_id}_${chart_id}`).getContext('2d'), {
+      console.log(`chartCanvas${col_id}_${home_id}`);
+      charts[home_id] = new Chart(document.getElementById(`chartCanvas${col_id}_${home_id}`).getContext('2d'), {
       type: 'line',
       data: data,
       options: {
@@ -175,16 +204,16 @@ function createChartStats(charts, row_id, chart_id) {
     }
 
 //Create the Charts raw data (test)
-function createChartRaw(charts, row_id, chart_id) {
-  console.log("chart id : " + chart_id);
+function createChartRaw(charts, col_id, home_id) {
+  console.log("chart id : " + home_id);
     console.log(charts)
-    if (charts[chart_id] !== null) {
+    if (charts[home_id] !== null) {
         console.log("destroying previous charts...");
-        charts[chart_id].destroy();
+        charts[home_id].destroy();
     }
     
-    console.log(`chartCanvas${row_id}_${chart_id}`);
-    charts[chart_id] = new Chart(document.getElementById(`chartCanvas${row_id}_${chart_id}`).getContext('2d'), {
+    console.log(`chartCanvas${col_id}_${home_id}`);
+    charts[home_id] = new Chart(document.getElementById(`chartCanvas${col_id}_${home_id}`).getContext('2d'), {
     type: 'line',
     data: {
         labels: ['January', 'February', 'March', 'April', 'May', 'June'],
@@ -199,12 +228,12 @@ function createChartRaw(charts, row_id, chart_id) {
 }
 
 //Create the Charts with raw data of a specific day
-function createChartRaw2(row_id, chart_id, raw_data) {
-  console.log("chart id : " + chart_id);
+function createChartRaw2(col_id, home_id, raw_data) {
+  console.log("chart id : " + home_id);
     console.log(charts)
-    if (charts[chart_id] !== null) {
+    if (charts[home_id] !== null) {
         console.log("destroying previous charts...");
-        charts[chart_id].destroy();
+        charts[home_id].destroy();
     }
     let labels = [];
     let data = [];
@@ -212,8 +241,8 @@ function createChartRaw2(row_id, chart_id, raw_data) {
       labels.push(row.ts);
       data.push(row.phase1);
     })
-    console.log(`chartCanvas${row_id}_${chart_id}`);
-    charts[chart_id] = new Chart(document.getElementById(`chartCanvas${row_id}_${chart_id}`).getContext('2d'), {
+    console.log(`chartCanvas${col_id}_${home_id}`);
+    charts[home_id] = new Chart(document.getElementById(`chartCanvas${col_id}_${home_id}`).getContext('2d'), {
     type: 'line',
     data: {
         labels: ['January', 'February', 'March', 'April', 'May', 'June'],
@@ -243,13 +272,14 @@ async function getIds() {
 }
 
 function createPage() {
+  initRawCharts();
   // row 0
   createChartCanvas(0, "raw_data_charts");
-  createChartRaw(charts_raw_day, 0, 0);
+  createChartRaw(charts_raw_day, 0, 'CDB011');
 
   // row 1 
   createChartCanvas(1, "stats_charts");
-  createChartStats(charts_stats_day, 1, 0);
+  createChartStats(charts_stats_day, 1, 'CDB011');
 }
 
 function main() {
