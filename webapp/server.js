@@ -24,6 +24,7 @@ const client = new cassandra.Client({
   localDataCenter: 'datacenter1'
 });
 
+const TABLES = {'raw': 'raw_data', 'stats': 'stats'};
 
 /*
 // Connection to a remote cassandra cluster
@@ -84,16 +85,16 @@ function queryGrocery() {
   });
 }
 
-function queryRawFluksoData(date, response) {
-  var query = `SELECT * FROM flukso.raw_data WHERE day = ? ALLOW FILTERING;`
-  var raw_data = execute(query, [date], (err, result) => {
+function queryFluksoData(data_type, date, response) {
+  var query = `SELECT * FROM flukso.${TABLES[data_type]} WHERE day = ? ALLOW FILTERING;`
+  var data = execute(query, [date], (err, result) => {
 	  assert.ifError(err);
-    console.log(result.rows[0]);
+    // console.log(result.rows[0]);
     
 	}).then((result) => {
     console.log("DANS LE THEN : ");
-    console.log(result.rows[1]);
-    response.json({msg: "date well received!", raw_data: result});
+    // console.log(result.rows[1]);
+    response.json({msg: "date well received!", data: result});
   });
 }
 
@@ -134,8 +135,10 @@ router.post('/date', (request, response) => {
 	console.log("> date request");
 	const date = request.body.date;
 	console.log("date: " + date);
-	// response.json({msg: "date well received!"});
-  queryRawFluksoData(date, response);
+  const data_type = request.body.data_type;  // raw or stats
+  console.log("data type : " + data_type);
+  queryFluksoData(data_type, date, response);
+  
 });
 
 
@@ -152,6 +155,7 @@ async function main() {
     console.log(`> Server listening on http://localhost:${port}`);
  });
  // console.log(ids);
+ console.log(new Date().toLocaleTimeString());
  queryGrocery();
  io(server).on("connection", onUserConnected);
 }

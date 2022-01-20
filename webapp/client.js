@@ -17,12 +17,13 @@ function processDateQuery() {
 	var date = document.getElementById("day").value;
 	console.log("date: "+ date);
 	document.getElementById("date_msg").innerHTML = "=> " + date;
-	sendDateQuery(date.toString());
+	sendDateQuery("raw", date.toString());
+  sendDateQuery("stats", date.toString());
 }
 
-async function sendDateQuery(date) {
+async function sendDateQuery(data_type, date) {
 	// send pseudo to server
-  const data = { date };
+  const data = { date: date, data_type: data_type };
   const options = {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -32,14 +33,17 @@ async function sendDateQuery(date) {
 	const response = await fetch('/date', options);
 	const resdata = await response.json();
 
-	var raw_data = resdata.raw_data;
+	var alldata = resdata.data;
 	console.log("date sent to server...");
-	console.log("msg : " + raw_data.msg);
-  console.log(raw_data.rows[0]);
-  console.log("phase 1 value : " + raw_data.rows[0]["phase1"]);
-  console.log("nb of rows received : " + raw_data.rows.length);
+	console.log("msg : " + alldata.msg);
+  console.log(alldata.rows[0]);
+  console.log("phase 1 value : " + alldata.rows[0]["phase1"]);
+  console.log("nb of rows received : " + alldata.rows.length);
 
-  createChartRaw2(raw_data);
+  if (data_type === "raw") {
+    createChartRaw(alldata);
+  }
+  
 }
 
 
@@ -209,7 +213,7 @@ function createChartStats(charts, col_id, home_id) {
     }
 
 //Create the Charts raw data (test)
-function createChartRaw(charts, col_id, home_id) {
+function createChartRawTest(charts, col_id, home_id) {
   console.log("chart id : " + home_id);
     console.log(charts)
     if (charts[home_id] !== null) {
@@ -233,7 +237,7 @@ function createChartRaw(charts, col_id, home_id) {
 }
 
 // Create the Charts with raw data of a specific day
-function createChartRaw2(raw_data) {
+function createChartRaw(raw_data) {
     initRawCharts();
 
     for (let i = 0; i < raw_data.rows.length; i++) {
@@ -249,6 +253,11 @@ function createChartRaw2(raw_data) {
       charts_raw_day[row.home_id].update();
     }
 }
+
+// function createChartStats(stats_data) {
+//   init
+// }
+
 
 async function getIds() {
   // get all products from server replica set
@@ -275,8 +284,8 @@ function createPage() {
   // row 0
   createChartCanvas(0, "raw_data_charts");
   initRawCharts();
-  // createChartRaw(charts_raw_day, 0, 'CDB011');
-  // createChartRaw2()
+  // createChartRawTest(charts_raw_day, 0, 'CDB011');
+  // createChartRaw()
 
   // row 1 
   createChartCanvas(1, "stats_charts");
