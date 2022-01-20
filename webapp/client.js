@@ -42,6 +42,8 @@ async function sendDateQuery(data_type, date) {
 
   if (data_type === "raw") {
     createChartRaw(alldata);
+  } else if (data_type === "stats") {
+    createChartStats(alldata);
   }
   
 }
@@ -280,25 +282,35 @@ function createChartRawTest(charts, col_id, home_id) {
 
 // Create the Charts with raw data of a specific day
 function createChartRaw(raw_data) {
-    initCharts(charts_raw_day, 0, "raw");
+  initCharts(charts_raw_day, 0, "raw");
 
-    for (let i = 0; i < raw_data.rows.length; i++) {
-      // row = {home_id; day, ts, phase1... phaseN}
-      let row = raw_data.rows[i];
-      charts_raw_day[row.home_id].data.labels.push(row.ts);
-      let j = 1;
-      for (let j = 0; j < charts_raw_day[row.home_id].data.datasets.length; j++) {
-        dataset = charts_raw_day[row.home_id].data.datasets[j];
-        phase = "phase" + j;
-        dataset.data.push(row[phase]);
-      }
-      charts_raw_day[row.home_id].update();
+  for (let i = 0; i < raw_data.rows.length; i++) {
+    // row = {home_id; day, ts, phase1... phaseN}
+    let row = raw_data.rows[i];
+    charts_raw_day[row.home_id].data.labels.push(row.ts);
+    let j = 1;
+    for (let j = 0; j < charts_raw_day[row.home_id].data.datasets.length; j++) {
+      dataset = charts_raw_day[row.home_id].data.datasets[j];
+      phase = "phase" + j;
+      dataset.data.push(row[phase]);
     }
+    charts_raw_day[row.home_id].update();
+  }
 }
 
-// function createChartStats(stats_data) {
-//   init
-// }
+function createChartStats(stats_data) {
+  initCharts(charts_stats_day, 1, "stats");
+
+  for (let i = 0; i < stats_data.rows.length; i++) {
+    let row = stats_data.rows[i];
+    charts_stats_day[row.home_id].data.labels.push(row.ts);
+    charts_stats_day[row.home_id].data.datasets[0].data.push(row["p_cons"]);
+    charts_stats_day[row.home_id].data.datasets[1].data.push(row["p_prod"]);
+    charts_stats_day[row.home_id].data.datasets[2].data.push(row["p_tot"]);
+
+    charts_stats_day[row.home_id].update();
+  }
+}
 
 
 async function getIds() {
@@ -334,7 +346,7 @@ function createPage() {
   // row 1 
   createChartCanvas(1, "stats_charts");
   initCharts(charts_stats_day, 1, "stats");
-  createChartStats(charts_stats_day, 1, 'CDB001');
+  // createChartStats(charts_stats_day, 1, 'CDB001');
   
 }
 
