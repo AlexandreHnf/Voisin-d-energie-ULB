@@ -7,7 +7,7 @@ let charts_stats_today = {};
 let charts_raw_day = {}; // list of ChartJS object for data of a specific day
 let charts_stats_day = {};
 
-let ids = {}
+let IDS = {}
 
 function validateTimingInput() {
     document.getElementById("login_err_msg").innerHTML = "OK c'est bon";
@@ -50,7 +50,7 @@ async function sendDateQuery(data_type, date) {
 // create html chart canvas : 
 function createChartCanvas(col_id, col_name) {
 
-  for (const hid in ids) { // for each home, create a chart canvas
+  for (const hid in IDS) { // for each home, create a chart canvas
     // console.log(hid);
 
     let div = document.createElement("div");
@@ -59,32 +59,67 @@ function createChartCanvas(col_id, col_name) {
     // console.log(`<canvas id="chartCanvas${col_id}_${hid}"></canvas>`);
     document.getElementById(`${col_name}`).appendChild(div);
     // console.log(document.getElementById(`${col_name}`).innerHTML);
-
   }
 }
 
-// init each chart with empty dataset, but proper labels from the home ids
-function initRawCharts() {
+function createChartDatasetRaw(hid) {
+  datasets = []
+  for (let i = 0; i < IDS[hid].length; i++){
+    datasets.push({
+      label: IDS[hid][i],  // phase name
+      //borderColor: COLORS[i],
+      data: []
+    });
+  }
+  return datasets;
+}
 
-  for (const hid in ids) {
+function createChartDatasetStats() {
+  datasets = [
+    {
+      label: 'P_cons',
+      data: [],
+      borderColor: window.chartColors.red,
+      backgroundColor: Samples.utils.transparentize(255, 99, 132, 0.5),
+      hidden: false
+    },
+    {
+      label: 'P_prod',
+      data: [],
+      borderColor: window.chartColors.green,
+      backgroundColor: Samples.utils.transparentize(75, 192, 192, 0.5),
+      hidden: false
+    },
+    {
+      label: 'P_tot',
+      data: [],
+      borderColor: window.chartColors.yellow,
+      backgroundColor: Samples.utils.transparentize(255, 205, 86, 0.5),
+      fill: {above: 'red', below: 'green', target: {value: 0}}
+    }
+  ]
+  return datasets;
+}
+
+// init each chart with empty dataset, but proper labels from the home ids
+function initCharts(charts, col_id, data_type) {
+
+  for (const hid in IDS) {
     // first destroy previous charts if any
-    if (charts_raw_day[hid] !== null) {
+    if (charts[hid] !== null) {
       // console.log("destroying previous charts...");
-      charts_raw_day[hid].destroy();
+      charts[hid].destroy();
     }
 
     // create empty charts with labels
-    datasets = []
-    for (let i = 0; i < ids[hid].length; i++){
-      datasets.push({
-        label: ids[hid][i],  // phase name
-        //borderColor: COLORS[i],
-        data: []
-      });
+    if (data_type === "raw") {
+      datasets = createChartDatasetRaw(hid);
+    } else if (data_type === "stats") {
+      datasets = createChartDatasetStats();
     }
 
-    // console.log(`chartCanvas${0}_${hid}`);
-    charts_raw_day[hid] = new Chart(document.getElementById(`chartCanvas${0}_${hid}`).getContext('2d'), {
+    // console.log(`chartCanvas${col_id}_${hid}`);
+    charts[hid] = new Chart(document.getElementById(`chartCanvas${col_id}_${hid}`).getContext('2d'), {
       type: 'line',
       data: {
         labels: [],
@@ -121,8 +156,6 @@ function createChartStats(charts, col_id, home_id) {
     
     Samples.utils.srand(42);
 
-    COLORS = [];
-
     const data = {
       labels: generateLabels(),
       datasets: [
@@ -138,29 +171,38 @@ function createChartStats(charts, col_id, home_id) {
           data: generateData(),
           borderColor: window.chartColors.orange,
           backgroundColor: Samples.utils.transparentize(255, 159, 64, 0.5),
-          fill: '-1'
+          fill: "origin",
+          hidden: true
         },
         {
           label: 'D2',
-          data: generateData(),
+          data: [20, -40, 50, 10, -10, 30, -10, 60],
           borderColor: window.chartColors.yellow,
           backgroundColor: Samples.utils.transparentize(255, 205, 86, 0.5),
-          hidden: true,
-          fill: 1
+          fill: {above: 'rgb(255, 0, 0)', below: 'rgb(0, 0, 255)', target: {value: 20}}
         },
         {
           label: 'D3',
           data: generateData(),
           borderColor: window.chartColors.green,
           backgroundColor: Samples.utils.transparentize(75, 192, 192, 0.5),
-          fill: '-1'
+          fill: '-1',
+          hidden: true
         },
         {
           label: 'D4',
           data: generateData(),
           borderColor: window.chartColors.blue,
           backgroundColor: Samples.utils.transparentize(54, 162, 235, 0.5),
-          fill: '-1'
+          fill: '-1',
+          hidden: true
+        },
+        {
+          label: 'D9',
+          data: generateData(),
+          borderColor: window.chartColors.purple,
+          backgroundColor: Samples.utils.transparentize(153, 102, 255, 0.5),
+          fill: {above: 'blue', below: 'red', target: {value: 40}}
         }
       ]
     };
@@ -238,7 +280,7 @@ function createChartRawTest(charts, col_id, home_id) {
 
 // Create the Charts with raw data of a specific day
 function createChartRaw(raw_data) {
-    initRawCharts();
+    initCharts(charts_raw_day, 0, "raw");
 
     for (let i = 0; i < raw_data.rows.length; i++) {
       // row = {home_id; day, ts, phase1... phaseN}
@@ -264,9 +306,9 @@ async function getIds() {
   const response = await fetch('/ids');
   const data = await response.json();
 
-  ids = data.ids;
+  IDS = data.ids;
 
-  console.log(ids);
+  console.log(IDS);
 
   // for (const hid in ids) {
   //   console.log(hid);
@@ -275,35 +317,33 @@ async function getIds() {
 }
 
 function createPage() {
-  for (const hid in ids) {
+  for (const hid in IDS) {
     charts_raw_day[hid] = null;
     charts_raw_today[hid] = null;
     charts_stats_day[hid] = null;
     charts_stats_today[hid] = null;
   }
+
+  console.log("creating charts...")
   // row 0
   createChartCanvas(0, "raw_data_charts");
-  initRawCharts();
+  initCharts(charts_raw_day, 0, "raw");
   // createChartRawTest(charts_raw_day, 0, 'CDB011');
   // createChartRaw()
 
   // row 1 
   createChartCanvas(1, "stats_charts");
-  createChartStats(charts_stats_day, 1, 'CDB011');
+  initCharts(charts_stats_day, 1, "stats");
+  createChartStats(charts_stats_day, 1, 'CDB001');
   
 }
 
 function main() {
-    
-    // for (let i = 0; i < charts.length; i++) {
-    //     createChart(i);
-    // }
-	console.log("creating charts...")
 
   socket.once("init", (data) => {
-    ids = data.ids;
+    IDS = data.ids;
 
-    console.log(ids);
+    console.log(IDS);
     // create html charts (2 columns)
     createPage();
   });
@@ -311,8 +351,6 @@ function main() {
   socket.on('connect_error', function () {
       console.log('Connection Failed. Server down !');
   });
-
-  // getIds();
 
   
 }
