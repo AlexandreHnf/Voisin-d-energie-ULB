@@ -253,7 +253,7 @@ def saveHomeIds(compact_df):
     ids = {}
     for hid, phase, fid, sid, t, n, c, p in compact_df.values:
         if hid not in ids:
-            ids[hid] = []
+            ids[hid] = ["{}_{}".format(fid, phase)]
         else:
             ids[hid].append("{}_{}".format(fid, phase))
 
