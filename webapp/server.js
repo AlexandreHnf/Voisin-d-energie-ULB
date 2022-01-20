@@ -84,9 +84,9 @@ function queryGrocery() {
   });
 }
 
-function queryRawFluksoData(home_id, date, response) {
-  var query = `SELECT * FROM flukso.raw_data WHERE home_id = ? AND day = ? ALLOW FILTERING;`
-  var raw_data = execute(query, [home_id, date], (err, result) => {
+function queryRawFluksoData(date, response) {
+  var query = `SELECT * FROM flukso.raw_data WHERE day = ? ALLOW FILTERING;`
+  var raw_data = execute(query, [date], (err, result) => {
 	  assert.ifError(err);
     console.log(result.rows[0]);
     
@@ -135,7 +135,7 @@ router.post('/date', (request, response) => {
 	const date = request.body.date;
 	console.log("date: " + date);
 	// response.json({msg: "date well received!"});
-  queryRawFluksoData('CDB011', date, response);
+  queryRawFluksoData(date, response);
 });
 
 

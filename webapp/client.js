@@ -257,7 +257,7 @@ async function getIds() {
 
   ids = data.ids;
 
-  console.log("ids : " + ids);
+  console.log(ids);
 
   // for (const hid in ids) {
   //   console.log(hid);
@@ -294,7 +294,7 @@ function main() {
   socket.once("init", (data) => {
     ids = data.ids;
 
-    console.log("ids : " + ids);
+    console.log(ids);
     // create html charts (2 columns)
     createPage();
   });
