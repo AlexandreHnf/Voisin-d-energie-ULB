@@ -2,7 +2,7 @@
   "name": "webapp",
   "version": "1.0.0",
   "description": "Web app 'Voisin d'énergie' - Flukso visualization",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

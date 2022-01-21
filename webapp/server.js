@@ -101,13 +101,13 @@ function queryFluksoData(data_type, date, response) {
 // ==============
 //Idiomatic expression in express to route and respond to a client request
 app.get('/', (req, res) => {        //get requests to the root ("/") will route here
-    res.sendFile('client.html', {root: __dirname});      //server responds by sending the client.html file to the client's browser
+    res.sendFile('index.html', {root: __dirname});      //server responds by sending the client.html file to the client's browser
                                                         //the .sendFile method needs the absolute path to the file, see: https://expressjs.com/en/4x/api.html#res.sendFile 
 });
 
 // send the client javascript file
-app.get('/client.js', function(req, res) {
-  res.sendFile('/client.js', {root: __dirname});
+app.get('/index.js', function(req, res) {
+  res.sendFile('/index.js', {root: __dirname});
 });
 
 // send the css file
