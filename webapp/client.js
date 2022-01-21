@@ -16,7 +16,7 @@ function validateTimingInput() {
 function processDateQuery() {
 	var date = document.getElementById("day").value;
 	console.log("date: "+ date);
-	document.getElementById("date_msg").innerHTML = "=> " + date;
+	document.getElementById("date_msg").innerHTML = "=> Flukso data - " + date;
 	sendDateQuery("raw", date.toString());
   sendDateQuery("stats", date.toString());
 }
@@ -83,21 +83,23 @@ function createChartDatasetStats() {
       data: [],
       borderColor: window.chartColors.red,
       backgroundColor: Samples.utils.transparentize(255, 99, 132, 0.5),
-      hidden: false
+      hidden: false,
+	  fill: false
     },
     {
       label: 'P_prod',
       data: [],
       borderColor: window.chartColors.green,
       backgroundColor: Samples.utils.transparentize(75, 192, 192, 0.5),
-      hidden: false
+      hidden: false,
+	  fill: false
     },
     {
       label: 'P_tot',
       data: [],
       borderColor: window.chartColors.yellow,
       backgroundColor: Samples.utils.transparentize(255, 205, 86, 0.5),
-      fill: {above: 'red', below: 'green', target: {value: 0}}
+      fill: {above: 'red', below: 'green', target: "origin"}
     }
   ]
   return datasets;

@@ -43,11 +43,10 @@
 		<br>
 
 		<form onsubmit="processDateQuery();return false">
-			<label for="day">Specific day: </label>
+			<label for="day">Specific day : </label>
 			<input type="date" id="day" value="2022-07-01" name="day">
 			<input id="DaySubmit" type="submit" value="OK"><br>
 		</form>
-		<p id="date_msg"></p>
 
 		<br>
 
@@ -95,13 +94,13 @@
 			<!-- HOMES TAB -->
 			<div id="home" class="container-fluid tab-pane active"><br>
 			  <h3>All homes</h3>
-			  <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-			  
+			  <p id="date_msg"></p>
+
 			  <!--  2 columns -->
 			  <div class="container-fluid">
 				<div class="row">
 				  <div class="col-sm">
-					Column 1
+					Raw flukso data
 					<!-- list of items -->
 					<ul class="list-group">
 						<li class="list-group-item" id="raw_data_charts">
@@ -118,7 +117,7 @@
 
 				  </div>
 				  <div class="col-sm">
-					Column 2
+					Stats flukso data 
 					<!-- list of items -->
 					<ul class="list-group">
 						<li class="list-group-item" id="stats_charts">
