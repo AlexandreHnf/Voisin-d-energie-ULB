@@ -93,7 +93,7 @@ function queryFluksoData(data_type, date, response) {
     
 	}).then((result) => {
     console.log("DANS LE THEN : ");
-    // console.log(result.rows[1]);
+    console.log(result.rows[1]);
     response.json({msg: "date well received!", data: result});
   });
 }
@@ -108,6 +108,15 @@ app.get('/', (req, res) => {        //get requests to the root ("/") will route 
 // send the client javascript file
 app.get('/index.js', function(req, res) {
   res.sendFile('/index.js', {root: __dirname});
+});
+
+app.get('/client.html', (req, res) => {        //get requests to the root ("/") will route here
+  res.sendFile('client.html', {root: __dirname});      //server responds by sending the client.html file to the client's browser
+                                                      //the .sendFile method needs the absolute path to the file, see: https://expressjs.com/en/4x/api.html#res.sendFile 
+});
+
+app.get('/client.js', function(req, res) {
+  res.sendFile('/client.js', {root: __dirname});
 });
 
 // send the css file

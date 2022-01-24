@@ -71,7 +71,7 @@
 		  <div id="login" class="container tab-pane active"><br>
 			<h3>LOG IN</h3>
 			<!-- login form -->
-			<form >
+			<form onsubmit="validateLoginForm();return false">
 				<div class="form-group">
 					<label for="uname">Username:</label>
 					<input type="text" class="form-control" id="uname" placeholder="Enter username" name="uname" required>
@@ -87,27 +87,24 @@
 				</div>
 				<button type="submit" class="btn btn-primary">Log in</button>
 			  </form> 
+			  <p id="login_err_msg"></p><br><br><br>
 		  </div>
 
 		  <div id="register" class="container tab-pane fade"><br>
 			<h3>Register</h3>
 			<!--  Register form -->
-			 <form >
+			 <form onsubmit="validateRegisterForm();return false">
 				<div class="form-group">
 					<label for="uname">Username:</label>
-    				<input type="text" class="form-control" id="uname" placeholder="Enter username" name="uname" required>
+    				<input type="text" class="form-control" id="register_uname" placeholder="Enter new username" name="uname" required>
 				</div>
 				<div class="form-group">
 					<label for="pwd">Password:</label>
-					<input type="password" class="form-control" placeholder="Enter password" id="pwd">
-				</div>
-				<div class="form-group form-check">
-					<label class="form-check-label">
-					<input class="form-check-input" type="checkbox"> Remember me
-					</label>
+					<input type="password" class="form-control" placeholder="Enter new password" id="register_pwd">
 				</div>
 				<button type="submit" class="btn btn-primary">Register</button>
 			</form> 
+			<p id="register_err_msg"></p><br><br><br>
 		  </div>
 		</div>
 	  </div>
