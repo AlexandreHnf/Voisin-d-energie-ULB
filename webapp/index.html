@@ -12,28 +12,52 @@
 </head>
 
 <body>
-    <h1>FLUKSO data visualization</h1>
+
+	<div class="jumbotron jumbotron-fluid">
+		<div class="container">
+			<h1>FLUKSO data visualization</h1>
+			<p>Voisin d'énergie</p>
+		</div>
+	</div>
+
+	<h2>Log in</h2>
+
+	<div class="container-fluid">
+		<div class="form-check-inline">
+			<label class="form-check-label">
+			<input type="radio" class="form-check-input" name="optradio" value="user" onclick="user()" checked>Habitant
+			</label>
+		</div>
+		<div class="form-check-inline">
+			<label class="form-check-label">
+			<input type="radio" class="form-check-input" name="optradio" value="admin" onclick="admin()">Administrateur
+			</label>
+		</div>
+	</div>
 
     <div class="container mt-3">
-		<h2>Log in</h2>
-		<form onsubmit="processDateQuery();return false">
-		  <div class="mb-3 mt-3">
-			<label for="email">Email:</label>
-			<input type="email" class="form-control" id="email" placeholder="Enter email" name="email">
-		  </div>
-		  <div class="mb-3">
-			<label for="pwd">Password:</label>
-			<input type="password" class="form-control" id="pwd" placeholder="Enter password" name="pswd">
-		  </div>
-		  <div class="form-check mb-3">
-			<label class="form-check-label">
-			  <input class="form-check-input" type="checkbox" name="remember"> Remember me
-			</label>
-		  </div>
-		  <button type="submit" class="btn btn-primary">Submit</button>
-		</form>
+		
+		<form onsubmit="validateLoginForm();return false">
+
+			<div class="form-group">
+				<label id="userinputtxt" for="userinputtxt" class="userinput">Home ID:</label>
+				<input type="password" class="form-control" id="userinput" placeholder="" name="pswd" required>
+			</div>
+			<p id="login_err_msg"></p>
+
+			<button type="submit" class="btn btn-primary">Submit</button>
+			</form>
 	  </div>
 
+	<script type="text/javascript">
+		function user() {
+			document.getElementById("userinputtxt").innerHTML = "Home ID";
+		}
+		function admin() {
+			document.getElementById("userinputtxt").innerHTML = "Admin password";
+		}
+
+	</script>
     <script src="index.js" type="text/javascript"></script>
     
 </body>
