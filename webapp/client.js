@@ -35,16 +35,21 @@ async function sendDateQuery(data_type, date) {
 
 	var alldata = resdata.data;
 	console.log("date sent to server...");
-	console.log("msg : " + alldata.msg);
-  console.log(alldata.rows[0]);
-  console.log("phase 1 value : " + alldata.rows[0]["phase1"]);
-  console.log("nb of rows received : " + alldata.rows.length);
+  console.log(typeof alldata);
+  if (alldata === undefined) {
+    document.getElementById("day_msg").innerHTML = "<strong>" + date + "</strong> : No data."
+  } else {
+    console.log("msg : " + alldata.msg);
+    console.log(alldata.rows[0]);
+    console.log("phase 1 value : " + alldata.rows[0]["phase1"]);
+    console.log("nb of rows received : " + alldata.rows.length);
 
-  if (data_type === "raw") {
-    createChartRaw(alldata);
-  } else if (data_type === "stats") {
-    createChartStats(alldata);
-  }
+    if (data_type === "raw") {
+      createChartRaw(alldata);
+    } else if (data_type === "stats") {
+      createChartStats(alldata);
+    }
+  }	
   
 }
 

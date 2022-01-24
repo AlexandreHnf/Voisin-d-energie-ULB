@@ -90,26 +90,36 @@ function queryFluksoData(data_type, date, response) {
   var data = execute(query, [date], (err, result) => {
 	  assert.ifError(err);
     // console.log(result.rows[0]);
+    console.log(result.rows.length);
     
 	}).then((result) => {
     console.log("DANS LE THEN : ");
-    console.log(result.rows[1]);
-    response.json({msg: "date well received!", data: result});
+    // console.log(result.rows[1]);
+    if (result.rows.length === 0) {
+      response.json({msg: "nodata"});
+    } else {
+      response.json({msg: "date well received!", data: result});
+    }
+    
   });
 }
 
 // ==============
+
+
+// ======= INDEX =======
 //Idiomatic expression in express to route and respond to a client request
 app.get('/', (req, res) => {        //get requests to the root ("/") will route here
     res.sendFile('index.html', {root: __dirname});      //server responds by sending the client.html file to the client's browser
                                                         //the .sendFile method needs the absolute path to the file, see: https://expressjs.com/en/4x/api.html#res.sendFile 
 });
 
-// send the client javascript file
+// send the index javascript file
 app.get('/index.js', function(req, res) {
   res.sendFile('/index.js', {root: __dirname});
 });
 
+// ======= CLIENT =======
 app.get('/client.html', (req, res) => {        //get requests to the root ("/") will route here
   res.sendFile('client.html', {root: __dirname});      //server responds by sending the client.html file to the client's browser
                                                       //the .sendFile method needs the absolute path to the file, see: https://expressjs.com/en/4x/api.html#res.sendFile 
@@ -119,6 +129,7 @@ app.get('/client.js', function(req, res) {
   res.sendFile('/client.js', {root: __dirname});
 });
 
+// ===========================
 // send the css file
 app.get('/styles.css', function(req, res) {
   res.sendFile('/styles.css', {root: __dirname});
