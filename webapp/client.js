@@ -344,16 +344,13 @@ function createPage() {
   }
 
   console.log("creating charts...")
-  // row 0
+  // stats data
+  createChartCanvas(1, "stats_data_charts");
+  initCharts(charts_stats_day, 1, "stats");
+
+  // raw data
   createChartCanvas(0, "raw_data_charts");
   initCharts(charts_raw_day, 0, "raw");
-  // createChartRawTest(charts_raw_day, 0, 'CDB011');
-  // createChartRaw()
-
-  // row 1 
-  createChartCanvas(1, "stats_charts");
-  initCharts(charts_stats_day, 1, "stats");
-  // createChartStats(charts_stats_day, 1, 'CDB001');
   
 }
 

@@ -52,6 +52,7 @@
 			<input type="date" id="day" value="2022-13-01" name="day">
 			<input id="DaySubmit" type="submit" value="OK"><br>
 		</form>
+		<p id="date_msg"></p><br>
 		<div class="alert alert-warning" id="day_msg"></div>
 
 		<br>
@@ -59,11 +60,11 @@
 		
 		<!-- Menu pour Flukso, groups, activity -->
 		<ul class="nav nav-tabs" role="tablist">
-			<li class="nav-item">
+			<!-- <li class="nav-item">
 				<a class="nav-link active" data-toggle="tab" href="#all_homes">All homes</a>
-			</li>
+			</li> -->
 			<li class="nav-item">
-				<a class="nav-link" data-toggle="tab" href="#raw_data">Raw data</a>
+				<a class="nav-link active" data-toggle="tab" href="#raw_data">Raw data</a>
 			</li>
 			<li class="nav-item">
 				<a class="nav-link" data-toggle="tab" href="#stats">Stats</a>
@@ -78,36 +79,8 @@
 		
 		  <!-- Tab panes -->
 		  <div class="tab-content">
-
-			<!-- HOMES TAB -->
-			<div id="all_homes" class="container-fluid tab-pane active"><br>
-			  <h3>All homes</h3>
-			  <p id="date_msg"></p>
-
-			  <!--  2 columns -->
-			  <div class="container-fluid">
-				<div class="row">
-				  <div class="col-sm">
-					Raw flukso data
-					<!-- list of items -->
-					<ul class="list-group">
-						<li class="list-group-item" id="raw_data_charts"></li>
-					</ul> 
-
-				  </div>
-				  <div class="col-sm">
-					Stats flukso data 
-					<!-- list of items -->
-					<ul class="list-group">
-						<li class="list-group-item" id="stats_charts"></li>
-					</ul> 
-					
-				  </div>
-				</div>
-			  </div>
-
-			</div>
-
+			
+			<!-- RAW DATA TAB -->
 			<div id="raw_data" class="container tab-pane fade"><br>
 				<h3>Raw flukso data</h3>
 				<p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
@@ -121,13 +94,14 @@
 				  </div>
 			</div>
 
+			<!-- STATS TAB -->
 			<div id="stats" class="container tab-pane fade"><br>
 				<h3>Flukso Stats</h3>
 				<p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
 				<!-- graphs -->
 				Flukso stats :
 				<div class="row">
-					<div class="col-sm-8">.col-sm-8
+					<div class="col-sm-8">
 						<div class="container-fluid">
 							<!-- list of items -->
 							<ul class="list-group">
@@ -136,11 +110,26 @@
 						</div>
 					</div>
 
-					<div class="col-sm-4">.col-sm-4
-						=> P_cons : P = Puissance, Consommation électrique : P_tot - P_prod
+					<div class="col-sm-4">
+						<!-- => P_cons : P = Puissance, Consommation électrique : P_tot - P_prod
 						=> P_tot : P_cons + P_prod 
 							- P_tot Positif : Prélèvement 
-							- P_tot Négatif : Injection 
+							- P_tot Négatif : Injection  -->
+
+						<div class="container-fluid">
+							<h3>Notations</h3>    
+							<p></p>
+							<dl>
+								<dt>P_cons : </dt>
+								<dd>- P = Puissance, Consommation électrique : P_tot - P_prod</dd>
+								<dt>P_tot : </dt>
+								<dd>- P_cons + P_prod</dd>
+								<dl>
+									<dd>- P_tot Positif : Prélèvement</dd>
+									<dd>- P_tot Négatif : Injection</dd>
+								</dl>
+							</dl>     
+							</div>
 					</div>
 				</div> 
 			</div>
