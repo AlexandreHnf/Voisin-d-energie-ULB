@@ -21,10 +21,15 @@
 
 <!-- BODY -->
 <body>
-	<div class="container-fluid">
-		<h1>Flukso data visualization</h1>
+	<div class="jumbotron jumbotron-fluid">
+		<div class="container pt-1">
+		  <h1 class="display-4">Flukso data visualization</h1>
+		  <h3>Voisin d'énergie</h3>
+		  <p class="lead">by Alexandre Heneffe - ULB - IRIDIA.</p>
+		</div>
+	  </div>
 
-		<h3>by Alexandre Heneffe - ULB - IRIDIA.</h3>
+	<div class="container-fluid">
 
 		<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
 			<ul class="navbar-nav">
@@ -51,41 +56,23 @@
 
 		<br>
 
-
-		<!-- form for the timings input -->
-		<!-- <form onsubmit="validateTimingInput();return false">
-			<div class="form-group">
-				<label for="from">From</label><br>
-				<input type="text" id="from" name="from"><br>
-			</div>
-			<div class="form-group">
-				<label for="to">To</label><br>
-				<input type="text" id="to" name="to"><br>
-			</div>
-			<button type="submit" id="buttonShow" class="btn btn-primary">Show</button>
-		</form> 
-		<p id="login_err_msg"></p> -->
-
-		<!-- inline form -->
-		<!-- <form class="form-inline" onsubmit="validateTimingInput();return false">
-			<label for="from">From</label><br>
-			<input type="text" id="from" name="from"><br>
-			<label for="to">To</label><br>
-			<input type="text" id="to" name="to"><br>
-			<button type="submit" id="buttonShow" class="btn btn-primary">Show</button>
-		</form> 
-		<p id="login_err_msg"></p> -->
 		
 		<!-- Menu pour Flukso, groups, activity -->
 		<ul class="nav nav-tabs" role="tablist">
 			<li class="nav-item">
-				<a class="nav-link active" data-toggle="tab" href="#home">All homes</a>
+				<a class="nav-link active" data-toggle="tab" href="#all_homes">All homes</a>
 			</li>
 			<li class="nav-item">
-				<a class="nav-link" data-toggle="tab" href="#menu1">Groups of homes</a>
+				<a class="nav-link" data-toggle="tab" href="#raw_data">Raw data</a>
 			</li>
 			<li class="nav-item">
-				<a class="nav-link" data-toggle="tab" href="#menu2">Flukso Activity</a>
+				<a class="nav-link" data-toggle="tab" href="#stats">Stats</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" data-toggle="tab" href="#groups">Groups of homes</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" data-toggle="tab" href="#flukso_activity">Flukso Activity</a>
 			</li>
 		</ul>
 		
@@ -93,7 +80,7 @@
 		  <div class="tab-content">
 
 			<!-- HOMES TAB -->
-			<div id="home" class="container-fluid tab-pane active"><br>
+			<div id="all_homes" class="container-fluid tab-pane active"><br>
 			  <h3>All homes</h3>
 			  <p id="date_msg"></p>
 
@@ -104,16 +91,7 @@
 					Raw flukso data
 					<!-- list of items -->
 					<ul class="list-group">
-						<li class="list-group-item" id="raw_data_charts">
-							<!-- <div>
-								Cras justo odio
-								<canvas id="chartCanvas1"></canvas>
-							</div> -->
-						</li>
-						<li class="list-group-item">Dapibus ac facilisis in</li>
-						<li class="list-group-item">Morbi leo risus</li>
-						<li class="list-group-item">Porta ac consectetur ac</li>
-						<li class="list-group-item">Vestibulum at eros</li>
+						<li class="list-group-item" id="raw_data_charts"></li>
 					</ul> 
 
 				  </div>
@@ -121,16 +99,7 @@
 					Stats flukso data 
 					<!-- list of items -->
 					<ul class="list-group">
-						<li class="list-group-item" id="stats_charts">
-							<!-- <div>
-								Cras justo odio
-								<canvas id="chartCanvas1"></canvas>
-							</div> -->
-						</li>
-						<li class="list-group-item">Dapibus ac facilisis in</li>
-						<li class="list-group-item">Morbi leo risus</li>
-						<li class="list-group-item">Porta ac consectetur ac</li>
-						<li class="list-group-item">Vestibulum at eros</li>
+						<li class="list-group-item" id="stats_charts"></li>
 					</ul> 
 					
 				  </div>
@@ -139,22 +108,55 @@
 
 			</div>
 
+			<div id="raw_data" class="container tab-pane fade"><br>
+				<h3>Raw flukso data</h3>
+				<p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+				<!-- graphs -->
+				<div class="container-fluid">
+					Raw flukso data
+					<!-- list of items -->
+					<ul class="list-group">
+						<li class="list-group-item" id="raw_data_charts"></li>
+					</ul> 
+				  </div>
+			</div>
+
+			<div id="stats" class="container tab-pane fade"><br>
+				<h3>Flukso Stats</h3>
+				<p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+				<!-- graphs -->
+				Flukso stats :
+				<div class="row">
+					<div class="col-sm-8">.col-sm-8
+						<div class="container-fluid">
+							<!-- list of items -->
+							<ul class="list-group">
+								<li class="list-group-item" id="stats_data_charts"></li>
+							</ul> 
+						</div>
+					</div>
+
+					<div class="col-sm-4">.col-sm-4
+						=> P_cons : P = Puissance, Consommation électrique : P_tot - P_prod
+						=> P_tot : P_cons + P_prod 
+							- P_tot Positif : Prélèvement 
+							- P_tot Négatif : Injection 
+					</div>
+				</div> 
+			</div>
+
 			<!-- GROUPS TAB -->
-			<div id="menu1" class="container tab-pane fade"><br>
+			<div id="groups" class="container tab-pane fade"><br>
 			  <h3>Groups of homes</h3>
 			  <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
 			</div>
 
 			<!-- ACTIVITY TAB -->
-			<div id="menu2" class="container tab-pane fade"><br>
+			<div id="flukso_activity" class="container tab-pane fade"><br>
 			  <h3>Flukso activity</h3>
 			  <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam.</p>
 			</div>
 		  </div>
-
-		<!-- containers for the charts -->
-		<div class="row" id="row0"></div>
-		<div class="row" id="row1"></div>
 
 		
 
