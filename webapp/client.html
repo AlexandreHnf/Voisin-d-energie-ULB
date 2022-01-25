@@ -81,27 +81,43 @@
 		  <div class="tab-content">
 			
 			<!-- RAW DATA TAB -->
-			<div id="raw_data" class="container tab-pane fade"><br>
+			<div id="raw_data" class="container-fluid tab-pane fade"><br>
 				<h3>Raw flukso data</h3>
-				<p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+				
 				<!-- graphs -->
-				<div class="container-fluid">
-					Raw flukso data
-					<!-- list of items -->
-					<ul class="list-group">
-						<li class="list-group-item" id="raw_data_charts"></li>
-					</ul> 
-				  </div>
+				<div class="row">
+					<div class="col-sm-9">
+						<div class="container-fluid">
+							<!-- Raw flukso data -->
+							<!-- list of items -->
+							<ul class="list-group">
+								<li class="list-group-item" id="raw_data_charts"></li>
+							</ul>
+						</div>
+					</div>
+
+					<div class="col-sm-3">
+						<!-- => P_cons : P = Puissance, Consommation électrique : P_tot - P_prod
+						=> P_tot : P_cons + P_prod 
+							- P_tot Positif : Prélèvement 
+							- P_tot Négatif : Injection  -->
+
+						<div class="container-fluid">
+							<h3>Notations</h3>    
+							   
+						</div>
+					</div>
+				</div> 
 			</div>
 
 			<!-- STATS TAB -->
-			<div id="stats" class="container tab-pane fade"><br>
+			<div id="stats" class="container-fluid tab-pane fade"><br>
 				<h3>Flukso Stats</h3>
-				<p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+				
 				<!-- graphs -->
-				Flukso stats :
+				<!-- Flukso stats : -->
 				<div class="row">
-					<div class="col-sm-8">
+					<div class="col-sm-9">
 						<div class="container-fluid">
 							<!-- list of items -->
 							<ul class="list-group">
@@ -110,7 +126,7 @@
 						</div>
 					</div>
 
-					<div class="col-sm-4">
+					<div class="col-sm-3">
 						<!-- => P_cons : P = Puissance, Consommation électrique : P_tot - P_prod
 						=> P_tot : P_cons + P_prod 
 							- P_tot Positif : Prélèvement 
@@ -121,10 +137,18 @@
 							<p></p>
 							<dl>
 								<dt>P_cons : </dt>
-								<dd>- P = Puissance, Consommation électrique : P_tot - P_prod</dd>
+								<dd>=> Puissance consommée</dd>
+								<dl> 
+									P_cons = P_tot - P_prod
+								</dl>
+
+								<dt>P_prod : </dt>
+								<dd>=> Puissance produite (Panneaux photovoltaïques)</dd>
+
 								<dt>P_tot : </dt>
-								<dd>- P_cons + P_prod</dd>
+								<dd>=> Puissance totale</dd>
 								<dl>
+									P_tot = P_cons + P_prod
 									<dd>- P_tot Positif : Prélèvement</dd>
 									<dd>- P_tot Négatif : Injection</dd>
 								</dl>
