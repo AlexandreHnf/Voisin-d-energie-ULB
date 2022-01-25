@@ -14,6 +14,7 @@ function validateLoginForm() {
 	}
 	if (ok) {
 		console.log("ON SWITCH VERS CLIENT");
+		sessionStorage.setItem("username", username);  // store username in session storage for next page
 		location.href = "client.html";
 	}
 	document.getElementById("login_err_msg").innerHTML = text;

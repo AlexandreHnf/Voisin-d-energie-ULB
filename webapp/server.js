@@ -85,22 +85,22 @@ function queryGrocery() {
   });
 }
 
-function queryFluksoData(data_type, date, response) {
-  var query = `SELECT * FROM flukso.${TABLES[data_type]} WHERE day = ? ALLOW FILTERING;`
+function queryFluksoData(data_type, date, home_id, response) {
+  where_homeid = "";
+  if (home_id != "flukso_admin") {
+    where_homeid = `home_id = '${home_id}' and`;
+  }
+  var query = `SELECT * FROM flukso.${TABLES[data_type]} WHERE ${where_homeid} day = ? ALLOW FILTERING;`
+  console.log(query);
   var data = execute(query, [date], (err, result) => {
 	  assert.ifError(err);
     // console.log(result.rows[0]);
-    console.log(result.rows.length);
+    // console.log(result.rows.length);
     
 	}).then((result) => {
     console.log("DANS LE THEN : ");
     // console.log(result.rows[1]);
-    if (result.rows.length === 0) {
-      response.json({msg: "nodata"});
-    } else {
-      response.json({msg: "date well received!", data: result});
-    }
-    
+    response.json({msg: "date well received!", data: result});
   });
 }
 
@@ -140,16 +140,6 @@ app.get('/chart.utils.js', function(req, res) {
   res.sendFile('/chart.utils.js', {root: __dirname});
 });
 
-// app.listen(port, () => {            //server starts listening for any attempts from a client to connect at port: {port}
-//     console.log(`Now listening on port ${port}`); 
-// });
-
-app.get('/ids', (request, response) => {
-  // client wants the ids of the homes
-  console.log("client wants ids")
-  response.json({ids: ids});
-});
-
 router.post('/date', (request, response) => {
 	// client request flukso data of a specific day
 	console.log("> date request");
@@ -157,7 +147,8 @@ router.post('/date', (request, response) => {
 	console.log("date: " + date);
   const data_type = request.body.data_type;  // raw or stats
   console.log("data type : " + data_type);
-  queryFluksoData(data_type, date, response);
+  const home_id = request.body.home_id;
+  queryFluksoData(data_type, date, home_id, response);
   
 });
 

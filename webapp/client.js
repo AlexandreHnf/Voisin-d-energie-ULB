@@ -1,4 +1,5 @@
 const socket = io('http://localhost:5000');
+const HOME_ID = sessionStorage.getItem("username")
 
 var timing_button = document.getElementById("buttonShow");
 
@@ -7,6 +8,7 @@ let charts_stats_today = {};
 let charts_raw_day = {}; // list of ChartJS object for data of a specific day
 let charts_stats_day = {};
 
+let ALL_IDS = {}
 let IDS = {}
 
 function validateTimingInput() {
@@ -23,7 +25,7 @@ function processDateQuery() {
 
 async function sendDateQuery(data_type, date) {
 	// send pseudo to server
-  const data = { date: date, data_type: data_type };
+  const data = { date: date, data_type: data_type, home_id: HOME_ID };
   const options = {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -35,11 +37,10 @@ async function sendDateQuery(data_type, date) {
 
 	var alldata = resdata.data;
 	console.log("date sent to server...");
-  console.log(typeof alldata);
   if (alldata === undefined) {
     document.getElementById("day_msg").innerHTML = "<strong>" + date + "</strong> : No data."
   } else {
-    console.log("msg : " + alldata.msg);
+    console.log("msg : " + resdata.msg);
     console.log(alldata.rows[0]);
     console.log("phase 1 value : " + alldata.rows[0]["phase1"]);
     console.log("nb of rows received : " + alldata.rows.length);
@@ -319,22 +320,6 @@ function createChartStats(stats_data) {
   }
 }
 
-
-async function getIds() {
-  // get all products from server replica set
-  const response = await fetch('/ids');
-  const data = await response.json();
-
-  IDS = data.ids;
-
-  console.log(IDS);
-
-  // for (const hid in ids) {
-  //   console.log(hid);
-  //   console.log(ids[hid]);
-  // }
-}
-
 function createPage() {
   for (const hid in IDS) {
     charts_raw_day[hid] = null;
@@ -357,10 +342,17 @@ function createPage() {
 function main() {
 
   socket.once("init", (data) => {
-    IDS = data.ids;
+    ALL_IDS = data.ids;
 
+    if (HOME_ID === "flukso_admin") {
+      IDS = data.ids;
+    } else {
+      IDS[HOME_ID] = data.ids[HOME_ID];
+    }
+
+    console.log("IDS -> " + HOME_ID);
     console.log(IDS);
-    // create html charts (2 columns)
+    // create html charts canvas
     createPage();
   });
 
