@@ -341,6 +341,7 @@ function createPage() {
 
 function main() {
 
+  document.getElementById("profil_badge").innerText = HOME_ID;
   socket.once("init", (data) => {
     ALL_IDS = data.ids;
 
