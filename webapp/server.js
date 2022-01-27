@@ -161,14 +161,16 @@ function sendIdsToClient(socket) {
 }
 
 async function main() {
+  let today = new Date().toISOString().slice(0, 10);  // format (YYYY MM DD)
+  console.log(today);
   //Authorize clients only after updating the server's data
   server.listen(port, () => {
     console.log(`> Server listening on http://localhost:${port}`);
- });
- // console.log(ids);
- console.log(new Date().toLocaleTimeString());
- queryGrocery();
- io(server).on("connection", onUserConnected);
+  });
+  // console.log(ids);
+  console.log(new Date().toLocaleTimeString());
+  queryGrocery();
+  io(server).on("connection", onUserConnected);
 }
 
 

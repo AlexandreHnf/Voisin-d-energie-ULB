@@ -11,8 +11,6 @@ COMPACT_SENSOR_FILE = "sensors/sensors_technical.csv"
 GROUPS_FILE = "sensors/grouped_homes_sensors.txt"
 PHASE_TO_MODIF_FILE = "sensors/phases_to_modify.txt"
 
-IDS_FILE = "sensors/ids.json"
-
 # ==========================================================================
 
 
@@ -264,6 +262,15 @@ def saveHomeIds(compact_df):
     with open(IDS_FILE, "w") as f:
         json.dump(ids, f, indent = 4, sort_keys=True)
 
+def saveGroupsIds():
+    groups_ids = {} 
+    with open(GROUPS_FILE) as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            groups_ids["group" + str(i+1)] = line.strip().split(",")
+
+    with open(GIDS_FILE, "w") as f:
+        json.dump(groups_ids, f, indent = 4, sort_keys=True)
 
 # ==========================================================================
 
@@ -285,11 +292,14 @@ def main():
 
     # > create cassandra tables 
     # createInstallationsTables(compact_df)
-    createStatsTables("stats")
-    createStatsTables("groups_stats")
+    # createStatsTables("stats")
+    # createStatsTables("groups_stats")
 
     # > save home ids to json
     # saveHomeIds(compact_df)
+
+    # > save groups ids to json
+    saveGroupsIds()
 
 if __name__ == "__main__":
     main()
