@@ -237,9 +237,11 @@ def createInstallationsTables(compact_df):
 
     ptc.createTable(session, CASSANDRA_KEYSPACE, "raw_data", columns, ["home_id, day"], ["ts"], {"ts":"ASC"})
 
-    stats_cols = ["home_id TEXT", "day TEXT", "ts TIMESTAMP", "P_cons FLOAT", "P_prod FLOAT", "P_tot FLOAT"]
-    ptc.createTable(session, CASSANDRA_KEYSPACE, "stats", stats_cols, ["home_id, day"], ["ts"], {"ts":"ASC"})
+def createStatsTables(table):
+    session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
+    stats_cols = ["home_id TEXT", "day TEXT", "ts TIMESTAMP", "P_cons FLOAT", "P_prod FLOAT", "P_tot FLOAT"]
+    ptc.createTable(session, CASSANDRA_KEYSPACE, table, stats_cols, ["home_id, day"], ["ts"], {"ts":"ASC"})
 
 # ==========================================================================
 
@@ -283,9 +285,11 @@ def main():
 
     # > create cassandra tables 
     # createInstallationsTables(compact_df)
+    createStatsTables("stats")
+    createStatsTables("groups_stats")
 
     # > save home ids to json
-    saveHomeIds(compact_df)
+    # saveHomeIds(compact_df)
 
 if __name__ == "__main__":
     main()

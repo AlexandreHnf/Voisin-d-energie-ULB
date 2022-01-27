@@ -1,7 +1,9 @@
+from tokenize import group
 from turtle import home
 from constants import *
 import pyToCassandra as ptc
 
+import copy
 import os
 import sys
 import pandas as pd
@@ -40,6 +42,19 @@ def getTiming(t, now):
 	return timing
 
 
+def getFLuksoGroups():
+    """
+    returns Groups with format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
+    """
+    groups = []
+    with open(GROUPS_FILE) as f:
+        lines = f.readlines()
+        for line in lines:
+            groups.append(line.strip().split(","))
+
+    return groups
+
+
 def getRawData(session, since, home_ids):
 	""" 
 	get raw flukso data from cassandra since a certain amount of time
@@ -58,7 +73,7 @@ def getRawData(session, since, home_ids):
 	for home_id in home_ids:
 		
 		where_clause = "home_id = {} and day IN ({}) AND ts > {}".format("'"+home_id+"'", dates, timing_format)
-		data = ptc.selectQuery(session, CASSANDRA_KEYSPACE, "raw_data", "*", where_clause, "LIMIT 10")
+		data = ptc.selectQuery(session, CASSANDRA_KEYSPACE, "raw_data", "*", where_clause, "LIMIT 20")
 
 		# print(home_id)
 		# print(data)
@@ -101,6 +116,38 @@ def getConsumptionProductionDF(sensors, homes_rawdata, home_ids):
 		return homes_stats
 
 
+def concentrateConsProdDf(cons_prod_df):
+	""" 
+	transform : index=i, cols = [home_id day ts P_cons P_prod P_tot]
+	into : index = [day, ts], cols = [P_cons P_prod P_tot] 
+	"""
+	df = cons_prod_df.set_index(['day', 'ts'])
+	df = df.drop(['home_id'], axis=1)
+	return df
+
+
+def getGroupsStats(home_stats, groups):
+	"""
+	home_stats format : {home_id : cons_prod_df}
+	groups format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
+	"""
+	groups_stats = {}
+	print(groups)
+	for i, group in enumerate(groups):
+		print(home_stats[group[0]].head(2))
+		cons_prod_df = concentrateConsProdDf(copy.copy(home_stats[group[0]]))
+		for j in range(1, len(group)):
+			print(home_stats[group[j]].head(2))
+
+			cons_prod_df = cons_prod_df.add(concentrateConsProdDf(home_stats[group[j]]), fill_value=0)
+		
+		groups_stats["group" + str(i + 1)] = cons_prod_df
+
+		print(cons_prod_df.head(10))
+
+	return groups_stats
+
+
 def saveStatsToCassandra(session, homes_stats):
 	""" 
 	Save the stats (P_cons, P_prod, P_tot) of the raw data
@@ -120,6 +167,25 @@ def saveStatsToCassandra(session, homes_stats):
 
 	print("Successfully saved stats in Cassandra")
 
+def saveGroupsStatsToCassandra(session, groups_stats):
+	""" 
+	Save the stats (P_cons, P_prod, P_tot) of the groups 
+	of some period of time in Cassandra
+	"""
+	print("saving in Cassandra : flukso.groups_stats table...")
+
+	for gid, cons_prod_df in groups_stats.items():
+		print(gid)
+		
+		col_names = ["home_id", "day", "ts", "P_cons", "P_prod", "P_tot"]
+		for date, row in cons_prod_df.iterrows():
+			values = [gid] + list(date) + list(row)  # date : ("date", "ts")
+			values[2] = str(values[2]) + "Z"  # timestamp (ts)
+			print(values)
+			ptc.insert(session, CASSANDRA_KEYSPACE, "groups_stats", col_names, values)
+
+	print("Successfully saved groups stats in Cassandra")
+
 
 def main():
 	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
@@ -127,7 +193,7 @@ def main():
 	home_ids = set(sensors.home_ID)
 
 	# test raw data retrieval
-	since = "s2022-01-14-15-20-00"
+	since = "s2022-01-27-09-58-00"
 	# since = "3min"
 	homes_rawdata = getRawData(session, since, home_ids) 
 
@@ -136,7 +202,12 @@ def main():
 	# test stats computations
 	homes_stats = getConsumptionProductionDF(sensors, homes_rawdata, home_ids)
 
-	saveStatsToCassandra(session, homes_stats)
+	groups = getFLuksoGroups()
+	groups_stats = getGroupsStats(homes_stats, groups)
+
+	# saveStatsToCassandra(session, homes_stats)
+	saveGroupsStatsToCassandra(session, groups_stats)
+	
 
 
 if __name__ == "__main__":
