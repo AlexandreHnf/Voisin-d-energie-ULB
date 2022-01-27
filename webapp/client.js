@@ -5,11 +5,15 @@ var timing_button = document.getElementById("buttonShow");
 
 let charts_raw_today = {};  // list of ChartJS object for today's data (updated throughout the day)
 let charts_stats_today = {};
+let charts_grp_stats_today = {};
 let charts_raw_day = {}; // list of ChartJS object for data of a specific day
 let charts_stats_day = {};
+let charts_grp_stats_day = {};
 
 let ALL_IDS = {}
+let ALL_GRP_IDS = {}  // group of homes ids
 let IDS = {}
+let GRP_IDS = {}
 
 function validateTimingInput() {
     document.getElementById("login_err_msg").innerHTML = "OK c'est bon";
@@ -56,15 +60,15 @@ async function sendDateQuery(data_type, date) {
 
 
 // create html chart canvas : 
-function createChartCanvas(col_id, col_name) {
+function createChartCanvas(col_id, col_name, ids) {
 
-  for (const hid in IDS) { // for each home, create a chart canvas
+  for (const id in ids) { // for each home, create a chart canvas
     // console.log(hid);
 
     let div = document.createElement("div");
-    div.innerHTML += `<p>${hid}</p>
-                      <canvas id="chartCanvas${col_id}_${hid}"></canvas>`;
-    // console.log(`<canvas id="chartCanvas${col_id}_${hid}"></canvas>`);
+    div.innerHTML += `<p>${id}</p>
+                      <canvas id="chartCanvas${col_id}_${id}"></canvas>`;
+    // console.log(`<canvas id="chartCanvas${col_id}_${id}"></canvas>`);
     document.getElementById(`${col_name}`).appendChild(div);
     // console.log(document.getElementById(`${col_name}`).innerHTML);
   }
@@ -112,24 +116,24 @@ function createChartDatasetStats() {
 }
 
 // init each chart with empty dataset, but proper labels from the home ids
-function initCharts(charts, col_id, data_type) {
+function initCharts(charts, col_id, data_type, ids) {
 
-  for (const hid in IDS) {
+  for (const id in ids) {
     // first destroy previous charts if any
-    if (charts[hid] !== null) {
+    if (charts[id] !== null) {
       // console.log("destroying previous charts...");
-      charts[hid].destroy();
+      charts[id].destroy();
     }
 
     // create empty charts with labels
     if (data_type === "raw") {
-      datasets = createChartDatasetRaw(hid);
-    } else if (data_type === "stats") {
+      datasets = createChartDatasetRaw(id);
+    } else if (data_type === "stats" || data_type === "groups") {
       datasets = createChartDatasetStats();
-    }
+    } 
 
-    // console.log(`chartCanvas${col_id}_${hid}`);
-    charts[hid] = new Chart(document.getElementById(`chartCanvas${col_id}_${hid}`).getContext('2d'), {
+    // console.log(`chartCanvas${col_id}_${id}`);
+    charts[id] = new Chart(document.getElementById(`chartCanvas${col_id}_${id}`).getContext('2d'), {
       type: 'line',
       data: {
         labels: [],
@@ -290,7 +294,7 @@ function createChartRawTest(charts, col_id, home_id) {
 
 // Create the Charts with raw data of a specific day
 function createChartRaw(raw_data) {
-  initCharts(charts_raw_day, 0, "raw");
+  initCharts(charts_raw_day, 0, "raw", IDS);
 
   for (let i = 0; i < raw_data.rows.length; i++) {
     // row = {home_id; day, ts, phase1... phaseN}
@@ -307,7 +311,7 @@ function createChartRaw(raw_data) {
 }
 
 function createChartStats(stats_data) {
-  initCharts(charts_stats_day, 1, "stats");
+  initCharts(charts_stats_day, 1, "stats", IDS);
 
   for (let i = 0; i < stats_data.rows.length; i++) {
     let row = stats_data.rows[i];
@@ -324,35 +328,54 @@ function createPage() {
   for (const hid in IDS) {
     charts_raw_day[hid] = null;
     charts_raw_today[hid] = null;
+
     charts_stats_day[hid] = null;
     charts_stats_today[hid] = null;
   }
 
+  for (const gid in ALL_GRP_IDS) {
+    charts_grp_stats_day[gid] = null;
+    charts_grp_stats_today[gid] = null;
+  }
+
   console.log("creating charts...")
   // stats data
-  createChartCanvas(1, "stats_data_charts");
-  initCharts(charts_stats_day, 1, "stats");
+  createChartCanvas(1, "stats_data_charts", IDS);
+  initCharts(charts_stats_day, 1, "stats", IDS);
 
   // raw data
-  createChartCanvas(0, "raw_data_charts");
-  initCharts(charts_raw_day, 0, "raw");
+  createChartCanvas(0, "raw_data_charts", IDS);
+  initCharts(charts_raw_day, 0, "raw", IDS);
+
+  // groups data
+  createChartCanvas(2, "groups_data_charts", ALL_GRP_IDS);
+  initCharts(charts_grp_stats_day, 2, "groups", ALL_GRP_IDS);
   
+}
+
+function initIds(ids, grp_ids) {
+  ALL_IDS = ids;
+  ALL_GRP_IDS = grp_ids;
+
+  if (HOME_ID === "flukso_admin") {
+    IDS = ids;
+    GRP_IDS = grp_ids;
+  } else {
+    IDS[HOME_ID] = ids[HOME_ID];
+  }
 }
 
 function main() {
 
   document.getElementById("profil_badge").innerText = HOME_ID;
   socket.once("init", (data) => {
-    ALL_IDS = data.ids;
-
-    if (HOME_ID === "flukso_admin") {
-      IDS = data.ids;
-    } else {
-      IDS[HOME_ID] = data.ids[HOME_ID];
-    }
+    console.log(data.ids);
+    console.log(data.grp_ids);
+    initIds(data.ids, data.grp_ids);
 
     console.log("IDS -> " + HOME_ID);
     console.log(IDS);
+    console.log(GRP_IDS);
     // create html charts canvas
     createPage();
   });

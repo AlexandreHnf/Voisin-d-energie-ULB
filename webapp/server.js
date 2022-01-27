@@ -18,13 +18,14 @@ const server = require('http').createServer(app);  //  express = request handler
 
 // ===================== GLOBAL VARIABLES =========================== 
 let ids = JSON.parse(fs.readFileSync('../sensors/ids.json', 'utf8'));
+let grp_ids = JSON.parse(fs.readFileSync('../sensors/grp_ids.json', 'utf8'));
 // Connection to localhost cassandra database1
 const client = new cassandra.Client({
   contactPoints: ['ce97f9db-6e4a-4a2c-bd7a-2c97e31e3150', '127.0.0.1'],
   localDataCenter: 'datacenter1'
 });
 
-const TABLES = {'raw': 'raw_data', 'stats': 'stats'};
+const TABLES = {'raw': 'raw_data', 'stats': 'stats', 'groups': 'groups_stats'};
 
 /*
 // Connection to a remote cassandra cluster
@@ -156,9 +157,11 @@ router.post('/date', (request, response) => {
 function sendIdsToClient(socket) {
   console.log("sending init data to client (ids)")
   socket.emit("init", {
-    "ids": ids
+    "ids": ids,
+    "grp_ids": grp_ids
   });
 }
+
 
 async function main() {
   let today = new Date().toISOString().slice(0, 10);  // format (YYYY MM DD)
