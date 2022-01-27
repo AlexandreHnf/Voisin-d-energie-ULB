@@ -88,7 +88,7 @@ function queryGrocery() {
 
 function queryFluksoData(data_type, date, home_id, response) {
   where_homeid = "";
-  if (home_id != "flukso_admin") {
+  if (home_id != "flukso_admin") {  // if not admin
     where_homeid = `home_id = '${home_id}' and`;
   }
   var query = `SELECT * FROM flukso.${TABLES[data_type]} WHERE ${where_homeid} day = ? ALLOW FILTERING;`
@@ -99,7 +99,6 @@ function queryFluksoData(data_type, date, home_id, response) {
     // console.log(result.rows.length);
     
 	}).then((result) => {
-    console.log("DANS LE THEN : ");
     // console.log(result.rows[1]);
     response.json({msg: "date well received!", data: result});
   });
@@ -182,6 +181,6 @@ function onUserConnected(socket) {
   console.log('-> New user connected');
   sendIdsToClient(socket);
   socket.on('disconnect', () => {
-     console.log('-> User disconnected');
+    console.log('-> User disconnected');
   });
 }

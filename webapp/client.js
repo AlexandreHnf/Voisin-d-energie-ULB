@@ -25,6 +25,7 @@ function processDateQuery() {
 	document.getElementById("date_msg").innerHTML = "=> Flukso data - " + date;
 	sendDateQuery("raw", date.toString());
   sendDateQuery("stats", date.toString());
+  sendDateQuery("groups", date.toString());
 }
 
 async function sendDateQuery(data_type, date) {
@@ -40,19 +41,20 @@ async function sendDateQuery(data_type, date) {
 	const resdata = await response.json();
 
 	var alldata = resdata.data;
-	console.log("date sent to server...");
+	console.log("> --------- date sent to server...");
   if (alldata === undefined) {
     document.getElementById("day_msg").innerHTML = "<strong>" + date + "</strong> : No data."
   } else {
     console.log("msg : " + resdata.msg);
     console.log(alldata.rows[0]);
-    console.log("phase 1 value : " + alldata.rows[0]["phase1"]);
     console.log("nb of rows received : " + alldata.rows.length);
 
     if (data_type === "raw") {
       createChartRaw(alldata);
     } else if (data_type === "stats") {
       createChartStats(alldata);
+    } else if (data_type === "groups") {
+      createChartGrpStats(alldata);
     }
   }	
   
@@ -94,7 +96,7 @@ function createChartDatasetStats() {
       borderColor: window.chartColors.red,
       backgroundColor: Samples.utils.transparentize(255, 99, 132, 0.5),
       hidden: false,
-	  fill: false
+	    fill: false
     },
     {
       label: 'P_prod',
@@ -102,7 +104,7 @@ function createChartDatasetStats() {
       borderColor: window.chartColors.green,
       backgroundColor: Samples.utils.transparentize(75, 192, 192, 0.5),
       hidden: false,
-	  fill: false
+	    fill: false
     },
     {
       label: 'P_tot',
@@ -310,7 +312,7 @@ function createChartRaw(raw_data) {
   }
 }
 
-function createChartStats(stats_data) {
+function createChartStats(stats_data, data_type) {
   initCharts(charts_stats_day, 1, "stats", IDS);
 
   for (let i = 0; i < stats_data.rows.length; i++) {
@@ -321,6 +323,20 @@ function createChartStats(stats_data) {
     charts_stats_day[row.home_id].data.datasets[2].data.push(row["p_tot"]);
 
     charts_stats_day[row.home_id].update();
+  }
+}
+
+function createChartGrpStats(grp_stats_data) {
+  initCharts(charts_grp_stats_day, 2, "groups", ALL_GRP_IDS);
+
+  for (let i = 0; i < grp_stats_data.rows.length; i++) {
+    let row = grp_stats_data.rows[i];
+    charts_grp_stats_day[row.home_id].data.labels.push(row.ts);
+    charts_grp_stats_day[row.home_id].data.datasets[0].data.push(row["p_cons"]);
+    charts_grp_stats_day[row.home_id].data.datasets[1].data.push(row["p_prod"]);
+    charts_grp_stats_day[row.home_id].data.datasets[2].data.push(row["p_tot"]);
+
+    charts_grp_stats_day[row.home_id].update();
   }
 }
 
