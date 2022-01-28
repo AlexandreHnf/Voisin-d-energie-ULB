@@ -171,7 +171,7 @@ async function main() {
   });
   // console.log(ids);
   console.log(new Date().toLocaleTimeString());
-  queryGrocery();
+  // queryGrocery();
   io(server).on("connection", onUserConnected);
 }
 

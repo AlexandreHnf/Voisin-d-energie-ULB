@@ -22,7 +22,11 @@ function validateTimingInput() {
 function processDateQuery() {
 	var date = document.getElementById("day").value;
 	console.log("date: "+ date);
-	document.getElementById("date_msg").innerHTML = "=> Flukso data - " + date;
+	let date_badge = document.querySelectorAll('[id=date_badge]');
+	date_badge.forEach(badge => {
+		badge.innerHTML = date;
+	})
+	// document.getElementById("date_msg").innerHTML = "=> Flukso data - " + date;
 	sendDateQuery("raw", date.toString());
   sendDateQuery("stats", date.toString());
   sendDateQuery("groups", date.toString());

@@ -30,23 +30,8 @@
 	  </div>
 
 	<div class="container-fluid">
-<!-- 
-		<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
-			<ul class="navbar-nav">
-				<li class="nav-item active">
-					<a class="nav-link" href="#">Flukso</a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link" href="#">Cabine basse tension</a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link" href="#">
-						Profil <span id="profil_badge" class="badge badge-secondary">CDB</span> 
-					</a>
-				</li>
-			</ul>
-		</nav> -->
 
+		<!-- NAVBAR -->
 		<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
 			<!-- <a class="navbar-brand" href="#">Navbar w/ text</a> -->
 			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,19 +56,17 @@
 
 		<br>
 
+		<!-- Date selector -->
 		<form onsubmit="processDateQuery();return false">
 			<label for="day">Specific day : </label>
 			<input type="date" id="day" value="2022-13-01" name="day">
-			<input id="DaySubmit" type="submit" value="OK"><br>
+			<input id="DaySubmit" type="submit" value="OK">
 		</form>
-		<p id="date_msg"></p><br>
-		<div class="alert alert-warning" id="day_msg"></div>
-		
+		<br>
+		<!-- <p id="date_msg"></p> -->
+
 		<!-- Menu pour Flukso, groups, activity -->
 		<ul class="nav nav-tabs" role="tablist">
-			<!-- <li class="nav-item">
-				<a class="nav-link active" data-toggle="tab" href="#all_homes">All homes</a>
-			</li> -->
 			<li class="nav-item">
 				<a class="nav-link" data-toggle="tab" href="#raw_data">Raw data</a>
 			</li>
@@ -103,7 +86,7 @@
 			
 			<!-- RAW DATA TAB -->
 			<div id="raw_data" class="container-fluid tab-pane fade"><br>
-				<h3>Raw flukso data</h3>
+				<h3>Raw flukso data <span id="date_badge", class="badge bg-info"></span></h3>
 				
 				<!-- graphs -->
 				<div class="row">
@@ -118,11 +101,6 @@
 					</div>
 
 					<div class="col-sm-3">
-						<!-- => P_cons : P = Puissance, Consommation électrique : P_tot - P_prod
-						=> P_tot : P_cons + P_prod 
-							- P_tot Positif : Prélèvement 
-							- P_tot Négatif : Injection  -->
-
 						<div class="container-fluid">
 							<h3>Notations</h3>    
 							   
@@ -133,7 +111,7 @@
 
 			<!-- STATS TAB -->
 			<div id="stats" class="container-fluid tab-pane fade"><br>
-				<h3>Flukso Stats</h3>
+				<h3>Flukso Stats <span id="date_badge", class="badge bg-info"></span></h3>
 				
 				<!-- graphs -->
 				<!-- Flukso stats : -->
@@ -193,7 +171,7 @@
 
 			<!-- GROUPS TAB -->
 			<div id="groups" class="container-fluid tab-pane fade"><br>
-			  <h3>Groups of homes</h3>
+			  <h3>Groups of homes <span id="date_badge", class="badge bg-info"></span></h3>
 				
 				<!-- graphs -->
 				<div class="row">
