@@ -174,7 +174,7 @@
 									<dd>- P_tot Négatif : Injection</dd>
 								</dl>
 							</dl>     
-							</div>
+						</div>
 					</div>
 				</div> 
 			</div>
@@ -203,8 +203,27 @@
 
 						<div class="container-fluid">
 							<h3>Notations</h3>    
-							   
+								<dl>
+									<dt>P_cons : </dt>
+									<dd>=> Puissance consommée</dd>
+									<dl> 
+										P_cons = P_tot - P_prod
+									</dl>
+
+									<dt>P_prod : </dt>
+									<dd>=> Puissance produite (Panneaux photovoltaïques)</dd>
+
+									<dt>P_tot : </dt>
+									<dd>=> Puissance totale</dd>
+									<dl>
+										P_tot = P_cons + P_prod
+										<dd>- P_tot Positif : Prélèvement</dd>
+										<dd>- P_tot Négatif : Injection</dd>
+									</dl>
+								</dl>
+
 							<h3>Groups</h3>
+								<dl id="groups_legend"> </dl>
 
 						</div>
 					</div>

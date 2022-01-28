@@ -134,16 +134,16 @@ def getGroupsStats(home_stats, groups):
 	groups_stats = {}
 	print(groups)
 	for i, group in enumerate(groups):
-		print(home_stats[group[0]].head(2))
+		# print(home_stats[group[0]].head(2))
 		cons_prod_df = concentrateConsProdDf(copy.copy(home_stats[group[0]]))
 		for j in range(1, len(group)):
-			print(home_stats[group[j]].head(2))
+			# print(home_stats[group[j]].head(2))
 
 			cons_prod_df = cons_prod_df.add(concentrateConsProdDf(home_stats[group[j]]), fill_value=0)
 		
 		groups_stats["group" + str(i + 1)] = cons_prod_df
 
-		print(cons_prod_df.head(10))
+		# print(cons_prod_df.head(10))
 
 	return groups_stats
 
@@ -193,19 +193,20 @@ def main():
 	home_ids = set(sensors.home_ID)
 
 	# test raw data retrieval
-	since = "s2022-01-27-09-58-00"
+	since = "s2022-01-28-10-01-00"
 	# since = "3min"
 	homes_rawdata = getRawData(session, since, home_ids) 
 
 	print("==============================================")
 
-	# test stats computations
+	# stats computations
 	homes_stats = getConsumptionProductionDF(sensors, homes_rawdata, home_ids)
 
 	groups = getFLuksoGroups()
+	# groups stats computations
 	groups_stats = getGroupsStats(homes_stats, groups)
 
-	# saveStatsToCassandra(session, homes_stats)
+	saveStatsToCassandra(session, homes_stats)
 	saveGroupsStatsToCassandra(session, groups_stats)
 	
 

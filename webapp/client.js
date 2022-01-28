@@ -76,6 +76,19 @@ function createChartCanvas(col_id, col_name, ids) {
   }
 }
 
+function createNotationsGroups() {
+	let txt_box = document.getElementById("groups_legend");
+	for (const gid in ALL_GRP_IDS) {
+		
+		txt_box.innerHTML += `<dt>${gid}</dt>`;
+		// console.log(ALL_GRP_IDS[gid]);
+		for (let i = 0; i < ALL_GRP_IDS[gid].length; i++) {
+			// console.log(ALL_GRP_IDS[gid][i]);
+			txt_box.innerHTML += `<dd>- ${ALL_GRP_IDS[gid][i]}</dd>`;
+		}
+	}
+}
+
 function createChartDatasetRaw(hid) {
   datasets = []
   for (let i = 0; i < IDS[hid].length; i++){
@@ -141,12 +154,32 @@ function initCharts(charts, col_id, data_type, ids) {
         labels: [],
         datasets: datasets
       },
-      options: {responsive: true}
+      options: {responsive: true, 
+		scales: {
+			yAxes: [
+			  {
+				scaleLabel: {
+				  display: true,
+				  labelString: "Power (Watts) - W",
+				},
+			  },
+			],
+			xAxes: [
+			  {
+				scaleLabel: {
+				  display: true,
+				  labelString: "Time",
+				},
+			  },
+			],
+		  },
+		}
     });
   }
 }
 
 
+/*
 // Create Charts stats (prototype)
 function createChartStats(charts, col_id, home_id) {
   // console.log("chart id : " + home_id);
@@ -293,7 +326,7 @@ function createChartRawTest(charts, col_id, home_id) {
     options: {responsive: true}
   });
 }
-
+*/
 // Create the Charts with raw data of a specific day
 function createChartRaw(raw_data) {
   initCharts(charts_raw_day, 0, "raw", IDS);
@@ -311,6 +344,7 @@ function createChartRaw(raw_data) {
     charts_raw_day[row.home_id].update();
   }
 }
+
 
 function createChartStats(stats_data, data_type) {
   initCharts(charts_stats_day, 1, "stats", IDS);
@@ -365,6 +399,7 @@ function createPage() {
 
   // groups data
   createChartCanvas(2, "groups_data_charts", ALL_GRP_IDS);
+  createNotationsGroups();
   initCharts(charts_grp_stats_day, 2, "groups", ALL_GRP_IDS);
   
 }

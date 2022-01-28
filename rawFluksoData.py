@@ -160,7 +160,7 @@ def saveFluksoDataToCassandra(homes):
 			day = str(timestamp.date())
 			# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
 			ts = str(timestamp)[:19] + "Z"  
-			print(ts)
+			# print(ts)
 			values = [hid, day, ts] + list(row)
 			ptc.insert(session, CASSANDRA_KEYSPACE, "raw_data", col_names, values)
 
