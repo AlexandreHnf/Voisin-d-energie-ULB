@@ -114,18 +114,37 @@ function createChartDatasetStats() {
     {
       label: 'P_prod',
       data: [],
-      borderColor: window.chartColors.green,
-      backgroundColor: Samples.utils.transparentize(75, 192, 192, 0.5),
+      borderColor: window.chartColors.blue,
+      backgroundColor: Samples.utils.transparentize(54, 162, 235, 0.5),
       hidden: false,
 	    fill: false
     },
     {
       label: 'P_tot',
       data: [],
-      borderColor: window.chartColors.yellow,
-      backgroundColor: Samples.utils.transparentize(255, 205, 86, 0.5),
+      borderColor: window.chartColors.grey,
+      backgroundColor: Samples.utils.transparentize(201, 203, 207, 0.5),
       fill: {above: 'red', below: 'green', target: "origin"}
-    }
+    },
+		{
+			label: 'Prélèvement',
+			data: [],
+			borderColor: window.chartColors.yellow,
+			borderWidth: 0, 
+			pointRadius: 0,
+			backgroundColor: Samples.utils.transparentize(255, 205, 86, 0.5),
+			fill: true
+		}, 
+		{
+			label: 'Injection',
+			data: [],
+			borderColor: window.chartColors.green,
+			borderWidth: 0,
+			pointRadius: 0,
+			backgroundColor: Samples.utils.transparentize(75, 192, 192, 0.5),
+			fill: true
+		}
+		
   ]
   return datasets;
 }
@@ -154,9 +173,10 @@ function initCharts(charts, col_id, data_type, ids) {
         labels: [],
         datasets: datasets
       },
-      options: {responsive: true, 
+      options: {
+		responsive: true, 
 		scales: {
-			yAxes: [
+			yAxes: [  // y axis label
 			  {
 				scaleLabel: {
 				  display: true,
@@ -164,7 +184,7 @@ function initCharts(charts, col_id, data_type, ids) {
 				},
 			  },
 			],
-			xAxes: [
+			xAxes: [  // x axis label
 			  {
 				scaleLabel: {
 				  display: true,
@@ -356,6 +376,16 @@ function createChartStats(stats_data, data_type) {
     charts_stats_day[row.home_id].data.datasets[1].data.push(row["p_prod"]);
     charts_stats_day[row.home_id].data.datasets[2].data.push(row["p_tot"]);
 
+		let prelevement = 0;
+		let injection = 0;
+		if (row["p_tot"] > 0) {
+			prelevement = row["p_tot"];
+		} else if (row["p_tot"] < 0) {
+			injection = row["p_tot"];
+		}
+		charts_stats_day[row.home_id].data.datasets[3].data.push(prelevement);
+		charts_stats_day[row.home_id].data.datasets[4].data.push(injection);
+
     charts_stats_day[row.home_id].update();
   }
 }
@@ -369,6 +399,16 @@ function createChartGrpStats(grp_stats_data) {
     charts_grp_stats_day[row.home_id].data.datasets[0].data.push(row["p_cons"]);
     charts_grp_stats_day[row.home_id].data.datasets[1].data.push(row["p_prod"]);
     charts_grp_stats_day[row.home_id].data.datasets[2].data.push(row["p_tot"]);
+
+		let prelevement = 0;
+		let injection = 0;
+		if (row["p_tot"] > 0) {
+			prelevement = row["p_tot"];
+		} else if (row["p_tot"] < 0) {
+			injection = row["p_tot"];
+		}
+		charts_stats_day[row.home_id].data.datasets[3].data.push(prelevement);
+		charts_stats_day[row.home_id].data.datasets[4].data.push(injection);
 
     charts_grp_stats_day[row.home_id].update();
   }

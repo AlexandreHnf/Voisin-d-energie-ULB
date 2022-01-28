@@ -85,7 +85,7 @@
 				<a class="nav-link active" data-toggle="tab" href="#all_homes">All homes</a>
 			</li> -->
 			<li class="nav-item">
-				<a class="nav-link active" data-toggle="tab" href="#raw_data">Raw data</a>
+				<a class="nav-link" data-toggle="tab" href="#raw_data">Raw data</a>
 			</li>
 			<li class="nav-item">
 				<a class="nav-link" data-toggle="tab" href="#stats">Stats</a>
@@ -154,26 +154,38 @@
 							- P_tot Négatif : Injection  -->
 
 						<div class="container-fluid">
-							<h3>Notations</h3>    
-							<p></p>
-							<dl>
-								<dt>P_cons : </dt>
-								<dd>=> Puissance consommée</dd>
-								<dl> 
-									P_cons = P_tot - P_prod
-								</dl>
-
-								<dt>P_prod : </dt>
-								<dd>=> Puissance produite (Panneaux photovoltaïques)</dd>
-
-								<dt>P_tot : </dt>
-								<dd>=> Puissance totale</dd>
+							<div class="alert alert-secondary" role="alert">
+								<h3>Notations</h3>    
+								<p></p>
 								<dl>
-									P_tot = P_cons + P_prod
-									<dd>- P_tot Positif : Prélèvement</dd>
-									<dd>- P_tot Négatif : Injection</dd>
-								</dl>
-							</dl>     
+									<dt>P_cons : </dt>
+									<div class="alert alert-danger" role="alert">
+										<dd>Puissance consommée</dd>
+										<dl> 
+											P_cons = P_tot - P_prod
+										</dl>
+									</div>
+
+									<dt>P_prod : </dt>
+									<div class="alert alert-primary" role="alert">
+										<dd>=> Puissance produite (Panneaux photovoltaïques)</dd>
+									</div>
+
+									<dt>P_tot : </dt>
+									<div class="alert alert-dark" role="alert">
+										<dd>Puissance totale</dd>
+										<dl>
+											P_tot = P_cons + P_prod
+											<div class="alert alert-warning" role="alert">
+												<dd>- P_tot > 0 (Positif) : Prélèvement</dd>
+											</div>
+											<div class="alert alert-success" role="alert">
+												<dd>- P_tot < 0 (Négatif) : Injection</dd>
+											</div>
+										</dl>
+									</div>
+								</dl>  
+							</div>   
 						</div>
 					</div>
 				</div> 
@@ -202,29 +214,41 @@
 							- P_tot Négatif : Injection  -->
 
 						<div class="container-fluid">
-							<h3>Notations</h3>    
+							<div class="alert alert-secondary" role="alert">
+								<h3>Notations</h3>    
+								<p></p>
 								<dl>
 									<dt>P_cons : </dt>
-									<dd>=> Puissance consommée</dd>
-									<dl> 
-										P_cons = P_tot - P_prod
-									</dl>
+									<div class="alert alert-danger" role="alert">
+										<dd>Puissance consommée</dd>
+										<dl> 
+											P_cons = P_tot - P_prod
+										</dl>
+									</div>
 
 									<dt>P_prod : </dt>
-									<dd>=> Puissance produite (Panneaux photovoltaïques)</dd>
+									<div class="alert alert-primary" role="alert">
+										<dd>=> Puissance produite (Panneaux photovoltaïques)</dd>
+									</div>
 
 									<dt>P_tot : </dt>
-									<dd>=> Puissance totale</dd>
-									<dl>
-										P_tot = P_cons + P_prod
-										<dd>- P_tot Positif : Prélèvement</dd>
-										<dd>- P_tot Négatif : Injection</dd>
-									</dl>
-								</dl>
+									<div class="alert alert-dark" role="alert">
+										<dd>Puissance totale</dd>
+										<dl>
+											P_tot = P_cons + P_prod
+											<div class="alert alert-warning" role="alert">
+												<dd>- P_tot > 0 (Positif) : Prélèvement</dd>
+											</div>
+											<div class="alert alert-success" role="alert">
+												<dd>- P_tot < 0 (Négatif) : Injection</dd>
+											</div>
+										</dl>
+									</div>
+								</dl>  
 
-							<h3>Groups</h3>
-								<dl id="groups_legend"> </dl>
-
+								<h3>Groups</h3>
+									<dl id="groups_legend"> </dl>
+							</div> 
 						</div>
 					</div>
 				</div> 
