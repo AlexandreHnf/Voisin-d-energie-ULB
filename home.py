@@ -150,9 +150,7 @@ class Home:
         data_dfs = self.createSeries()
         energy_df = pd.concat(data_dfs, axis=1)
         del data_dfs
-        # print("nb index : ", len(energy_df.index))
         energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
-        # energy_df.columns = list(self.home_sensors.index)
         energy_df.columns = self.columns_names
         power_df = self.energy2power(energy_df)
         del energy_df
