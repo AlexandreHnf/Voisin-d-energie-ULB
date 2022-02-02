@@ -198,8 +198,10 @@ function initCharts(charts, col_id, data_type, ids) {
       },
       options: {
 		    responsive: true, 
-        legend: {
-          position: 'right'
+        plugins: {
+          legend: {
+            position: 'right'
+          }
         },
 		    scales: {
 			    // yAxes: [  // y axis label
@@ -224,7 +226,7 @@ function initCharts(charts, col_id, data_type, ids) {
           x: {
             type: 'time',
             time: {
-              unit: 'hour'
+              unit: 'minute'
             }
           },
           y: {
