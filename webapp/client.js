@@ -188,13 +188,12 @@ function initCharts(charts, col_id, data_type, ids) {
       datasets = createChartDatasetRaw(id);
     } else if (data_type === "stats" || data_type === "groups") {
       datasets = createChartDatasetStats();
-    } 
+    }
 
     // console.log(`chartCanvas${col_id}_${id}`);
     charts[id] = new Chart(document.getElementById(`chartCanvas${col_id}_${id}`).getContext('2d'), {
       type: 'line',
       data: {
-        labels: [],
         datasets: datasets
       },
       options: {
@@ -203,25 +202,38 @@ function initCharts(charts, col_id, data_type, ids) {
           position: 'right'
         },
 		    scales: {
-			    yAxes: [  // y axis label
-			    {
-				  scaleLabel: {
-				    display: true,
-				    labelString: "Power (Watts) - W",
-				  },
-			    },
-			    ],
-			    xAxes: [  // x axis label
-			    {
-				  scaleLabel: {
-				    display: true,
-				    labelString: "Time",
-				  },
-			    },
-			    ],
+			    // yAxes: [  // y axis label
+          //   {
+          //   scaleLabel: {
+          //     display: true,
+          //     labelString: "Power (Watts) - W",
+          //   },
+          //   },
+			    // ],
+			    // xAxes: [  // x axis label
+          //   {
+          //   // ticks: {
+          //   //   maxTicksLimit: 8
+          //   // },
+          //   scaleLabel: {
+          //     display: true,
+          //     labelString: "Time",
+          //   },
+          //   },
+			    // ],
+          x: {
+            type: 'time',
+            time: {
+              unit: 'hour'
+            }
+          },
+          y: {
+            stacked: true
+          }
 		    },
 		  }
     });
+    
   }
 }
 
@@ -381,12 +393,16 @@ function createChartRaw(raw_data) {
   for (let i = 0; i < raw_data.rows.length; i++) {
     // row = {home_id; day, ts, phase1... phaseN}
     let row = raw_data.rows[i];
-    charts_raw_day[row.home_id].data.labels.push(row.ts);
+    //charts_raw_day[row.home_id].data.labels.push(row.ts.slice(0, -5));
+    let ts = row.ts.slice(0, -5);
+    // console.log(ts);
     let j = 1;
     for (let j = 0; j < charts_raw_day[row.home_id].data.datasets.length; j++) {
       dataset = charts_raw_day[row.home_id].data.datasets[j];
       phase = "phase" + j;
-      dataset.data.push(row[phase]);
+      // dataset.data.push(row[phase]);
+      // console.log({x: ts, y: row[phase]});
+      dataset.data.push({x: ts, y: row[phase]});
     }
     charts_raw_day[row.home_id].update();
   }
