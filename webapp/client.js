@@ -10,6 +10,8 @@ let charts_raw_day = {}; // list of ChartJS object for data of a specific day
 let charts_stats_day = {};
 let charts_grp_stats_day = {};
 
+let raw_charts_colors = [];
+
 let ALL_IDS = {}
 let ALL_GRP_IDS = {}  // group of homes ids
 let IDS = {}
@@ -93,12 +95,24 @@ function createNotationsGroups() {
 	}
 }
 
+function getRandomColor() {
+  var letters = '0123456789ABCDEF'.split('');
+  var color = '#';
+  for (var i = 0; i < 6; i++ ) {
+      color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
+
 function createChartDatasetRaw(hid) {
   datasets = []
   for (let i = 0; i < IDS[hid].length; i++){
+    let color = getRandomColor();
     datasets.push({
       label: IDS[hid][i],  // phase name
-      //borderColor: COLORS[i],
+      borderColor: color,  // random color
+      borderWidth: 1,
+			pointRadius: 1,
       data: []
     });
   }
@@ -112,6 +126,8 @@ function createChartDatasetStats() {
       data: [],
       borderColor: window.chartColors.red,
       backgroundColor: Samples.utils.transparentize(255, 99, 132, 0.5),
+      borderWidth: 1,
+			pointRadius: 1,
       hidden: false,
 	    fill: false
     },
@@ -120,6 +136,8 @@ function createChartDatasetStats() {
       data: [],
       borderColor: window.chartColors.blue,
       backgroundColor: Samples.utils.transparentize(54, 162, 235, 0.5),
+      borderWidth: 1,
+			pointRadius: 1,
       hidden: false,
 	    fill: false
     },
@@ -128,6 +146,8 @@ function createChartDatasetStats() {
       data: [],
       borderColor: window.chartColors.grey,
       backgroundColor: Samples.utils.transparentize(201, 203, 207, 0.5),
+      borderWidth: 1,
+			pointRadius: 1,
       fill: {above: 'red', below: 'green', target: "origin"}
     },
 		{
@@ -178,26 +198,29 @@ function initCharts(charts, col_id, data_type, ids) {
         datasets: datasets
       },
       options: {
-		responsive: true, 
-		scales: {
-			yAxes: [  // y axis label
-			  {
-				scaleLabel: {
-				  display: true,
-				  labelString: "Power (Watts) - W",
-				},
-			  },
-			],
-			xAxes: [  // x axis label
-			  {
-				scaleLabel: {
-				  display: true,
-				  labelString: "Time",
-				},
-			  },
-			],
-		  },
-		}
+		    responsive: true, 
+        legend: {
+          position: 'right'
+        },
+		    scales: {
+			    yAxes: [  // y axis label
+			    {
+				  scaleLabel: {
+				    display: true,
+				    labelString: "Power (Watts) - W",
+				  },
+			    },
+			    ],
+			    xAxes: [  // x axis label
+			    {
+				  scaleLabel: {
+				    display: true,
+				    labelString: "Time",
+				  },
+			    },
+			    ],
+		    },
+		  }
     });
   }
 }
