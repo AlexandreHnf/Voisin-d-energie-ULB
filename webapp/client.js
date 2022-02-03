@@ -3,6 +3,10 @@ const HOME_ID = sessionStorage.getItem("username")
 
 var timing_button = document.getElementById("buttonShow");
 
+let charts_raw = {today: {}, day: {}};
+let charts_stats = {today : {}, day: {}};
+let charts_groups = {today: {}, day: {}};
+
 let charts_raw_today = {};  // list of ChartJS object for today's data (updated throughout the day)
 let charts_stats_today = {};
 let charts_grp_stats_today = {};
@@ -71,14 +75,11 @@ async function sendDateQuery(data_type, date) {
 function createChartCanvas(col_id, col_name, ids) {
 
   for (const id in ids) { // for each home, create a chart canvas
-    // console.log(hid);
 
     let div = document.createElement("div");
     div.innerHTML += `<p>${id}</p>
                       <canvas id="chartCanvas${col_id}_${id}"></canvas>`;
-    // console.log(`<canvas id="chartCanvas${col_id}_${id}"></canvas>`);
     document.getElementById(`${col_name}`).appendChild(div);
-    // console.log(document.getElementById(`${col_name}`).innerHTML);
   }
 }
 
@@ -87,9 +88,7 @@ function createNotationsGroups() {
 	for (const gid in ALL_GRP_IDS) {
 		
 		txt_box.innerHTML += `<dt>${gid}</dt>`;
-		// console.log(ALL_GRP_IDS[gid]);
 		for (let i = 0; i < ALL_GRP_IDS[gid].length; i++) {
-			// console.log(ALL_GRP_IDS[gid][i]);
 			txt_box.innerHTML += `<dd>- ${ALL_GRP_IDS[gid][i]}</dd>`;
 		}
 	}
@@ -112,7 +111,7 @@ function createChartDatasetRaw(hid) {
       label: IDS[hid][i],  // phase name
       borderColor: color,  // random color
       borderWidth: 1,
-			pointRadius: 1,
+			pointRadius: 2,
       data: []
     });
   }
@@ -124,49 +123,65 @@ function createChartDatasetStats() {
     {
       label: 'P_cons',
       data: [],
+      parsing: {
+        yAxisKey: 'p_cons'
+      },
       borderColor: window.chartColors.red,
-      backgroundColor: Samples.utils.transparentize(255, 99, 132, 0.5),
+      // backgroundColor: Samples.utils.transparentize(255, 99, 132, 0.5),
       borderWidth: 1,
-			pointRadius: 1,
+			pointRadius: 2,
       hidden: false,
 	    fill: false
     },
     {
       label: 'P_prod',
       data: [],
+      parsing: {
+        yAxisKey: 'p_prod'
+      },
       borderColor: window.chartColors.blue,
-      backgroundColor: Samples.utils.transparentize(54, 162, 235, 0.5),
+      // backgroundColor: Samples.utils.transparentize(54, 162, 235, 0.5),
       borderWidth: 1,
-			pointRadius: 1,
+			pointRadius: 2,
       hidden: false,
 	    fill: false
     },
     {
       label: 'P_tot',
       data: [],
+      parsing: {
+        yAxisKey: 'p_tot'
+      },
       borderColor: window.chartColors.grey,
-      backgroundColor: Samples.utils.transparentize(201, 203, 207, 0.5),
+      // backgroundColor: Samples.utils.transparentize(201, 203, 207, 0.5),
       borderWidth: 1,
-			pointRadius: 1,
-      fill: {above: 'red', below: 'green', target: "origin"}
+			pointRadius: 2,
+      // fill: {above: 'red', below: 'green', target: "origin"}
+      fill : false
     },
 		{
 			label: 'Prélèvement',
 			data: [],
+      parsing: {
+        yAxisKey: 'pre'
+      },
 			borderColor: window.chartColors.yellow,
 			borderWidth: 0, 
 			pointRadius: 0,
 			backgroundColor: Samples.utils.transparentize(255, 205, 86, 0.5),
-			fill: true
+			fill: false
 		}, 
 		{
 			label: 'Injection',
 			data: [],
+      parsing: {
+        yAxisKey: 'inj'
+      },
 			borderColor: window.chartColors.green,
 			borderWidth: 0,
 			pointRadius: 0,
 			backgroundColor: Samples.utils.transparentize(75, 192, 192, 0.5),
-			fill: true
+			fill: false
 		}
 		
   ]
@@ -204,190 +219,31 @@ function initCharts(charts, col_id, data_type, ids) {
           }
         },
 		    scales: {
-			    // yAxes: [  // y axis label
-          //   {
-          //   scaleLabel: {
-          //     display: true,
-          //     labelString: "Power (Watts) - W",
-          //   },
-          //   },
-			    // ],
-			    // xAxes: [  // x axis label
-          //   {
-          //   // ticks: {
-          //   //   maxTicksLimit: 8
-          //   // },
-          //   scaleLabel: {
-          //     display: true,
-          //     labelString: "Time",
-          //   },
-          //   },
-			    // ],
           x: {
             type: 'time',
             time: {
               unit: 'minute'
+            },
+            title: {
+              color: 'red',
+              display: true,
+              text: 'Time'
             }
           },
           y: {
-            stacked: true
+            title: {
+              color: 'red',
+              display: true,
+              text: 'Power (Watts) - W'
+            }
           }
 		    },
 		  }
     });
-    
   }
 }
 
 
-/*
-// Create Charts stats (prototype)
-function createChartStats(charts, col_id, home_id) {
-  // console.log("chart id : " + home_id);
-    //console.log(charts)
-    if (charts[home_id] !== null) {
-        console.log("destroying previous charts...");
-        charts[home_id].destroy();
-    }
-        
-    const inputs = {
-      min: 20,
-      max: 80,
-      count: 8,
-      decimals: 2,
-      continuity: 1
-    };
-    
-    const generateLabels = () => {
-      return Samples.utils.months({count: inputs.count});
-    };
-    
-    const generateData = () => (Samples.utils.numbers(inputs));
-    
-    Samples.utils.srand(42);
-
-    const data = {
-      labels: generateLabels(),
-      datasets: [
-        {
-          label: 'D0',
-          data: generateData(),
-          borderColor: window.chartColors.red,
-          backgroundColor: Samples.utils.transparentize(255, 99, 132, 0.5),
-          hidden: true
-        },
-        {
-          label: 'D1',
-          data: generateData(),
-          borderColor: window.chartColors.orange,
-          backgroundColor: Samples.utils.transparentize(255, 159, 64, 0.5),
-          fill: "origin",
-          hidden: true
-        },
-        {
-          label: 'D2',
-          data: [20, -40, 50, 10, -10, 30, -10, 60],
-          borderColor: window.chartColors.yellow,
-          backgroundColor: Samples.utils.transparentize(255, 205, 86, 0.5),
-          fill: {above: 'rgb(255, 0, 0)', below: 'rgb(0, 0, 255)', target: {value: 20}}
-        },
-        {
-          label: 'D3',
-          data: generateData(),
-          borderColor: window.chartColors.green,
-          backgroundColor: Samples.utils.transparentize(75, 192, 192, 0.5),
-          fill: '-1',
-          hidden: true
-        },
-        {
-          label: 'D4',
-          data: generateData(),
-          borderColor: window.chartColors.blue,
-          backgroundColor: Samples.utils.transparentize(54, 162, 235, 0.5),
-          fill: '-1',
-          hidden: true
-        },
-        {
-          label: 'D9',
-          data: generateData(),
-          borderColor: window.chartColors.purple,
-          backgroundColor: Samples.utils.transparentize(153, 102, 255, 0.5),
-          fill: {above: 'blue', below: 'red', target: {value: 40}}
-        }
-      ]
-    };
-
-      const config = {
-        type: 'line',
-        data: data,
-        options: {
-          scales: {
-            y: {
-              stacked: true
-            }
-          },
-          plugins: {
-            filler: {
-              propagate: false
-            },
-            'samples-filler-analyser': {
-              target: 'chart-analyser'
-            }
-          },
-          interaction: {
-            intersect: false,
-          },
-        },
-      };
-      console.log(`chartCanvas${col_id}_${home_id}`);
-      charts[home_id] = new Chart(document.getElementById(`chartCanvas${col_id}_${home_id}`).getContext('2d'), {
-      type: 'line',
-      data: data,
-      options: {
-          scales: {
-            y: {
-              stacked: true
-            }
-          },
-          plugins: {
-            filler: {
-              propagate: false
-            },
-            'samples-filler-analyser': {
-              target: 'chart-analyser'
-            }
-          },
-          interaction: {
-            intersect: false,
-          },
-        }
-      });
-    }
-
-//Create the Charts raw data (test)
-function createChartRawTest(charts, col_id, home_id) {
-  console.log("chart id : " + home_id);
-    console.log(charts)
-    if (charts[home_id] !== null) {
-        console.log("destroying previous charts...");
-        charts[home_id].destroy();
-    }
-    
-    console.log(`chartCanvas${col_id}_${home_id}`);
-    charts[home_id] = new Chart(document.getElementById(`chartCanvas${col_id}_${home_id}`).getContext('2d'), {
-    type: 'line',
-    data: {
-        labels: ['January', 'February', 'March', 'April', 'May', 'June'],
-        datasets: [{
-            label: 'My First dataset',
-            borderColor: 'rgb(255, 99, 132)',  // red
-            data: [0, 10, 5, 2, 20, 30, 45],
-        }]
-    },
-    options: {responsive: true}
-  });
-}
-*/
 // Create the Charts with raw data of a specific day
 function createChartRaw(raw_data) {
   initCharts(charts_raw_day, 0, "raw", IDS);
@@ -395,15 +251,11 @@ function createChartRaw(raw_data) {
   for (let i = 0; i < raw_data.rows.length; i++) {
     // row = {home_id; day, ts, phase1... phaseN}
     let row = raw_data.rows[i];
-    //charts_raw_day[row.home_id].data.labels.push(row.ts.slice(0, -5));
     let ts = row.ts.slice(0, -5);
-    // console.log(ts);
     let j = 1;
     for (let j = 0; j < charts_raw_day[row.home_id].data.datasets.length; j++) {
       dataset = charts_raw_day[row.home_id].data.datasets[j];
       phase = "phase" + j;
-      // dataset.data.push(row[phase]);
-      // console.log({x: ts, y: row[phase]});
       dataset.data.push({x: ts, y: row[phase]});
     }
     charts_raw_day[row.home_id].update();
@@ -411,15 +263,16 @@ function createChartRaw(raw_data) {
 }
 
 
-function createChartStats(stats_data, data_type) {
+function createChartStats(stats_data) {
   initCharts(charts_stats_day, 1, "stats", IDS);
 
+  data = []
   for (let i = 0; i < stats_data.rows.length; i++) {
     let row = stats_data.rows[i];
-    charts_stats_day[row.home_id].data.labels.push(row.ts);
-    charts_stats_day[row.home_id].data.datasets[0].data.push(row["p_cons"]);
-    charts_stats_day[row.home_id].data.datasets[1].data.push(row["p_prod"]);
-    charts_stats_day[row.home_id].data.datasets[2].data.push(row["p_tot"]);
+    let ts = row.ts.slice(0, -5);
+    charts_stats_day[row.home_id].data.datasets[0].data.push({x: ts, p_cons: row["p_cons"]});
+    charts_stats_day[row.home_id].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
+    charts_stats_day[row.home_id].data.datasets[2].data.push({x: ts, p_tot: row["p_tot"]});
 
 		let prelevement = 0;
 		let injection = 0;
@@ -428,11 +281,22 @@ function createChartStats(stats_data, data_type) {
 		} else if (row["p_tot"] < 0) {
 			injection = row["p_tot"];
 		}
-		charts_stats_day[row.home_id].data.datasets[3].data.push(prelevement);
-		charts_stats_day[row.home_id].data.datasets[4].data.push(injection);
+		charts_stats_day[row.home_id].data.datasets[3].data.push({x: ts, pre: prelevement});
+		charts_stats_day[row.home_id].data.datasets[4].data.push({x: ts, inj: injection});
+
+    // data.push({
+    //   x: ts, 
+    //   p_cons: row["p_cons"], 
+    //   p_prod: row["p_prod"], 
+    //   p_tot: row["p_tot"],
+    //   pre: prelevement,
+    //   inj: injection
+    // });
 
     charts_stats_day[row.home_id].update();
   }
+
+  console.log(charts_stats_day['CDB003'].data.datasets);
 }
 
 function createChartGrpStats(grp_stats_data) {
@@ -440,10 +304,11 @@ function createChartGrpStats(grp_stats_data) {
 
   for (let i = 0; i < grp_stats_data.rows.length; i++) {
     let row = grp_stats_data.rows[i];
-    charts_grp_stats_day[row.home_id].data.labels.push(row.ts);
-    charts_grp_stats_day[row.home_id].data.datasets[0].data.push(row["p_cons"]);
-    charts_grp_stats_day[row.home_id].data.datasets[1].data.push(row["p_prod"]);
-    charts_grp_stats_day[row.home_id].data.datasets[2].data.push(row["p_tot"]);
+    let ts = row.ts.slice(0, -5);
+    // charts_grp_stats_day[row.home_id].data.labels.push(row.ts);
+    charts_grp_stats_day[row.home_id].data.datasets[0].data.push({x: ts, p_cons: row["p_cons"]});
+    charts_grp_stats_day[row.home_id].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
+    charts_grp_stats_day[row.home_id].data.datasets[2].data.push({x: ts, p_tot: row["p_tot"]});
 
 		let prelevement = 0;
 		let injection = 0;
@@ -452,8 +317,8 @@ function createChartGrpStats(grp_stats_data) {
 		} else if (row["p_tot"] < 0) {
 			injection = row["p_tot"];
 		}
-		charts_stats_day[row.home_id].data.datasets[3].data.push(prelevement);
-		charts_stats_day[row.home_id].data.datasets[4].data.push(injection);
+		charts_grp_stats_day[row.home_id].data.datasets[3].data.push({x: ts, pre: prelevement});
+		charts_grp_stats_day[row.home_id].data.datasets[4].data.push({x: ts, inj: injection});
 
     charts_grp_stats_day[row.home_id].update();
   }
