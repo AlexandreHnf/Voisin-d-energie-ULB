@@ -58,14 +58,53 @@
 
 		<br>
 
-		<!-- Date selector -->
-		<form onsubmit="processDateQuery();return false">
-			<label for="day">Specific day : </label>
-			<input type="date" id="day" value="2022-13-01" name="day">
-			<input id="DaySubmit" type="submit" value="OK">
-		</form>
-		<br>
-		<!-- <p id="date_msg"></p> -->
+		<div class="container-fluid">
+			<div class="row">
+			  <div class="col-8">
+				<!-- Date selector -->
+				<form onsubmit="processDateQuery();return false">
+					<label for="day">Specific day : </label>
+					<input type="date" id="day" value="2022-13-01" name="day">
+					<input id="DaySubmit" type="submit" value="OK">
+				</form>
+				<br>
+				<!-- <p id="date_msg"></p> -->
+			  </div>
+
+			  <div class="col-4">
+				<!-- Time Unit selector -->
+				<label for="day">Time step : </label>
+				<div class="btn-group btn-group-toggle" data-toggle="buttons">
+					<label class="btn btn-secondary active">
+						<input type="radio" name="time_unit_radio" value="second" autocomplete="off" onclick="changeTimeUnit()"> 
+						Second
+					</label>
+					<label class="btn btn-secondary">
+						<input type="radio" name="time_unit_radio" value="minute" autocomplete="off" onclick="changeTimeUnit()" checked> 
+						Minute
+					</label>
+					<label class="btn btn-secondary">
+						<input type="radio" name="time_unit_radio" value="hour" autocomplete="off" onclick="changeTimeUnit()"> 
+						Hour
+					</label>
+					<label class="btn btn-secondary">
+						<input type="radio" name="time_unit_radio" value="day" autocomplete="off" onclick="changeTimeUnit()"> 
+						Day
+					</label>
+					<label class="btn btn-secondary">
+						<input type="radio" name="time_unit_radio" value="month" autocomplete="off" onclick="changeTimeUnit()"> 
+						Month
+					</label>
+					<label class="btn btn-secondary">
+						<input type="radio" name="time_unit_radio" value="year" autocomplete="off" onclick="changeTimeUnit()"> 
+						Year
+					</label>
+				</div>
+
+			  </div>
+			</div>
+		  </div>
+
 
 		<!-- Menu pour Flukso, groups, activity -->
 		<ul class="nav nav-tabs" role="tablist">

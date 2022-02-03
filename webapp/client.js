@@ -22,8 +22,31 @@ let ALL_GRP_IDS = {}  // group of homes ids
 let IDS = {}
 let GRP_IDS = {}
 
+
 function validateTimingInput() {
     document.getElementById("login_err_msg").innerHTML = "OK c'est bon";
+}
+
+function changeTimeUnit() {
+  var radio = document.getElementsByName('time_unit_radio');
+  let unit = "";
+  for(i = 0; i < radio.length; i++) {
+    if(radio[i].checked) {
+      unit = radio[i].value;
+    }
+  }
+  console.log(unit);
+  for (const id in IDS) {
+    charts_raw_day[id].options.scales.x.time.unit = unit;
+    charts_stats_day[id].options.scales.x.time.unit = unit;
+    charts_raw_day[id].update();
+    charts_stats_day.update();
+  }
+  for (const gid in ALL_GRP_IDS) {
+    charts_grp_stats_day[id].options.scales.x.time.unit = unit;
+    charts_grp_stats_day[id].update();
+  }
+  
 }
 
 function processDateQuery() {
