@@ -14,7 +14,8 @@ let charts_raw_day = {}; // list of ChartJS object for data of a specific day
 let charts_stats_day = {};
 let charts_grp_stats_day = {};
 
-let raw_charts_colors = [];
+let COLORS = ["#34ace0", "#e55039", "#474787", "#fed330", "#32ff7e", "#0fb9b1", "#fa8231", "#a5b1c2",
+              "#4b7bec", "#a55eea", "#fad390", "#b71540", "#e58e26", "#38ada9", "#0a3d62"];
 
 let ALL_IDS = {}
 let ALL_GRP_IDS = {}  // group of homes ids
@@ -106,11 +107,12 @@ function getRandomColor() {
 function createChartDatasetRaw(hid) {
   datasets = []
   for (let i = 0; i < IDS[hid].length; i++){
-    let color = getRandomColor();
+    // let color = getRandomColor();
+    let color = COLORS[i];
     datasets.push({
       label: IDS[hid][i],  // phase name
       borderColor: color,  // random color
-      borderWidth: 1,
+      borderWidth: 2,
 			pointRadius: 2,
       data: []
     });
@@ -126,9 +128,9 @@ function createChartDatasetStats() {
       parsing: {
         yAxisKey: 'p_cons'
       },
-      borderColor: window.chartColors.red,
-      // backgroundColor: Samples.utils.transparentize(255, 99, 132, 0.5),
-      borderWidth: 1,
+      borderColor: 'rgb(255, 99, 132)',
+      backgroundColor: Samples.utils.transparentize(255, 99, 132, 0.4),
+      borderWidth: 2,
 			pointRadius: 2,
       hidden: false,
 	    fill: false
@@ -139,9 +141,9 @@ function createChartDatasetStats() {
       parsing: {
         yAxisKey: 'p_prod'
       },
-      borderColor: window.chartColors.blue,
-      // backgroundColor: Samples.utils.transparentize(54, 162, 235, 0.5),
-      borderWidth: 1,
+      borderColor: 'rgb(54, 162, 235)',
+      backgroundColor: Samples.utils.transparentize(54, 162, 235, 0.4),
+      borderWidth: 2,
 			pointRadius: 2,
       hidden: false,
 	    fill: false
@@ -152,9 +154,9 @@ function createChartDatasetStats() {
       parsing: {
         yAxisKey: 'p_tot'
       },
-      borderColor: window.chartColors.grey,
-      // backgroundColor: Samples.utils.transparentize(201, 203, 207, 0.5),
-      borderWidth: 1,
+      borderColor: 'rgb(170, 166, 157)',
+      backgroundColor: Samples.utils.transparentize(201, 203, 207, 0.4),
+      borderWidth: 2,
 			pointRadius: 2,
       // fill: {above: 'red', below: 'green', target: "origin"}
       fill : false
@@ -166,10 +168,10 @@ function createChartDatasetStats() {
         yAxisKey: 'pre'
       },
 			borderColor: window.chartColors.yellow,
-			borderWidth: 0, 
+			borderWidth: 1, 
 			pointRadius: 0,
-			backgroundColor: Samples.utils.transparentize(255, 205, 86, 0.5),
-			fill: false
+			backgroundColor: Samples.utils.transparentize(255, 242, 0, 0.3),
+			fill: true
 		}, 
 		{
 			label: 'Injection',
@@ -178,10 +180,10 @@ function createChartDatasetStats() {
         yAxisKey: 'inj'
       },
 			borderColor: window.chartColors.green,
-			borderWidth: 0,
+			borderWidth: 1,
 			pointRadius: 0,
-			backgroundColor: Samples.utils.transparentize(75, 192, 192, 0.5),
-			fill: false
+			backgroundColor: Samples.utils.transparentize(38, 222, 129, 0.3),
+			fill: true
 		}
 		
   ]
@@ -283,15 +285,6 @@ function createChartStats(stats_data) {
 		}
 		charts_stats_day[row.home_id].data.datasets[3].data.push({x: ts, pre: prelevement});
 		charts_stats_day[row.home_id].data.datasets[4].data.push({x: ts, inj: injection});
-
-    // data.push({
-    //   x: ts, 
-    //   p_cons: row["p_cons"], 
-    //   p_prod: row["p_prod"], 
-    //   p_tot: row["p_tot"],
-    //   pre: prelevement,
-    //   inj: injection
-    // });
 
     charts_stats_day[row.home_id].update();
   }
