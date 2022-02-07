@@ -171,7 +171,6 @@ def saveFluksoDataToCassandra(homes):
 
 
 def main():
-	# TODO : add argument for choosing between different features (visualizeFluksoData, identifyPhaseState)
 	argparser = argparse.ArgumentParser(
 		description=__doc__,
 		formatter_class=argparse.RawDescriptionHelpFormatter,

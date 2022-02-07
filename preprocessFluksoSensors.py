@@ -92,7 +92,7 @@ def getCompactSensorDF():
 # ==========================================================================
 
 
-def getGroupsFromFluksoIDs():
+def writeGroupsFromFluksoIDs():
     """
     get the list of installations IDs based on the flukso sensors ID of a group
     """
@@ -117,7 +117,7 @@ def getGroupsFromFluksoIDs():
             gf.write(group[:-1] + "\n")  # -1 to remove the last ","
 
 
-def getGroupsFromInstallationsIds():
+def writeGroupsFromInstallationsIds():
     """
     get the list of installations IDs from the excel file and save them into a simple
     csv file
@@ -212,7 +212,7 @@ def createTablePerInstallation(compact_df):
         ptc.createTable(session, CASSANDRA_KEYSPACE, home_id, columns, ["day"], ["ts"], {"ts":"DESC"})
 
 
-def createInstallationsTables(compact_df):
+def createInstallationsTables(compact_df, table_name):
     """ 
     compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
     1 table = home_id, day, timestamp, phase 1, ... phase n
@@ -233,15 +233,18 @@ def createInstallationsTables(compact_df):
             index = "0" + index
         columns.append("phase{} FLOAT".format(i+1))
 
-    ptc.createTable(session, CASSANDRA_KEYSPACE, "raw_data", columns, ["home_id, day"], ["ts"], {"ts":"ASC"})
+    ptc.createTable(session, CASSANDRA_KEYSPACE, table_name, columns, ["home_id, day"], ["ts"], {"ts":"ASC"})
 
-def createStatsTables(table):
+
+def createPowerTable(table_name):
     session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
-    stats_cols = ["home_id TEXT", "day TEXT", "ts TIMESTAMP", "P_cons FLOAT", "P_prod FLOAT", "P_tot FLOAT"]
-    ptc.createTable(session, CASSANDRA_KEYSPACE, table, stats_cols, ["home_id, day"], ["ts"], {"ts":"ASC"})
+    power_cols = ["home_id TEXT", "day TEXT", "ts TIMESTAMP", "P_cons FLOAT", "P_prod FLOAT", "P_tot FLOAT"]
+    ptc.createTable(session, CASSANDRA_KEYSPACE, table_name, power_cols, ["home_id, day"], ["ts"], {"ts":"ASC"})
+
 
 # ==========================================================================
+
 
 def saveHomeIds(compact_df):
     """ 
@@ -284,22 +287,22 @@ def main():
     # saveToCsv(compact_df)
 
     # > setup the groups of flukso in a txt file 
-    # getGroupsFromFluksoIDs()
-    # getGroupsFromInstallationsIds()
+    # writeGroupsFromFluksoIDs()
+    # writeGroupsFromInstallationsIds()
 
     # > correct phase signs
     # correctPhaseSigns(compact_df)
 
     # > create cassandra tables 
-    # createInstallationsTables(compact_df)
-    # createStatsTables("stats")
-    # createStatsTables("groups_stats")
+    createInstallationsTables(compact_df, "raw")
+    createPowerTable("power")
+    createPowerTable("groups_power")
 
     # > save home ids to json
     # saveHomeIds(compact_df)
 
     # > save groups ids to json
-    saveGroupsIds()
+    # saveGroupsIds()
 
 if __name__ == "__main__":
     main()

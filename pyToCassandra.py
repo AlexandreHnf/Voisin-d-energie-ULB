@@ -63,7 +63,7 @@ def getOrdering(ordering):
     return res
 
 
-def createTable(session, keyspace, table, columns, primary_keys, clustering_keys, ordering):
+def createTable(session, keyspace, table_name, columns, primary_keys, clustering_keys, ordering):
     """ 
     Create a new table in the database 
     columns = [column name type, ...]
@@ -71,13 +71,14 @@ def createTable(session, keyspace, table, columns, primary_keys, clustering_keys
     # create a new table : 
     query = "CREATE TABLE IF NOT EXISTS {}.{} \
                     ({}, PRIMARY KEY ({}{})) {};" \
-                    .format(keyspace, table, ",".join(columns), 
+                    .format(keyspace, table_name, ",".join(columns), 
                     getCompoundKeyStr(primary_keys),
                     getClusteringKeyStr(clustering_keys),
                     getOrdering(ordering))
 
     # print("===>  create table query : ", query)
     session.execute(query) 
+    print("successfully created table " + table_name)
 
 
 def pandas_factory(colnames, rows):
