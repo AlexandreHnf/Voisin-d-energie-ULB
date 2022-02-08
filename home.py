@@ -167,6 +167,7 @@ class Home:
         """ 
         P_cons = P_tot - P_prod
         P_net = P_prod + P_cons
+        cons_prod_df : timestamp, P_cons, P_prod, P_tot
         """
         cons_prod_df = pd.DataFrame([[0, 0, 0] for _ in range(len(self.power_df))],
                                     self.power_df.index,

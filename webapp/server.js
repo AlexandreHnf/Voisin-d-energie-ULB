@@ -70,21 +70,6 @@ function execute(query, params, callback) {
   });
 }
 
-function queryGrocery() {
-  //Execute the queries 
-  var query = 'SELECT name, price_p_item FROM grocery.fruit_stock WHERE name=? ALLOW FILTERING';
-  var q1 = execute(query, ['oranges'], (err, result) => 
-  { assert.ifError(err); console.log('The cost per orange is ' + result.rows[0].price_p_item)});
-  var q2 = execute(query, ['pineapples'], (err,result) =>
-  { assert.ifError(err); console.log('The cost per pineapple is ' + result.rows[0].price_p_item)});
-  var q3 = execute(query, ['apples'], (err,result) => 
-  { assert.ifError(err); console.log('The cost per apple is ' + result.rows[0].price_p_item)});
-
-  Promise.all([q1,q2,q3]).then(() => {
-    console.log('querys done');
-    // process.exit();
-  });
-}
 
 function queryFluksoData(data_type, date, home_id, response) {
   where_homeid = "";
@@ -171,7 +156,6 @@ async function main() {
   });
   // console.log(ids);
   console.log(new Date().toLocaleTimeString());
-  // queryGrocery();
   io(server).on("connection", onUserConnected);
 }
 
