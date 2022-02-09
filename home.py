@@ -124,7 +124,6 @@ class Home:
         data_dfs = []
 
         for i in range(len(self.home_sensors)):
-            # for id in self.home_sensors.sensor_id:
             id = self.home_sensors.sensor_id[i]
             fid = self.home_sensors.flukso_id[i]
             # print("- first timestamp : {}".format(self.session.first_timestamp(id)))

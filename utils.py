@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import math
 from constants import *
 
 
@@ -50,3 +51,7 @@ def getFLuksoGroups():
             groups.append(line.strip().split(","))
 
     return groups
+
+
+def toEpochs(time):
+	return int(math.floor(time.value / 1e9))

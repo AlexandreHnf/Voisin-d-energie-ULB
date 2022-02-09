@@ -168,13 +168,13 @@ def main():
 	# =========================================================
 
 	# step 1 : save raw flukso data in cassandra
-	saveRawFluksoDataToCassandra(homes, "raw")
+	# saveRawFluksoDataToCassandra(homes, "raw")
 
 	# step 2 : save power flukso data in cassandra
-	cp.savePowerDataToCassandra(homes, "power")
+	# cp.savePowerDataToCassandra(homes, "power")
 	
 	# step 3 : save groups of power flukso data in cassandra
-	cp.savePowerDataToCassandra(grouped_homes, "groups_power")
+	# cp.savePowerDataToCassandra(grouped_homes, "groups_power")
 
 	# =========================================================
 
