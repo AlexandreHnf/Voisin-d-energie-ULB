@@ -142,19 +142,18 @@ def main():
 
 	args = argparser.parse_args()
 	since = args.since
-	print("since : ", since)
-
 	to = args.to
-	print("to: ", to)
+	now = pd.Timestamp.now(tz="UTC")
 
-	# =========================================================
-
-	start_timing = getTiming(since)
-	to_timing = getTiming(to)
+	start_timing = setInitSeconds(getTiming(since, now))
+	to_timing = setInitSeconds(getTiming(to, now))
 	sensors, session = getFluksoData(UPDATED_SENSORS_FILE)
 
 	home_ids = set(sensors["home_ID"])
 	nb_homes = len(home_ids)
+
+	print("since : {} => {}".format(since, start_timing))
+	print("to    : {} => {}".format(to, to_timing))
 	print("Number of Homes : ", nb_homes)
 	print("Number of Fluksos : ", len(sensors))
 

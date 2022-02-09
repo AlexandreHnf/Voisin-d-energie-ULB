@@ -1,21 +1,9 @@
 from constants import *
+from utils import getLocalTimestampsIndex, toEpochs
 
 import pandas as pd
 import copy
 import tmpo
-
-
-def getLocalTimestampsIndex(df):
-    """
-    set timestamps to local timezone
-    """
-
-    # NAIVE
-    if df.index.tzinfo is None or df.index.tzinfo.utcoffset(df.index) is None:
-        # first convert to aware timestamp, then local
-        return df.index.tz_localize("CET").tz_convert("CET")
-    else: # if already aware timestamp
-        return df.index.tz_convert("CET")
         
 
 class Home:
@@ -104,16 +92,13 @@ class Home:
         return power_df
 
     def getZeroSeries(self):
-        to = pd.Timestamp.now(tz="UTC")
-        if self.to_timing != 0:
-            to = self.to_timing
 
-        period = (to - self.since_timing).total_seconds() / FREQ[0]
+        period = (self.to_timing - self.since_timing).total_seconds() / FREQ[0]
         # print("s : {}, t : {}, to : {}, period : {}".format(self.since_timing, self.to_timing, to, period))
         zeros = pd.date_range(self.since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
         # print("datetime range : ", zeros)
         zeros_series = pd.Series(int(period) * [0], zeros)
-        # print("zeros series :", zeros_series)
+        print(self.since_timing, zeros_series.index[0])
 
         return zeros_series
 
@@ -122,6 +107,10 @@ class Home:
         create a list of time series from the sensors data
         """
         data_dfs = []
+
+        zer = self.getZeroSeries()
+        print("first ts zeroSeries: ", zer.index[0])
+        # print(zer.index)
 
         for i in range(len(self.home_sensors)):
             id = self.home_sensors.sensor_id[i]
@@ -133,10 +122,12 @@ class Home:
                 dff = self.session.series(id, head=self.since_timing)
             else:
                 dff = self.session.series(id, head=self.since_timing, tail=self.to_timing)
-            print("{} - {} : {}".format(fid, id, len(dff.index)))
+
+            len_dff = len(dff.index)
 
             if len(dff.index) == 0:
                 dff = self.getZeroSeries()
+            print("{} - {} : {}, {}".format(fid, id, len_dff, dff.index[0]))
             data_dfs.append(dff)
 
         return data_dfs
