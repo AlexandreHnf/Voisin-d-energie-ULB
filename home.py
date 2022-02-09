@@ -2,6 +2,7 @@ from constants import *
 from utils import getLocalTimestampsIndex, toEpochs
 
 import pandas as pd
+import numpy as np
 import copy
 import tmpo
         
@@ -91,13 +92,13 @@ class Home:
         power_df = power_df.resample(str(FREQ[0]) + FREQ[1]).mean()
         return power_df
 
-    def getZeroSeries(self):
+    def getSerie(self, value):
 
         period = (self.to_timing - self.since_timing).total_seconds() / FREQ[0]
         # print("s : {}, t : {}, to : {}, period : {}".format(self.since_timing, self.to_timing, to, period))
         zeros = pd.date_range(self.since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
         # print("datetime range : ", zeros)
-        zeros_series = pd.Series(int(period) * [0], zeros)
+        zeros_series = pd.Series(int(period) * [value], zeros)
         print(self.since_timing, zeros_series.index[0])
 
         return zeros_series
@@ -108,7 +109,7 @@ class Home:
         """
         data_dfs = []
 
-        zer = self.getZeroSeries()
+        zer = self.getSerie(0)
         print("first ts zeroSeries: ", zer.index[0])
         # print(zer.index)
 
@@ -126,9 +127,11 @@ class Home:
             len_dff = len(dff.index)
 
             if len(dff.index) == 0:
-                dff = self.getZeroSeries()
+                dff = self.getSerie(np.nan)
             print("{} - {} : {}, {}".format(fid, id, len_dff, dff.index[0]))
             data_dfs.append(dff)
+
+        data_dfs.append(self.getSerie(np.nan))
 
         return data_dfs
 
@@ -137,16 +140,20 @@ class Home:
         create a dataframe where the colums are the phases of the Flukso and the rows are the
         data : 1 row = 1 timestamp = 1 power value
         """
-        data_dfs = self.createSeries()
-        energy_df = pd.concat(data_dfs, axis=1)
-        del data_dfs
+        data_dfs = self.createSeries()  # list of series, one per flukso sensor
+        energy_df = pd.concat(data_dfs, axis=1)  # combined series, 1 col = 1 sensor
+        energy_df.columns = self.columns_names + ["fill"]
         energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
-        energy_df.columns = self.columns_names
+        energy_df.fillna(0, inplace=True)
+        del data_dfs
+        
+        energy_df = energy_df.drop(['fill'], axis=1) # remove the filler col
         power_df = self.energy2power(energy_df)
         del energy_df
 
         local_timestamps = getLocalTimestampsIndex(power_df)
         power_df.index = [tps for tps in local_timestamps]
+        print("nb timestamps : ", len(power_df.index))
 
         power_df.fillna(0, inplace=True)
         power_df = power_df.round(1)  # round with 2 decimals
