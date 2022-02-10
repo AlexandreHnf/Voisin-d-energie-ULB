@@ -1,3 +1,4 @@
+from matplotlib.pyplot import table
 import pandas as pd
 import numpy as np
 from constants import *
@@ -243,6 +244,13 @@ def createPowerTable(table_name):
     ptc.createTable(session, CASSANDRA_KEYSPACE, table_name, power_cols, ["home_id, day"], ["ts"], {"ts":"ASC"})
 
 
+def createRawConfigTable(table_name):
+    session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+
+    cols = ["home_id TEXT", "day TEXT", "ts TIMESTAMP", "phases LIST<TEXT>"]
+    ptc.createTable(session, CASSANDRA_KEYSPACE, table_name, cols, ["home_id, day"], ["ts"], {"ts":"ASC"})
+
+
 # ==========================================================================
 
 
@@ -278,9 +286,6 @@ def saveGroupsIds():
 # ==========================================================================
 
 
-
-
-
 def main():
     # > get the useful flukso sensors data in a compact csv
     compact_df = getCompactSensorDF()
@@ -294,9 +299,10 @@ def main():
     # correctPhaseSigns(compact_df)
 
     # > create cassandra tables 
-    createInstallationsTables(compact_df, "raw")
-    createPowerTable("power")
-    createPowerTable("groups_power")
+    # createInstallationsTables(compact_df, "raw")
+    # createPowerTable("power")
+    # createPowerTable("groups_power")
+    createRawConfigTable("raw_config")
 
     # > save home ids to json
     # saveHomeIds(compact_df)
