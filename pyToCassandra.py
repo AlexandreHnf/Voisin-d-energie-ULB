@@ -7,6 +7,12 @@ def getRightFormat(values):
     for v in values:
         if type(v) == str:
             res.append("'" + v + "'")
+        elif type(v) == list:
+            # => ['v1', 'v2', 'v3', ... ]
+            l = "["
+            for vv in v:
+                l += "'" + vv + "',"
+            res.append(l[:-1] + "]")
         else:
             res.append(str(v))
     

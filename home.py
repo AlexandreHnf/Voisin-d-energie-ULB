@@ -1,3 +1,5 @@
+from os import times
+from time import time
 from constants import *
 from utils import getLocalTimestampsIndex, toEpochs
 
@@ -18,11 +20,14 @@ class Home:
         self.home_id = home_id
         self.columns_names = self.getColumnsNames()
 
-        self.power_df = self.createFluksoPowerDF()
+        self.power_df, self.incomplete_power_df = self.createFluksoPowerDF()
         self.cons_prod_df = self.getConsumptionProductionDF()
 
     def getPowerDF(self):
         return self.power_df
+
+    def getIncompletePowerDF(self):
+        return self.incomplete_power_df
 
     def getConsProdDF(self):
         return self.cons_prod_df
@@ -134,6 +139,7 @@ class Home:
         data_dfs.append(self.getSerie(np.nan))
 
         return data_dfs
+        
 
     def createFluksoPowerDF(self):
         """
@@ -143,11 +149,16 @@ class Home:
         data_dfs = self.createSeries()  # list of series, one per flukso sensor
         energy_df = pd.concat(data_dfs, axis=1)  # combined series, 1 col = 1 sensor
         energy_df.columns = self.columns_names + ["fill"]
+        energy_df = energy_df.drop(['fill'], axis=1) # remove the filler col
+
+        incomplete_power_df = energy_df[energy_df.isna().any(axis=1)]
+        print("nb of nan: ", energy_df.isna().sum().sum()) # count nb of nan in the entire df
+        print(incomplete_power_df)
+
         energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
         energy_df.fillna(0, inplace=True)
         del data_dfs
         
-        energy_df = energy_df.drop(['fill'], axis=1) # remove the filler col
         power_df = self.energy2power(energy_df)
         del energy_df
 
@@ -158,7 +169,7 @@ class Home:
         power_df.fillna(0, inplace=True)
         power_df = power_df.round(1)  # round with 2 decimals
 
-        return power_df
+        return power_df, incomplete_power_df
 
     def getConsumptionProductionDF(self):
         """ 

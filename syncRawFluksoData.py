@@ -19,6 +19,7 @@ import sys
 
 import copy
 import pandas as pd
+import numpy as np
 import tmpo
 import matplotlib.pyplot as plt
 
@@ -84,6 +85,39 @@ def getFluksoData(sensor_file, path=""):
 
 
 # ====================================================================================
+
+def updateIncompleteRows(to_timing, homes, table_name):
+	"""
+	Save raw data config to Cassandra cluster
+	-> incomplete rows (with null values)
+	"""
+	print("saving in Cassandra...")
+	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+
+	col_names = ["home_id", "day", "ts", "phases"]
+	for hid, home in homes.items():
+		print(hid)
+		inc_power_df = home.getIncompletePowerDF()
+
+		inc = []
+		for timestamp, row in inc_power_df.iterrows():
+			# if valid timestamp
+			if (to_timing - timestamp).days < 2: # 2 days max
+				day = str(timestamp.date())
+				# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
+				ts = str(timestamp)[:19] + "Z"
+				inc_row = []
+				for i in range(len(row)):
+					if np.isnan(row[i]): # if null value (NaN)
+						inc_row.append("phase"+str(i+1))
+				values = [hid, day, ts, inc_row]
+				# print("hid : {}, day: {}, ts: {}".format(hid, day, ts))
+				# print(inc_row)
+				ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
+
+	print("Successfully Saved raw config in Cassandra : table {}".format(table_name))
+
+
 def getColumnsNames(columns):
 	res = []
 	for i in range(len(columns)):
@@ -168,6 +202,7 @@ def main():
 
 	# step 1 : save raw flukso data in cassandra
 	# saveRawFluksoDataToCassandra(homes, "raw")
+	updateIncompleteRows(to_timing, homes, "raw_config")
 
 	# step 2 : save power flukso data in cassandra
 	# cp.savePowerDataToCassandra(homes, "power")
