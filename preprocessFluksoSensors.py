@@ -213,7 +213,7 @@ def createTablePerInstallation(compact_df):
         ptc.createTable(session, CASSANDRA_KEYSPACE, home_id, columns, ["day"], ["ts"], {"ts":"DESC"})
 
 
-def createInstallationsTables(compact_df, table_name):
+def createInstallationsTable(compact_df, table_name):
     """ 
     compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
     1 table = home_id, day, timestamp, phase 1, ... phase n
@@ -235,6 +235,18 @@ def createInstallationsTables(compact_df, table_name):
         columns.append("phase{} FLOAT".format(i+1))
 
     ptc.createTable(session, CASSANDRA_KEYSPACE, table_name, columns, ["home_id, day"], ["ts"], {"ts":"ASC"})
+
+
+def createRawFluksoTable(table_name):
+	""" 
+	compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
+	create a cassandra table for the raw flukso data
+		columns : flukso_sensor_id, day, timestamp, value 
+	"""
+	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+
+	columns = ["sensor_id TEXT", "day TEXT", "ts TIMESTAMP", "power FLOAT"]
+	ptc.createTable(session, CASSANDRA_KEYSPACE, table_name, columns, ["sensor_id, day"], ["ts"], {"ts":"ASC"})
 
 
 def createPowerTable(table_name):
@@ -299,10 +311,11 @@ def main():
     # correctPhaseSigns(compact_df)
 
     # > create cassandra tables 
-    # createInstallationsTables(compact_df, "raw")
+    # createInstallationsTable(compact_df, "raw_home")
+	# createRawFluksoTable("raw")
     # createPowerTable("power")
     # createPowerTable("groups_power")
-    createRawConfigTable("raw_config")
+    # createRawConfigTable("raw_config")
 
     # > save home ids to json
     # saveHomeIds(compact_df)
