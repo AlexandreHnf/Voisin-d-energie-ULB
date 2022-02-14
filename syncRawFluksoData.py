@@ -135,7 +135,7 @@ def getColumnsNames(columns):
 	return res
 
 
-def saveRawFluksoDataToCassandra(homes, table_name):
+def saveRawDataToCassandraPerHome(homes, table_name):
 	"""
 	Save raw flukso data to Cassandra cluster
 	"""
@@ -155,6 +155,29 @@ def saveRawFluksoDataToCassandra(homes, table_name):
 			ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 
 	print("Successfully Saved raw data in Cassandra : table {}".format(table_name))
+
+
+def saveRawDataToCassandraPerSensor(homes, table_name):
+	"""
+	Save raw flukso data to Cassandra cluster
+	"""
+	print("saving in Cassandra...")
+	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+
+	for hid, home in homes.items():
+		print(hid)
+		power_df = home.getPowerDF()
+
+		col_names = ["sensor_id", "day", "ts", "power"]
+		sensors_ids = power_df.columns
+		print(sensors_ids)
+		for timestamp, row in power_df.iterrows():
+			day = str(timestamp.date())
+			# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
+			ts = str(timestamp)[:19] + "Z"
+			for i, sensor_id in enumerate(sensors_ids):
+				values = [sensor_id, day, ts, row[i]]
+				ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 
 
 # ====================================================================================
@@ -207,7 +230,7 @@ def main():
 	# =========================================================
 
 	# step 1 : save raw flukso data in cassandra
-	# saveRawFluksoDataToCassandra(homes, "raw")
+	saveRawDataToCassandraPerSensor(homes, "raw")
 	# updateIncompleteRows(to_timing, homes, "raw_config")
 
 	# step 2 : save power flukso data in cassandra

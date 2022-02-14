@@ -311,7 +311,7 @@ def main():
 
     # > create cassandra tables 
     # createInstallationsTable(compact_df, "raw_home")
-	# createRawFluksoTable("raw")
+    createRawFluksoTable("raw")
     # createPowerTable("power")
     # createPowerTable("groups_power")
     # createRawConfigTable("raw_config")

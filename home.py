@@ -91,15 +91,6 @@ class Home:
         
         return col_names
 
-    @staticmethod
-    def energy2power(energy_df):
-        """
-        from cumulative energy to power (Watt)
-        """
-        power_df = energy_df.diff() * 1000
-        power_df.fillna(0, inplace=True)
-        power_df = power_df.resample(str(FREQ[0]) + FREQ[1]).mean()
-        return power_df
 
     def createSeries(self):
         """
@@ -109,7 +100,6 @@ class Home:
 
         zer = getSpecificSerie(0, self.since_timing, self.to_timing)
         print("first ts zeroSeries: ", zer.index[0])
-        # print(zer.index)
 
         for sensor in self.sensors:
             data_dfs.append(sensor.getSerie())
@@ -131,13 +121,13 @@ class Home:
 
         incomplete_power_df = energy_df[energy_df.isna().any(axis=1)]
         print("nb of nan: ", energy_df.isna().sum().sum()) # count nb of nan in the entire df
-        print(incomplete_power_df)
+        # print(incomplete_power_df)
 
         energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
         energy_df.fillna(0, inplace=True)
         del data_dfs
         
-        power_df = self.energy2power(energy_df)
+        power_df = energy2power(energy_df)
         del energy_df
 
         local_timestamps = getLocalTimestampsIndex(power_df)
