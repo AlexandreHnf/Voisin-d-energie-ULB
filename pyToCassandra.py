@@ -1,4 +1,5 @@
 from cassandra.cluster import Cluster
+from matplotlib.pyplot import table
 import pandas as pd
 
 
@@ -32,6 +33,14 @@ def createKeyspace(session, keyspace_name, replication_class, replication_factor
 
     # use the keyspace
     # session.execute("USE {}".format(keyspace_name))
+
+
+def deleteRows(session, keyspace, table_name):
+    """ 
+    delete all rows of a table
+    """
+    query = "TRUNCATE {}".format(keyspace, table_name)
+    session.execute(query)
 
 
 def insert(session, keyspace, table, columns, values):
