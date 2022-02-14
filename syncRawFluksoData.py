@@ -123,6 +123,33 @@ def updateIncompleteRows(to_timing, homes, table_name):
 
 	print("Successfully Saved raw config in Cassandra : table {}".format(table_name))
 
+def updateIncompleteRows2(to_timing, homes, table_name):
+	"""
+	Save raw data config to Cassandra cluster
+	-> incomplete rows (with null values)
+	"""
+	print("saving in Cassandra...")
+	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+
+	col_names = ["home_id", "day", "ts", "phases"]
+	for hid, home in homes.items():
+		print(hid)
+		inc_power_df = home.getIncompletePowerDF()
+
+		inc = []
+		for timestamp, row in inc_power_df.iterrows():
+			# if valid timestamp
+			if (to_timing - timestamp).days < 2: # 2 days max
+				day = str(timestamp.date())
+				# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
+				ts = str(timestamp)[:19] + "Z"
+				inc_row = []
+				for i in range(len(row)):
+					if np.isnan(row[i]):
+						values = [hid, day, ts]
+						ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
+
+	print("Successfully Saved raw config in Cassandra : table {}".format(table_name))
 
 def getColumnsNames(columns):
 	res = []
