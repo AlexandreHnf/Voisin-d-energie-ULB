@@ -12,6 +12,7 @@ from constants import *
 import pyToCassandra as ptc
 from utils import * 
 import computePower as cp
+from sensor import *
 
 import argparse
 import os
@@ -38,12 +39,17 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 # ====================================================================================
 
 
-def generateHomes(session, sensors, since, since_timing, to_timing, home_ids):
+def generateHomes(session, sensors_info, since, since_timing, to_timing, home_ids):
 	homes = {}
 
 	for hid in home_ids:
 		print("========================= HOME {} =====================".format(hid))
-		home = Home(session, sensors, since, since_timing, to_timing, hid)
+		home_sensors = sensors_info.loc[sensors_info["home_ID"] == hid]
+		sensors = [] # list of Sensor objects
+		for i in range(len(home_sensors)):
+			sensors.append(Sensor(session, home_sensors.flukso_id[i], home_sensors.sensor_id[i], 
+							since_timing, to_timing))
+		home = Home(sensors_info, since, since_timing, to_timing, hid, sensors)
 		homes[hid] = home
 		# print(home.getPowerDF().head(10))
 
@@ -202,7 +208,7 @@ def main():
 
 	# step 1 : save raw flukso data in cassandra
 	# saveRawFluksoDataToCassandra(homes, "raw")
-	updateIncompleteRows(to_timing, homes, "raw_config")
+	# updateIncompleteRows(to_timing, homes, "raw_config")
 
 	# step 2 : save power flukso data in cassandra
 	# cp.savePowerDataToCassandra(homes, "power")

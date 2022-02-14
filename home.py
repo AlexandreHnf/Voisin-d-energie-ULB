@@ -2,6 +2,7 @@ from os import times
 from time import time
 from constants import *
 from utils import getLocalTimestampsIndex, toEpochs
+from sensor import *
 
 import pandas as pd
 import numpy as np
@@ -11,9 +12,9 @@ import tmpo
 
 class Home:
 
-    def __init__(self, session, sensors, since, since_timing, to_timing, home_id):
-        self.session = session
-        self.home_sensors = sensors.loc[sensors["home_ID"] == home_id]
+    def __init__(self, sensors_info, since, since_timing, to_timing, home_id, sensors):
+        self.sensors_info = sensors_info.loc[sensors_info["home_ID"] == home_id]
+        self.sensors = sensors
         self.since = since
         self.since_timing = since_timing
         self.to_timing = to_timing
@@ -58,12 +59,12 @@ class Home:
         ex : CDB007 :> {FL08000436: [Main, ...], FL08000437: [Phase L2, ...]}
         """
         flukso_names = {}
-        for i in range(len(self.home_sensors)):
-            phase = self.home_sensors.index[i]
-            if self.home_sensors.flukso_id[i] not in flukso_names:
-                flukso_names[self.home_sensors.flukso_id[i]] = [phase]
+        for i in range(len(self.sensors_info)):
+            phase = self.sensors_info.index[i]
+            if self.sensors_info.flukso_id[i] not in flukso_names:
+                flukso_names[self.sensors_info.flukso_id[i]] = [phase]
             else:
-                flukso_names[self.home_sensors.flukso_id[i]].append(phase)
+                flukso_names[self.sensors_info.flukso_id[i]].append(phase)
         return flukso_names
 
     def getAggregatedDataPerFlukso(self):
@@ -81,9 +82,12 @@ class Home:
         flukso_id phase1, flukso_id phase2, ...
         """ 
         col_names = []
-        for phase, row in self.home_sensors.iterrows():
-            name = "{} {}".format(row["flukso_id"], phase)
-            col_names.append(name)
+        # for phase, row in self.sensors_info.iterrows():
+        #     name = "{} {}".format(row["flukso_id"], phase)
+        #     col_names.append(name)
+
+        for sensor in self.sensors:
+            col_names.append(sensor.getSensorID())
         
         return col_names
 
@@ -97,46 +101,20 @@ class Home:
         power_df = power_df.resample(str(FREQ[0]) + FREQ[1]).mean()
         return power_df
 
-    def getSerie(self, value):
-
-        period = (self.to_timing - self.since_timing).total_seconds() / FREQ[0]
-        # print("s : {}, t : {}, to : {}, period : {}".format(self.since_timing, self.to_timing, to, period))
-        zeros = pd.date_range(self.since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
-        # print("datetime range : ", zeros)
-        zeros_series = pd.Series(int(period) * [value], zeros)
-        print(self.since_timing, zeros_series.index[0])
-
-        return zeros_series
-
     def createSeries(self):
         """
         create a list of time series from the sensors data
         """
         data_dfs = []
 
-        zer = self.getSerie(0)
+        zer = getSpecificSerie(0, self.since_timing, self.to_timing)
         print("first ts zeroSeries: ", zer.index[0])
         # print(zer.index)
 
-        for i in range(len(self.home_sensors)):
-            id = self.home_sensors.sensor_id[i]
-            fid = self.home_sensors.flukso_id[i]
-            # print("- first timestamp : {}".format(self.session.first_timestamp(id)))
-            # print("- last timestamp : {}".format(self.session.last_timestamp(id)))
+        for sensor in self.sensors:
+            data_dfs.append(sensor.getSerie())
 
-            if self.to_timing == 0:
-                dff = self.session.series(id, head=self.since_timing)
-            else:
-                dff = self.session.series(id, head=self.since_timing, tail=self.to_timing)
-
-            len_dff = len(dff.index)
-
-            if len(dff.index) == 0:
-                dff = self.getSerie(np.nan)
-            print("{} - {} : {}, {}".format(fid, id, len_dff, dff.index[0]))
-            data_dfs.append(dff)
-
-        data_dfs.append(self.getSerie(np.nan))
+        data_dfs.append(zer)
 
         return data_dfs
         
@@ -181,11 +159,11 @@ class Home:
                                     self.power_df.index,
                                     ["P_cons", "P_prod", "P_tot"])
 
-        for i, phase in enumerate(self.home_sensors.index):
+        for i, phase in enumerate(self.sensors_info.index):
             fluksoid_phase = self.columns_names[i]
-            # c = self.home_sensors.loc[phase]["con"]
-            p = self.home_sensors.loc[phase]["pro"]
-            n = self.home_sensors.loc[phase]["net"]
+            # c = self.sensors_info.loc[phase]["con"]
+            p = self.sensors_info.loc[phase]["pro"]
+            n = self.sensors_info.loc[phase]["net"]
 
             # cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + c * self.power_df[fluksoid_phase]
             cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * self.power_df[fluksoid_phase]

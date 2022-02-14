@@ -6,12 +6,6 @@ import pyToCassandra as ptc
 import json
 
 
-FLUKSO_TECHNICAL_FILE = "sensors/FluksoTechnical.xlsx"
-UPDATED_FLUKSO_TECHNICAL_FILE = "sensors/updated_sensors.csv"
-COMPACT_SENSOR_FILE = "sensors/sensors_technical.csv"
-GROUPS_FILE = "sensors/grouped_homes_sensors.txt"
-PHASE_TO_MODIF_FILE = "sensors/phases_to_modify.txt"
-
 # ==========================================================================
 
 
@@ -54,7 +48,7 @@ def getCompactSensorDF():
     read the excel sheet containing the flukso ids, the sensors ids, the tokens
     and compact them into a simpler usable csv file
     """
-    # sensors_df = pd.read_csv(SENSOR_FILE, header=0, index_col=1)
+    # 'Sensors' sheet
     sensors_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Sensors")
     compact_df = pd.DataFrame(columns=["home_ID",
                                        "phase",
@@ -75,6 +69,7 @@ def getCompactSensorDF():
 
     compact_df.fillna(0, inplace=True)
 
+    # 'Flukso' sheet
     installation_ids_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Flukso")
     fluksos = getFluksosDic(installation_ids_df)  # {flukso_id : install_id}
     installation_ids_col = getInstallationsIds(sensors_df["FlmId"], fluksos)
@@ -96,6 +91,8 @@ def getCompactSensorDF():
 def writeGroupsFromFluksoIDs():
     """
     get the list of installations IDs based on the flukso sensors ID of a group
+    -> save them in a txt file
+    format : 1 line = 1 group = home_id1, home_id2, ... 
     """
     installation_ids_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Flukso")
     available_fluksos = set(pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Sensors")["FlmId"])
@@ -189,6 +186,8 @@ def correctPhaseSigns(sensors_df=None):
 
 
 # ==========================================================================
+# Cassandra table creation
+# ==========================================================================
 
 
 def createTablePerInstallation(compact_df):
@@ -241,7 +240,7 @@ def createRawFluksoTable(table_name):
 	""" 
 	compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
 	create a cassandra table for the raw flukso data
-		columns : flukso_sensor_id, day, timestamp, value 
+		columns : flukso_sensor_id, day, timestamp, power_value 
 	"""
 	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 

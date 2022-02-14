@@ -84,3 +84,25 @@ def getLocalTimestampsIndex(df):
 
 def toEpochs(time):
 	return int(math.floor(time.value / 1e9))
+
+
+def getSpecificSerie(value, since_timing, to_timing):
+
+	period = (to_timing - since_timing).total_seconds() / FREQ[0]
+	# print("s : {}, t : {}, to : {}, period : {}".format(self.since_timing, self.to_timing, to, period))
+	values = pd.date_range(since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
+	# print("datetime range : ", values)
+	values_series = pd.Series(int(period) * [value], values)
+	print(since_timing, values_series.index[0])
+
+	return values_series
+
+
+def energy2power(energy_df):
+	"""
+	from cumulative energy to power (Watt)
+	"""
+	power_df = energy_df.diff() * 1000
+	power_df.fillna(0, inplace=True)
+	power_df = power_df.resample(str(FREQ[0]) + FREQ[1]).mean()
+	return power_df
