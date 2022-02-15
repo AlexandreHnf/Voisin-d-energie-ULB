@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import math
 from constants import *
+from datetime import date, timedelta
 
 
 def read_sensor_info(path, sensor_file):
@@ -64,6 +65,19 @@ def getTiming(t, now):
 
 	# print("timing : ", timing)
 	return timing
+
+
+def getDatesBetween(start_date, end_date):
+	""" 
+	get the list of dates between 2 given dates
+	"""
+	d = pd.date_range(start_date.date(), end_date.date()-timedelta(days=1), freq='d')
+	dates = []
+	for ts in d:
+		dates.append(str(ts.date()))
+	dates.append(str(end_date.date()))
+
+	return dates
 
 
 def getProgDir():

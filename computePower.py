@@ -8,6 +8,7 @@ import copy
 import os
 import sys
 import pandas as pd
+from datetime import date, timedelta
 
 
 # ====================================================================================
@@ -55,7 +56,9 @@ def getRawData(session, since, ids, table_name):
 	print("timing date : ", str(timing.date()))
 	print("now date : ", str(now.date()))
 	dates = list(set(["'"+str(timing.date())+"'", "'"+str(now.date())+"'"]))
+	dates = ["'" + d + "'" for d in getDatesBetween(timing, now)]
 	print(dates)
+	# print("dates : ", getDatesBetween(timing, now))
 	dates = ",".join(dates)
 	timing_format = "'" + str(timing)[:19] + ".000000+0000" + "'"
 
@@ -80,7 +83,7 @@ def getConsumptionProductionDF(sensors, homes_rawdata, ids):
 	"""
 	homes_stats = {}
 	for home_id in ids:
-		print("================> ", home_id)
+		# print("================> ", home_id)
 		home_sensors = sensors.loc[sensors["home_ID"] == home_id]
 		first_sid = list(homes_rawdata[home_id].keys())[0]
 		cons_prod_df = homes_rawdata[home_id][first_sid][["sensor_id","day", "ts"]].copy()
@@ -94,7 +97,7 @@ def getConsumptionProductionDF(sensors, homes_rawdata, ids):
 			sensor_df = homes_rawdata[home_id][sid]
 			p = home_sensors.loc[home_sensors['sensor_id'] == sid, 'pro'].iloc[0]
 			n = home_sensors.loc[home_sensors['sensor_id'] == sid, 'net'].iloc[0]
-			print("{} : p: {}, n: {}".format(sid, p, n))
+			# print("{} : p: {}, n: {}".format(sid, p, n))
 
 			cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * sensor_df["power"]
 			cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * sensor_df["power"]
@@ -102,7 +105,7 @@ def getConsumptionProductionDF(sensors, homes_rawdata, ids):
 		cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
 
 		cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
-		print(cons_prod_df.head(5))
+		# print(cons_prod_df.head(5))
 		homes_stats[home_id] = cons_prod_df
 
 	return homes_stats
@@ -201,16 +204,15 @@ def main():
 	# powers computations (p_cons, p_prod, p_tot)
 	homes_powers = getConsumptionProductionDF(sensors, homes_rawdata, ids)
 
-	"""
+	
 	groups = getFLuksoGroups()
 	# groups powers computations
 	groups_powers = getGroupsPowers(homes_powers, groups)
 
+	"""
 	saveStatsToCassandra(session, homes_powers, "stats")
 	saveGroupsStatsToCassandra(session, groups_powers, "groups_stats")
-	"""
-	
-	
+	"""	
 
 
 if __name__ == "__main__":
