@@ -43,12 +43,14 @@ def savePowerDataToCassandra(homes, table_name):
 # ====================================================================================
 
 
-def getRawData(session, since, home_ids):
+def getRawData(session, since, ids, table_name):
 	""" 
 	get raw flukso data from cassandra since a certain amount of time
+	TODO : liste des dates en fonction du date_range 
+	-> pandas.date_range(sdate,edate-timedelta(days=1),freq='d')
 	"""
 	now = pd.Timestamp.now(tz="CET")
-	timing = getTiming(since, now)
+	timing = setInitSeconds(getTiming(since, now))
 
 	print("timing date : ", str(timing.date()))
 	print("now date : ", str(now.date()))
@@ -58,42 +60,49 @@ def getRawData(session, since, home_ids):
 	timing_format = "'" + str(timing)[:19] + ".000000+0000" + "'"
 
 	homes_rawdata = {}
-	for home_id in home_ids:
-		
-		where_clause = "home_id = {} and day IN ({}) AND ts > {}".format("'"+home_id+"'", dates, timing_format)
-		data = ptc.selectQuery(session, CASSANDRA_KEYSPACE, "raw_data", "*", where_clause, "LIMIT 20")
+	for home_id, sensors_ids in ids.items():
+		homes_rawdata[home_id] = {}
 
-		homes_rawdata[home_id] = data
+		for sid in sensors_ids:
+			where_clause = "sensor_id = {} and day IN ({}) AND ts > {}".format("'"+sid+"'", dates, timing_format)
+			sensor_df = ptc.selectQuery(session, CASSANDRA_KEYSPACE, table_name, "*", where_clause, "")
+		
+			homes_rawdata[home_id][sid] = sensor_df
 
 	return homes_rawdata
-		
 
-def getConsumptionProductionDF(sensors, homes_rawdata, home_ids):
+
+def getConsumptionProductionDF(sensors, homes_rawdata, ids):
 	""" 
 	compute power data from raw data (coming from cassandra 'raw' table) : 
 	P_cons = P_tot - P_prod
 	P_net = P_prod + P_cons
 	"""
 	homes_stats = {}
-	for home_id in home_ids:
-		power_df = homes_rawdata[home_id]
+	for home_id in ids:
+		print("================> ", home_id)
 		home_sensors = sensors.loc[sensors["home_ID"] == home_id]
-		cons_prod_df = power_df[["home_id","day", "ts"]].copy()
+		first_sid = list(homes_rawdata[home_id].keys())[0]
+		cons_prod_df = homes_rawdata[home_id][first_sid][["sensor_id","day", "ts"]].copy()
+		cons_prod_df = cons_prod_df.rename(columns={"sensor_id": "home_id"})
+		cons_prod_df["home_id"] = home_id  # replace 1st sensor_id by home_id
 		cons_prod_df["P_cons"] = 0
 		cons_prod_df["P_prod"] = 0
 		cons_prod_df["P_tot"] = 0
 
-		for i, phase in enumerate(home_sensors.index):
-			phase_i = "phase" + str(i+1)
-			p = home_sensors.loc[phase]["pro"]
-			n = home_sensors.loc[phase]["net"]
+		for sid in ids[home_id]:
+			sensor_df = homes_rawdata[home_id][sid]
+			p = home_sensors.loc[home_sensors['sensor_id'] == sid, 'pro'].iloc[0]
+			n = home_sensors.loc[home_sensors['sensor_id'] == sid, 'net'].iloc[0]
+			print("{} : p: {}, n: {}".format(sid, p, n))
 
-			cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * power_df[phase_i]
-			cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * power_df[phase_i]
+			cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * sensor_df["power"]
+			cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * sensor_df["power"]
 
 		cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
 
 		cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
+		print(cons_prod_df.head(5))
 		homes_stats[home_id] = cons_prod_df
 
 	return homes_stats
@@ -177,25 +186,30 @@ def saveGroupsStatsToCassandra(session, groups_powers, table_name):
 
 def main():
 	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-	sensors = read_sensor_info(UPDATED_SENSORS_FILE)
+	sensors = read_sensor_info("", UPDATED_SENSORS_FILE)
 	home_ids = set(sensors.home_ID)
+	ids = getSensorsIds(sensors)
 
 	# test raw data retrieval
-	since = "s2022-01-28-10-01-00"
+	since = "s2022-02-14-16-10-00"
 	# since = "3min"
-	homes_rawdata = getRawData(session, since, home_ids) 
+	homes_rawdata = getRawData(session, since, ids, "raw") 
 
+	
 	print("==============================================")
 
 	# powers computations (p_cons, p_prod, p_tot)
-	homes_powers = getConsumptionProductionDF(sensors, homes_rawdata, home_ids)
+	homes_powers = getConsumptionProductionDF(sensors, homes_rawdata, ids)
 
+	"""
 	groups = getFLuksoGroups()
 	# groups powers computations
 	groups_powers = getGroupsPowers(homes_powers, groups)
 
 	saveStatsToCassandra(session, homes_powers, "stats")
 	saveGroupsStatsToCassandra(session, groups_powers, "groups_stats")
+	"""
+	
 	
 
 

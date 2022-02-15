@@ -125,11 +125,13 @@ def getFluksoData(sensor_file, path=""):
 
 def updateIncompleteRows(to_timing, homes, table_name):
 	"""
-	Save raw data config to Cassandra cluster
+	Save raw missing data to Cassandra cluster
 	-> incomplete rows (with null values)
 	"""
 	print("saving in Cassandra...")
 	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+
+	ptc.deleteRows(session, CASSANDRA_KEYSPACE, table_name)  # truncate existing rows
 
 	col_names = ["sensor_id", "day", "ts"]
 	for hid, home in homes.items():
@@ -148,7 +150,7 @@ def updateIncompleteRows(to_timing, homes, table_name):
 						values = [sensor_id, day, ts]
 						ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 
-	print("Successfully Saved raw config in Cassandra : table {}".format(table_name))
+	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
 
 def getColumnsNames(columns):
 	res = []

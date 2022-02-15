@@ -119,7 +119,7 @@ def selectQuery(session, keyspace, table, columns, where_clause, limit):
         ",".join(columns), keyspace, table, where_clause, limit
     )
 
-    print("===> select query : ", query)
+    # print("===> select query : ", query)
     rows = selectResToDf(session, query)
 
     return rows

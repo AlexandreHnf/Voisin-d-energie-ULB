@@ -13,6 +13,23 @@ def read_sensor_info(path, sensor_file):
 	return sensors
 
 
+def getSensorsIds(sensors):
+	""" 
+	sensors of the form : home_id, phase, flukso_id, sensor_id, token, net, con, pro
+	return {home_id = [sensor_id1, sensor_id2, ...]}
+	"""
+	home_ids = sensors.home_ID
+	sensor_ids = sensors.sensor_id
+	ids = {}
+	for i in range(len(home_ids)):
+		if home_ids[i] not in ids:
+			ids[home_ids[i]] = [sensor_ids[i]]
+		else:
+			ids[home_ids[i]].append(sensor_ids[i])
+	
+	return ids		
+
+
 def setInitSeconds(ts):
 	""" 
 	SS = 00 if M even, 04 if odd
