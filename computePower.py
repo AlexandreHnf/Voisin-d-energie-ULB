@@ -55,10 +55,8 @@ def getRawData(session, since, ids, table_name):
 
 	print("timing date : ", str(timing.date()))
 	print("now date : ", str(now.date()))
-	dates = list(set(["'"+str(timing.date())+"'", "'"+str(now.date())+"'"]))
 	dates = ["'" + d + "'" for d in getDatesBetween(timing, now)]
 	print(dates)
-	# print("dates : ", getDatesBetween(timing, now))
 	dates = ",".join(dates)
 	timing_format = "'" + str(timing)[:19] + ".000000+0000" + "'"
 
@@ -164,6 +162,7 @@ def saveStatsToCassandra(session, homes_powers, table_name):
 
 	print("Successfully saved powers in Cassandra")
 
+
 def saveGroupsStatsToCassandra(session, groups_powers, table_name):
 	""" 
 	Save the powers (P_cons, P_prod, P_tot) of the groups 
@@ -204,7 +203,6 @@ def main():
 	# powers computations (p_cons, p_prod, p_tot)
 	homes_powers = getConsumptionProductionDF(sensors, homes_rawdata, ids)
 
-	
 	groups = getFLuksoGroups()
 	# groups powers computations
 	groups_powers = getGroupsPowers(homes_powers, groups)
