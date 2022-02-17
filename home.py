@@ -100,7 +100,7 @@ class Home:
         data_dfs = []
 
         zer = getSpecificSerie(0, self.since_timing, self.to_timing)
-        print("first ts zeroSeries: ", zer.index[0])
+        # print("first ts zeroSeries: ", zer.index[0])
 
         for sensor in self.sensors:
             data_dfs.append(sensor.getSerie())

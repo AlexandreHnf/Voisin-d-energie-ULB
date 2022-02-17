@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import os
 import math
 from constants import *
@@ -126,6 +127,13 @@ def toEpochs(time):
 	return int(math.floor(time.value / 1e9))
 
 
+def isEarlier(ts1, ts2):
+	""" 
+	check if timestamp 'ts1' is earlier/older than timestamp 'ts2'
+	"""
+	return (ts1 - ts2) / np.timedelta64(1, 's') < 0
+
+
 def getSpecificSerie(value, since_timing, to_timing):
 
 	period = (to_timing - since_timing).total_seconds() / FREQ[0]
@@ -133,7 +141,7 @@ def getSpecificSerie(value, since_timing, to_timing):
 	values = pd.date_range(since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
 	# print("datetime range : ", values)
 	values_series = pd.Series(int(period) * [value], values)
-	print(since_timing, values_series.index[0])
+	# print(since_timing, values_series.index[0])
 
 	return values_series
 
