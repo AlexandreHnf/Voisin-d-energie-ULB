@@ -68,8 +68,13 @@ def getTiming(t, now):
 
 
 def convertTimezone(ts, timezone):
+	""" 
+	Convert a timestamp timezone to another 
+	ex:  CET > UTC or UTC > CET
+	We assume the timestamp is already aware
+	"""
 	return ts.tz_convert(timezone)
-	
+
 
 def getDatesBetween(start_date, end_date):
 	""" 
