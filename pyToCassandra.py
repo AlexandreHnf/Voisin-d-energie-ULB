@@ -39,7 +39,7 @@ def deleteRows(session, keyspace, table_name):
     """ 
     delete all rows of a table
     """
-    query = "TRUNCATE {}".format(keyspace, table_name)
+    query = "TRUNCATE {}.{}".format(keyspace, table_name)
     session.execute(query)
 
 

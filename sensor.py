@@ -22,6 +22,7 @@ class Sensor:
 
     def getSerie(self):
         if self.to_timing == 0:
+            # since_timing = UTC timezone for tmpo query
             dff = self.session.series(self.sensor_id, head=self.since_timing)
         else:
             dff = self.session.series(self.sensor_id, head=self.since_timing, tail=self.to_timing)

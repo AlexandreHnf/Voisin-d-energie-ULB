@@ -55,7 +55,7 @@ def getMissingRaw(session, ids, table_name, default_timing, now):
 			# print(sensor_df.head(3), len(sensor_df))
 
 			if len(sensor_df) > 0:
-				first_ts = sensor_df.iloc[0]["ts"]
+				first_ts = sensor_df.iloc[0]["ts"]  # we get a local timestamp (CET)
 				# print(first_ts, first_ts.tz)
 				# if 'first_ts' is older (in the past) than the current first_ts
 				if (first_ts-homes_missing_rows[home_id]["first_ts"])/np.timedelta64(1,'s') < 0:
@@ -135,15 +135,17 @@ def updateIncompleteRows(to_timing, homes, table_name):
 
 	ptc.deleteRows(session, CASSANDRA_KEYSPACE, table_name)  # truncate existing rows
 
+	to_timing = convertTimezone(to_timing, "CET")
+
 	col_names = ["sensor_id", "day", "ts"]
 	for hid, home in homes.items():
 		print(hid)
 		inc_power_df = home.getIncompletePowerDF()
 		sensors_ids = inc_power_df.columns
 
-		for timestamp, row in inc_power_df.iterrows():
+		for timestamp, row in inc_power_df.iterrows():  # timestamp = CET timezone (local)
 			# if valid timestamp
-			if (to_timing - timestamp).days < 2: # 2 days max
+			if (to_timing - timestamp).days < LIMIT_TIMING_RAW: # 2 days max
 				day = str(timestamp.date())
 				# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
 				ts = str(timestamp)[:19] + "Z"
@@ -153,6 +155,7 @@ def updateIncompleteRows(to_timing, homes, table_name):
 						ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 
 	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
+
 
 def getColumnsNames(columns):
 	res = []
@@ -249,7 +252,7 @@ def main():
 	sensors, session = getFluksoData(UPDATED_SENSORS_FILE)
 	ids = getSensorsIds(sensors)
 
-	getMissingRaw(cassandra_session, ids, "raw_missing", default_timing, now_local)
+	# getMissingRaw(cassandra_session, ids, "raw_missing", default_timing, now_local)
 
 	home_ids = set(sensors["home_ID"])
 	nb_homes = len(home_ids)
@@ -261,16 +264,16 @@ def main():
 
 	# =========================================================
 
-	# groups = getFLuksoGroups()
-	# print("groups : ", groups)
-	# homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids)
-	# grouped_homes = generateGroupedHomes(homes, groups)
+	groups = getFLuksoGroups()
+	print("groups : ", groups)
+	homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids)
+	grouped_homes = generateGroupedHomes(homes, groups)
 
 	# =========================================================
 
 	# step 1 : save raw flukso data in cassandra
 	# saveRawDataToCassandraPerSensor(homes, "raw")
-	# updateIncompleteRows(to_timing, homes, "raw_missing")
+	updateIncompleteRows(to_timing, homes, "raw_missing")
 
 	# step 2 : save power flukso data in cassandra
 	# cp.savePowerDataToCassandra(homes, "power")

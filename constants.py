@@ -24,3 +24,6 @@ FREQ = [8, "S"]  # 8 sec.
 
 # cassandra keyspaces
 CASSANDRA_KEYSPACE = "flukso" 
+
+# missing raw data time limit
+LIMIT_TIMING_RAW = 2  # days

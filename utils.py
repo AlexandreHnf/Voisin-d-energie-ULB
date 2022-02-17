@@ -48,8 +48,8 @@ def getTiming(t, now):
 	get the timestamp of the "since"
 	format : YY-MM-DD H-M-S UTC 
 	ex : the timestamp 20 min ago
+	return a timestamp with UTC timezone
 	"""
-	# print("since {}".format(since))
 	timing = 0
 	if t:
 		if t[0] == "s":
@@ -66,6 +66,10 @@ def getTiming(t, now):
 	# print("timing : ", timing)
 	return timing
 
+
+def convertTimezone(ts, timezone):
+	return ts.tz_convert(timezone)
+	
 
 def getDatesBetween(start_date, end_date):
 	""" 

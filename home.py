@@ -28,6 +28,7 @@ class Home:
         return self.power_df
 
     def getIncompletePowerDF(self):
+        # with UTC timezones
         return self.incomplete_power_df
 
     def getConsProdDF(self):
@@ -116,23 +117,23 @@ class Home:
         """
         data_dfs = self.createSeries()  # list of series, one per flukso sensor
         energy_df = pd.concat(data_dfs, axis=1)  # combined series, 1 col = 1 sensor
+        del data_dfs
         energy_df.columns = self.columns_names + ["fill"]
         energy_df = energy_df.drop(['fill'], axis=1) # remove the filler col
 
-        incomplete_power_df = energy_df[energy_df.isna().any(axis=1)]
-        print("nb of nan: ", energy_df.isna().sum().sum()) # count nb of nan in the entire df
-        # print(incomplete_power_df)
-
         energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
-        energy_df.fillna(0, inplace=True)
-        del data_dfs
-        
-        power_df = energy2power(energy_df)
-        del energy_df
+        # convert all timestamps to local timezone (CET)
+        local_timestamps = getLocalTimestampsIndex(energy_df)
+        energy_df.index = [tps for tps in local_timestamps]
+        print("nb timestamps : ", len(energy_df.index))
 
-        local_timestamps = getLocalTimestampsIndex(power_df)
-        power_df.index = [tps for tps in local_timestamps]
-        print("nb timestamps : ", len(power_df.index))
+        incomplete_power_df = energy_df[energy_df.isna().any(axis=1)]  # with CET timezones
+        print("nb of nan: ", energy_df.isna().sum().sum()) # count nb of nan in the entire df
+
+        energy_df.fillna(0, inplace=True)
+        
+        power_df = energy2power(energy_df)  # cumulative energy to power conversion
+        del energy_df
 
         power_df.fillna(0, inplace=True)
         power_df = power_df.round(1)  # round with 2 decimals
