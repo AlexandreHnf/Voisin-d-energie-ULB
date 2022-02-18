@@ -142,7 +142,7 @@ def updateIncompleteRows(to_timing, homes, table_name):
 
 	to_timing = convertTimezone(to_timing, "CET")
 
-	col_names = ["sensor_id", "day", "ts"]
+	col_names = ["sensor_id", "ts"]
 	for hid, home in homes.items():
 		print(hid)
 		inc_power_df = home.getIncompletePowerDF()
@@ -156,7 +156,7 @@ def updateIncompleteRows(to_timing, homes, table_name):
 				ts = str(timestamp)[:19] + "Z"
 				for i, sensor_id in enumerate(sensors_ids):
 					if np.isnan(row[i]):
-						values = [sensor_id, day, ts]
+						values = [sensor_id, ts]
 						ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 
 	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
@@ -216,7 +216,7 @@ def saveRawDataToCassandraPerSensor(homes, missing, table_name):
 			for i, sid in enumerate(sensors_ids):
 				miss = missing[hid][sid]["s"].loc[(missing[hid][sid]["s"]['ts'] == pd.Timestamp(str(timestamp)[:19]))].any().all()
 				is_earlier = isEarlier(timestamp, missing[hid][sid]["lts"])
-				print("{} => miss: {}, is earlier ? {}, value : {}".format(timestamp, miss, is_earlier, row[i]))
+				print("{} => miss: {}, is earlier ? {}, value : {}".format(timestamp, miss, is_earlier, row[i]), end=" ")
 				# if before last timestamp of the sensor & missing data OR after last timestamp (new data)
 				if (is_earlier and miss) or (not is_earlier):
 					print("insert ! ")
@@ -289,7 +289,7 @@ def main():
 
 	# step 1 : save raw flukso data in cassandra
 	saveRawDataToCassandraPerSensor(homes, homes_missing, "raw")
-	# updateIncompleteRows(to_timing, homes, "raw_missing")
+	updateIncompleteRows(to_timing, homes, "raw_missing")
 
 	# step 2 : save power flukso data in cassandra
 	# cp.savePowerDataToCassandra(homes, "power")

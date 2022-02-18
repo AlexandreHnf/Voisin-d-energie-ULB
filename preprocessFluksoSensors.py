@@ -255,11 +255,11 @@ def createPowerTable(table_name):
     ptc.createTable(session, CASSANDRA_KEYSPACE, table_name, power_cols, ["home_id, day"], ["ts"], {"ts":"ASC"})
 
 
-def createRawConfigTable(table_name):
+def createRawMissingTable(table_name):
     session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
-    cols = ["sensor_id TEXT", "day TEXT", "ts TIMESTAMP"]
-    ptc.createTable(session, CASSANDRA_KEYSPACE, table_name, cols, ["sensor_id, day"], ["ts"], {"ts":"ASC"})
+    cols = ["sensor_id TEXT", "ts TIMESTAMP"]
+    ptc.createTable(session, CASSANDRA_KEYSPACE, table_name, cols, ["sensor_id"], ["ts"], {"ts":"ASC"})
 
 
 # ==========================================================================
@@ -311,10 +311,10 @@ def main():
 
     # > create cassandra tables 
     # createInstallationsTable(compact_df, "raw_home")
-    # createRawFluksoTable("raw")
-    # createPowerTable("power")
-    # createPowerTable("groups_power")
-    createRawConfigTable("raw_missing")
+    createRawFluksoTable("raw")
+    createPowerTable("power")
+    createPowerTable("groups_power")
+    # createRawMissingTable("raw_missing")
 
     # > save home ids to json
     # saveHomeIds(compact_df)
