@@ -66,7 +66,7 @@ def getRawData(session, since, ids, table_name):
 
 		for sid in sensors_ids:
 			where_clause = "sensor_id = {} and day IN ({}) AND ts > {}".format("'"+sid+"'", dates, timing_format)
-			sensor_df = ptc.selectQuery(session, CASSANDRA_KEYSPACE, table_name, "*", where_clause, "")
+			sensor_df = ptc.selectQuery(session, CASSANDRA_KEYSPACE, table_name, "*", where_clause, "ALLOW FILTERING", "")
 		
 			homes_rawdata[home_id][sid] = sensor_df
 

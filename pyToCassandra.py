@@ -109,14 +109,14 @@ def selectResToDf(session, query):
     return df
 
 
-def selectQuery(session, keyspace, table, columns, where_clause, limit):
+def selectQuery(session, keyspace, table, columns, where_clause, allow_filtering, limit):
     """ 
     columns = * or a list of columns
     SELECT <> FROM <> WHERE <> ... ALLOW FILTERING
     """
     
-    query = "SELECT {} FROM {}.{} WHERE {} {} ALLOW FILTERING;".format(
-        ",".join(columns), keyspace, table, where_clause, limit
+    query = "SELECT {} FROM {}.{} WHERE {} {} {};".format(
+        ",".join(columns), keyspace, table, where_clause, limit, allow_filtering
     )
 
     # print("===> select query : ", query)

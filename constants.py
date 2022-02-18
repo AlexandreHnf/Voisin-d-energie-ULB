@@ -27,3 +27,6 @@ CASSANDRA_KEYSPACE = "flukso"
 
 # missing raw data time limit
 LIMIT_TIMING_RAW = 2  # days
+
+# nb of days limit when getting the last timestamp of raw table
+LAST_TS_DAYS = 2  # days

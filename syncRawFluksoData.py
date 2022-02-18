@@ -38,6 +38,27 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # ====================================================================================
 
+def getLastRegisteredTImestamp(session, ids):
+	print("Getting last timestamp...")
+	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+
+	# we assume the sensor_id is present in the table
+	sid = ids[list(ids.keys())[0]][0]
+	print("sid for the last ts : ", sid)
+
+	dates = ["'" + d + "'" for d in getLastXDates()]
+	for date in dates:
+		where_clause = "sensor_id = {} AND day = {} ORDER BY ts DESC".format("'"+sid+"'", date)
+		ts_df = ptc.selectQuery(session, CASSANDRA_KEYSPACE, "raw", ["ts"], where_clause, "", "LIMIT 1")
+		if len(ts_df) > 0:
+			return ts_df
+
+	return ts_df 
+
+
+# ====================================================================================
+
+
 def getMissingRaw(session, ids, table_name, default_timing, now):
 	""" 
 	get the rows of raw data with missing values
@@ -50,7 +71,7 @@ def getMissingRaw(session, ids, table_name, default_timing, now):
 
 		for sid in sensors_ids:
 			where_clause = "sensor_id = {}".format("'"+sid+"'")
-			sensor_df = ptc.selectQuery(session, CASSANDRA_KEYSPACE, table_name, "*", where_clause, "")
+			sensor_df = ptc.selectQuery(session, CASSANDRA_KEYSPACE, table_name, "*", where_clause, "ALLOW FILTERING", "")
 
 			homes_missing[home_id][sid] = {"s": sensor_df, "lts": convertTimezone(default_timing, "CET")}
 
@@ -266,9 +287,11 @@ def main():
 	sensors, session = getFluksoData(UPDATED_SENSORS_FILE)
 	ids = getSensorsIds(sensors)
 
-	# TODO : remove day column in raw_missing table
-	homes_missing = getMissingRaw(cassandra_session, ids, "raw_missing", default_timing, now_local)
-	print(homes_missing["CDB014"])
+	last_timestamp = getLastRegisteredTImestamp(cassandra_session, ids)
+	print("LAST TIMESTAMP : ", last_timestamp)
+
+	# homes_missing = getMissingRaw(cassandra_session, ids, "raw_missing", default_timing, now_local)
+	# print(homes_missing["CDB014"])
 
 	home_ids = set(sensors["home_ID"])
 	nb_homes = len(home_ids)
@@ -282,14 +305,14 @@ def main():
 
 	# groups = getFLuksoGroups()
 	# print("groups : ", groups)
-	homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids)
+	# homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids)
 	# grouped_homes = generateGroupedHomes(homes, groups)
 
 	# =========================================================
 
 	# step 1 : save raw flukso data in cassandra
-	saveRawDataToCassandraPerSensor(homes, homes_missing, "raw")
-	updateIncompleteRows(to_timing, homes, "raw_missing")
+	# saveRawDataToCassandraPerSensor(homes, homes_missing, "raw")
+	# updateIncompleteRows(to_timing, homes, "raw_missing")
 
 	# step 2 : save power flukso data in cassandra
 	# cp.savePowerDataToCassandra(homes, "power")

@@ -3,7 +3,7 @@ import numpy as np
 import os
 import math
 from constants import *
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 
 def read_sensor_info(path, sensor_file):
@@ -86,6 +86,21 @@ def getDatesBetween(start_date, end_date):
 	for ts in d:
 		dates.append(str(ts.date()))
 	dates.append(str(end_date.date()))
+
+	return dates
+
+
+def getLastXDates():
+	""" 
+	get the last x days from now
+	ex : before_yesterday, yesterday, now
+	"""
+	dates = []
+	day = datetime.now()
+	dates.append(day.strftime('%Y-%m-%d'))
+	for _ in range(LAST_TS_DAYS):
+		day = (day - timedelta(1))  # the day before
+		dates.append(day.strftime('%Y-%m-%d'))
 
 	return dates
 
