@@ -39,6 +39,9 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 # ====================================================================================
 
 def getLastRegisteredTimestamp(session, ids):
+	""" 
+	get the last registered timestamp of the raw table
+	"""
 	print("Getting last timestamp...")
 	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
@@ -97,13 +100,15 @@ def getMissingRaw(session, ids, table_name, default_timing, now):
 # ====================================================================================
 
 
-def generateHomes(session, sensors_info, since, since_timing, to_timing, home_ids):
+def generateHomes(session, sensors_info, since, since_timing, to_timing, home_ids, homes_missing, mode):
 	homes = {}
 
 	for hid in home_ids:
 		print("========================= HOME {} =====================".format(hid))
 		home_sensors = sensors_info.loc[sensors_info["home_ID"] == hid]
 		sensors = [] # list of Sensor objects
+		if mode == "automatic":
+			since_timing = homes_missing[hid]["first_ts"]
 		for i in range(len(home_sensors)):
 			sensors.append(Sensor(session, home_sensors.flukso_id[i], home_sensors.sensor_id[i], 
 							since_timing, to_timing))
@@ -228,11 +233,15 @@ def saveRawToCassandra(homes, missing, table_name):
 # ====================================================================================
 
 
-def main():
+def processArguments():
 	argparser = argparse.ArgumentParser(
 		description=__doc__,
 		formatter_class=argparse.RawDescriptionHelpFormatter,
 	)
+	argparser.add_argument("--mode", type=str, default="manual", 
+							help="Manual : set --since --to parameters"
+								"Automatic : no parameters to provide")
+
 	argparser.add_argument("--since",
 						   type=str,
 						   default="",
@@ -248,7 +257,15 @@ def main():
 						   help="Query a defined interval, e.g. "
 								"'2021-10-29-00-00-00>2021-10-29-23-59-52'")
 
+	return argparser
+
+
+def main():
+	argparser = processArguments()
+
 	args = argparser.parse_args()
+	mode = args.mode
+	print("MODE : ", mode)
 	since = args.since
 	to = args.to
 	now = pd.Timestamp.now(tz="UTC")
@@ -283,7 +300,7 @@ def main():
 
 	# groups = getFLuksoGroups()
 	# print("groups : ", groups)
-	# homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids)
+	# homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids, homes_missing, mode)
 	# grouped_homes = generateGroupedHomes(homes, groups)
 
 	# =========================================================
