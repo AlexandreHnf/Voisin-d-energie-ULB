@@ -38,7 +38,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # ====================================================================================
 
-def getLastRegisteredTImestamp(session, ids):
+def getLastRegisteredTimestamp(session, ids):
 	print("Getting last timestamp...")
 	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
@@ -109,7 +109,7 @@ def generateHomes(session, sensors_info, since, since_timing, to_timing, home_id
 							since_timing, to_timing))
 		home = Home(sensors_info, since, since_timing, to_timing, hid, sensors)
 		homes[hid] = home
-		# print(home.getPowerDF().head(10))
+		# print(home.getRawDF().head(10))
 
 	return homes
 
@@ -121,7 +121,7 @@ def generateGroupedHomes(homes, groups):
 		home = copy.copy(homes[group[0]])
 		for j in range(1, len(group)):
 			print(homes[group[j]].getHomeID())
-			home.appendFluksoData(homes[group[j]].getPowerDF(), homes[group[j]].getHomeID())
+			home.appendFluksoData(homes[group[j]].getRawDF(), homes[group[j]].getHomeID())
 			home.addConsProd(homes[group[j]].getConsProdDF())
 		home.setHomeID("group_" + str(i + 1))
 
@@ -151,7 +151,7 @@ def getFluksoData(sensor_file, path=""):
 # ====================================================================================
 
 
-def updateIncompleteRows(to_timing, homes, table_name):
+def saveIncompleteRows(to_timing, homes, table_name):
 	"""
 	Save raw missing data to Cassandra cluster
 	-> incomplete rows (with null values)
@@ -194,31 +194,9 @@ def getColumnsNames(columns):
 	return res
 
 
-def saveRawDataToCassandraPerHome(homes, table_name):
+def saveRawToCassandra(homes, missing, table_name):
 	"""
-	Save raw flukso data to Cassandra cluster
-	"""
-	print("saving in Cassandra...")
-	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-
-	for hid, home in homes.items():
-		print(hid)
-		power_df = home.getPowerDF()
-
-		col_names = ["home_id", "day", "ts"] + getColumnsNames(power_df.columns)
-		for timestamp, row in power_df.iterrows():
-			day = str(timestamp.date())
-			# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
-			ts = str(timestamp)[:19] + "Z"  
-			values = [hid, day, ts] + list(row)
-			ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
-
-	print("Successfully Saved raw data in Cassandra : table {}".format(table_name))
-
-
-def saveRawDataToCassandraPerSensor(homes, missing, table_name):
-	"""
-	Save raw flukso data to Cassandra cluster
+	Save raw flukso flukso data to Cassandra table
 	Save per sensor : 1 row = 1 sensor + 1 timestamp + 1 power value
 	"""
 	print("saving in Cassandra...")
@@ -226,7 +204,7 @@ def saveRawDataToCassandraPerSensor(homes, missing, table_name):
 
 	for hid, home in homes.items():
 		print(hid)
-		power_df = home.getPowerDF()
+		power_df = home.getRawDF()
 
 		col_names = ["sensor_id", "day", "ts", "power"]
 		sensors_ids = power_df.columns
@@ -237,7 +215,7 @@ def saveRawDataToCassandraPerSensor(homes, missing, table_name):
 			for i, sid in enumerate(sensors_ids):
 				miss = missing[hid][sid]["s"].loc[(missing[hid][sid]["s"]['ts'] == pd.Timestamp(str(timestamp)[:19]))].any().all()
 				is_earlier = isEarlier(timestamp, missing[hid][sid]["lts"])
-				print("{} => miss: {}, is earlier ? {}, value : {}".format(timestamp, miss, is_earlier, row[i]), end=" ")
+				# print("{} => miss: {}, is earlier ? {}, value : {}".format(timestamp, miss, is_earlier, row[i]), end=" ")
 				# if before last timestamp of the sensor & missing data OR after last timestamp (new data)
 				if (is_earlier and miss) or (not is_earlier):
 					print("insert ! ")
@@ -287,7 +265,7 @@ def main():
 	sensors, session = getFluksoData(UPDATED_SENSORS_FILE)
 	ids = getSensorsIds(sensors)
 
-	last_timestamp = getLastRegisteredTImestamp(cassandra_session, ids)
+	last_timestamp = getLastRegisteredTimestamp(cassandra_session, ids)
 	print("LAST TIMESTAMP : ", last_timestamp)
 
 	# homes_missing = getMissingRaw(cassandra_session, ids, "raw_missing", default_timing, now_local)
@@ -311,8 +289,8 @@ def main():
 	# =========================================================
 
 	# step 1 : save raw flukso data in cassandra
-	# saveRawDataToCassandraPerSensor(homes, homes_missing, "raw")
-	# updateIncompleteRows(to_timing, homes, "raw_missing")
+	# saveRawToCassandra(homes, homes_missing, "raw")
+	# saveIncompleteRows(to_timing, homes, "raw_missing")
 
 	# step 2 : save power flukso data in cassandra
 	# cp.savePowerDataToCassandra(homes, "power")

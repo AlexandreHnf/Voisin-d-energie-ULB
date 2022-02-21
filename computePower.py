@@ -47,8 +47,6 @@ def savePowerDataToCassandra(homes, table_name):
 def getRawData(session, since, ids, table_name):
 	""" 
 	get raw flukso data from cassandra since a certain amount of time
-	TODO : liste des dates en fonction du date_range 
-	-> pandas.date_range(sdate,edate-timedelta(days=1),freq='d')
 	"""
 	now = pd.Timestamp.now(tz="CET")
 	timing = setInitSeconds(getTiming(since, now))

@@ -21,15 +21,15 @@ class Home:
         self.home_id = home_id
         self.columns_names = self.getColumnsNames()
 
-        self.power_df, self.incomplete_power_df = self.createFluksoPowerDF()
+        self.raw_df, self.incomplete_raw_df = self.createFluksoRawDF()
         self.cons_prod_df = self.getConsumptionProductionDF()
 
-    def getPowerDF(self):
-        return self.power_df
+    def getRawDF(self):
+        return self.raw_df
 
     def getIncompletePowerDF(self):
         # with UTC timezones
-        return self.incomplete_power_df
+        return self.incomplete_raw_df
 
     def getConsProdDF(self):
         return self.cons_prod_df
@@ -41,7 +41,7 @@ class Home:
         self.home_id = hid
 
     def getNbFluksoSensors(self):
-        return len(self.power_df.columns)
+        return len(self.raw_df.columns)
 
     def getSince(self):
         return self.since
@@ -53,7 +53,7 @@ class Home:
         return self.to_timing
 
     def getColumnsTotal(self):
-        return self.power_df.sum(axis=0, numeric_only=True)
+        return self.raw_df.sum(axis=0, numeric_only=True)
 
     def getFluksoNames(self):
         """
@@ -72,7 +72,7 @@ class Home:
         fluksos_df = pd.DataFrame()
         flukso_names = self.getFluksoNames()
         for fid, phases in flukso_names.items():
-            fluksos_df["{}:{}".format(self.home_id, fid)] = self.power_df.loc[:, phases].sum(axis=1)
+            fluksos_df["{}:{}".format(self.home_id, fid)] = self.raw_df.loc[:, phases].sum(axis=1)
             j = 1
 
         return fluksos_df
@@ -110,7 +110,7 @@ class Home:
         return data_dfs
         
 
-    def createFluksoPowerDF(self):
+    def createFluksoRawDF(self):
         """
         create a dataframe where the colums are the phases of the Flukso and the rows are the
         data : 1 row = 1 timestamp = 1 power value
@@ -127,18 +127,18 @@ class Home:
         energy_df.index = [tps for tps in local_timestamps]
         print("nb timestamps : ", len(energy_df.index))
 
-        incomplete_power_df = energy_df[energy_df.isna().any(axis=1)]  # with CET timezones
+        incomplete_raw_df = energy_df[energy_df.isna().any(axis=1)]  # with CET timezones
         print("nb of nan: ", energy_df.isna().sum().sum()) # count nb of nan in the entire df
 
         energy_df.fillna(0, inplace=True)
         
-        power_df = energy2power(energy_df)  # cumulative energy to power conversion
+        raw_df = energy2power(energy_df)  # cumulative energy to power conversion
         del energy_df
 
-        power_df.fillna(0, inplace=True)
-        power_df = power_df.round(1)  # round with 2 decimals
+        raw_df.fillna(0, inplace=True)
+        raw_df = raw_df.round(1)  # round with 2 decimals
 
-        return power_df, incomplete_power_df
+        return raw_df, incomplete_raw_df
 
     def getConsumptionProductionDF(self):
         """ 
@@ -146,8 +146,8 @@ class Home:
         P_net = P_prod + P_cons
         cons_prod_df : timestamp, P_cons, P_prod, P_tot
         """
-        cons_prod_df = pd.DataFrame([[0, 0, 0] for _ in range(len(self.power_df))],
-                                    self.power_df.index,
+        cons_prod_df = pd.DataFrame([[0, 0, 0] for _ in range(len(self.raw_df))],
+                                    self.raw_df.index,
                                     ["P_cons", "P_prod", "P_tot"])
 
         for i, phase in enumerate(self.sensors_info.index):
@@ -156,9 +156,9 @@ class Home:
             p = self.sensors_info.loc[phase]["pro"]
             n = self.sensors_info.loc[phase]["net"]
 
-            # cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + c * self.power_df[fluksoid_phase]
-            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * self.power_df[fluksoid_phase]
-            cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * self.power_df[fluksoid_phase]
+            # cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + c * self.raw_df[fluksoid_phase]
+            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * self.raw_df[fluksoid_phase]
+            cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * self.raw_df[fluksoid_phase]
 
         cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
 
@@ -174,13 +174,13 @@ class Home:
 
         return new_col_names
 
-    def appendFluksoData(self, power_df, home_id):
-        # print(len(self.power_df), len(power_df))
+    def appendFluksoData(self, raw_df, home_id):
+        # print(len(self.raw_df), len(raw_df))
 
-        if not self.home_id in self.power_df.columns[0]:
-            self.power_df = self.power_df.rename(self.getColNamesWithID(self.power_df, self.home_id), axis=1)
-        power_df = power_df.rename(self.getColNamesWithID(power_df, home_id), axis=1)
-        self.power_df = self.power_df.join(power_df)
+        if not self.home_id in self.raw_df.columns[0]:
+            self.raw_df = self.raw_df.rename(self.getColNamesWithID(self.raw_df, self.home_id), axis=1)
+        raw_df = raw_df.rename(self.getColNamesWithID(raw_df, home_id), axis=1)
+        self.raw_df = self.raw_df.join(raw_df)
 
     def addConsProd(self, cons_prod_df):
         self.cons_prod_df = self.cons_prod_df.add(cons_prod_df, fill_value=0)
