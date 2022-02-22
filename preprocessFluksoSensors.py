@@ -20,11 +20,11 @@ def getFluksosDic(installation_ids_df):
     for i in range(len(installation_ids_df)):
         FlmId = installation_ids_df["FlmId"][i]
         installation_id = installation_ids_df["InstallationId"][i]
-        print(FlmId, installation_id)
+        # print(FlmId, installation_id)
 
         fluksos[FlmId] = installation_id
 
-    print(fluksos)
+    # print(fluksos)
     return fluksos
 
 
@@ -73,7 +73,7 @@ def getCompactSensorDF():
     installation_ids_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Flukso")
     fluksos = getFluksosDic(installation_ids_df)  # {flukso_id : install_id}
     installation_ids_col = getInstallationsIds(sensors_df["FlmId"], fluksos)
-    print(installation_ids_col)
+    # print(installation_ids_col)
     compact_df["home_ID"] = installation_ids_col
 
     # remove unused fluksos (those without active installations)
@@ -311,9 +311,9 @@ def main():
 
     # > create cassandra tables 
     # createInstallationsTable(compact_df, "raw_home")
-    createRawFluksoTable("raw")
-    createPowerTable("power")
-    createPowerTable("groups_power")
+    # createRawFluksoTable("raw")
+    # createPowerTable("power")
+    # createPowerTable("groups_power")
     # createRawMissingTable("raw_missing")
 
     # > save home ids to json
