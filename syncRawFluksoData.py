@@ -61,20 +61,22 @@ def getLastRegisteredTimestamp(session, ids):
 		if len(ts_df) > 0:
 			return ts_df
 
-	return ts_df 
+	return ts_df
 
 
 def getDefaultTiming(mode, start_timing, cassandra_session, ids):
 	""" 
 	If automatic mode : we find the last registered timestamp in raw table
 	If manual mode : the default timing is the specified start_timing
+
+	if last_timestamp comes from raw table, it is a tz-naive Timestamp CET time
+	=> convert it to an aware UTC timezone
 	"""
 	if mode == "automatic":
 		# get last registered timestamp in raw table
 		last_timestamp = getLastRegisteredTimestamp(cassandra_session, ids)
-		print("LAST TIMESTAMP : ", last_timestamp)
 		if not last_timestamp.empty:  # != None
-			return last_timestamp
+			return last_timestamp.iloc[0]['ts'].tz_localize("CET").tz_convert("UTC")
 		else:
 			return start_timing
 	
@@ -104,7 +106,6 @@ def getMissingRaw(session, ids, table_name, default_timing, now):
 			if len(sensor_df) > 0:
 				first_ts = sensor_df.iloc[0]["ts"]  # we get a local timestamp (CET)
 				# if 'first_ts' is older (in the past) than the current first_ts
-				# if (first_ts-homes_missing[home_id]["first_ts"])/np.timedelta64(1,'s') < 0:
 				if isEarlier(first_ts, homes_missing[home_id]["first_ts"]):
 					homes_missing[home_id]["first_ts"] = first_ts
 
@@ -341,7 +342,7 @@ def main():
 	# =========================================================
 
 	# STEP 4 : save raw flukso data in cassandra
-	saveRawToCassandra(homes, homes_missing, "raw")
+	# saveRawToCassandra(homes, homes_missing, "raw")
 
 	# STEP 5 : save missing raw data in cassandra
 	# saveIncompleteRows(to_timing, homes, "raw_missing")
