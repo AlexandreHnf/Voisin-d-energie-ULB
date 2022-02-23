@@ -161,11 +161,15 @@ def getSpecificSerie(value, since_timing, to_timing):
 	return values_series
 
 
-def energy2power(energy_df):
+def energy2power(energy_df, first_ts):
 	"""
 	from cumulative energy to power (Watt)
 	"""
 	power_df = energy_df.diff() * 1000
+	power_df.drop(first_ts, inplace=True)  # drop first row because no data after conversion
 	power_df.fillna(0, inplace=True)
+
 	power_df = power_df.resample(str(FREQ[0]) + FREQ[1]).mean()
+
+	# print(power_df.head(3))
 	return power_df

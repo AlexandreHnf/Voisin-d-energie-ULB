@@ -99,13 +99,12 @@ class Home:
         """
         data_dfs = []
 
-        zer = getSpecificSerie(0, self.since_timing, self.to_timing)
-        # print("first ts zeroSeries: ", zer.index[0])
+        filler = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
 
         for sensor in self.sensors:
             data_dfs.append(sensor.getSerie())
 
-        data_dfs.append(zer)
+        data_dfs.append(filler)
 
         return data_dfs
         
@@ -132,7 +131,7 @@ class Home:
 
         energy_df.fillna(0, inplace=True)
         
-        raw_df = energy2power(energy_df)  # cumulative energy to power conversion
+        raw_df = energy2power(energy_df, local_timestamps[0])  # cumulative energy to power conversion
         del energy_df
 
         raw_df.fillna(0, inplace=True)

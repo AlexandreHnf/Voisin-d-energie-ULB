@@ -73,7 +73,7 @@ def getDefaultTiming(mode, start_timing, cassandra_session, ids):
 		# get last registered timestamp in raw table
 		last_timestamp = getLastRegisteredTimestamp(cassandra_session, ids)
 		print("LAST TIMESTAMP : ", last_timestamp)
-		if last_timestamp:  # != None
+		if not last_timestamp.empty:  # != None
 			return last_timestamp
 		else:
 			return start_timing
@@ -344,13 +344,13 @@ def main():
 	saveRawToCassandra(homes, homes_missing, "raw")
 
 	# STEP 5 : save missing raw data in cassandra
-	saveIncompleteRows(to_timing, homes, "raw_missing")
+	# saveIncompleteRows(to_timing, homes, "raw_missing")
 
 	# STEP 6 : save power flukso data in cassandra
-	cp.savePowerDataToCassandra(homes, "power")
+	# cp.savePowerDataToCassandra(homes, "power")
 	
 	# STEP 7 : save groups of power flukso data in cassandra
-	cp.savePowerDataToCassandra(grouped_homes, "groups_power")
+	# cp.savePowerDataToCassandra(grouped_homes, "groups_power")
 
 	# =========================================================
 
