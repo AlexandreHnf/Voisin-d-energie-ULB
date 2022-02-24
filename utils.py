@@ -58,7 +58,7 @@ def getTiming(t, now):
 			timing = pd.Timestamp(year=int(e[0]), month=int(e[1]), day=int(e[2]),
 								  hour=int(e[3]), minute=int(e[4]), second=int(e[5]), 
 								  tz="CET").tz_convert("UTC")
-		else:
+		else:  # since x min, x hours, x days...
 			print("time delta : ", pd.Timedelta(t))
 			timing = now - pd.Timedelta(t)
 	else:
@@ -165,11 +165,11 @@ def energy2power(energy_df, first_ts):
 	"""
 	from cumulative energy to power (Watt)
 	"""
+	# print(energy_df.head(10))
 	power_df = energy_df.diff() * 1000
 	power_df.drop(first_ts, inplace=True)  # drop first row because no data after conversion
 	power_df.fillna(0, inplace=True)
-
+	
 	power_df = power_df.resample(str(FREQ[0]) + FREQ[1]).mean()
 
-	# print(power_df.head(3))
 	return power_df

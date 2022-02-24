@@ -188,7 +188,7 @@ def saveIncompleteRows(to_timing, homes, table_name):
 	Save raw missing data to Cassandra cluster
 	-> incomplete rows (with null values)
 	"""
-	print("saving in Cassandra...")
+	print("saving in Cassandra...   => table : {}".format(table_name))
 	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	ptc.deleteRows(session, CASSANDRA_KEYSPACE, table_name)  # truncate existing rows
@@ -197,7 +197,7 @@ def saveIncompleteRows(to_timing, homes, table_name):
 
 	col_names = ["sensor_id", "ts"]
 	for hid, home in homes.items():
-		print(hid)
+		print(hid, end=" ")
 		inc_power_df = home.getIncompletePowerDF()
 		sensors_ids = inc_power_df.columns
 
@@ -231,11 +231,11 @@ def saveRawToCassandra(homes, missing, table_name):
 	Save raw flukso flukso data to Cassandra table
 	Save per sensor : 1 row = 1 sensor + 1 timestamp + 1 power value
 	"""
-	print("saving in Cassandra...")
+	print("saving in Cassandra...   => table : {}".format(table_name))
 	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	for hid, home in homes.items():
-		print(hid)
+		print(hid, end=" ")
 		power_df = home.getRawDF()
 
 		col_names = ["sensor_id", "day", "ts", "power"]
@@ -251,7 +251,8 @@ def saveRawToCassandra(homes, missing, table_name):
 				# if before last timestamp of the sensor & missing data OR after last timestamp (new data)
 				if (is_earlier and miss) or (not is_earlier):
 					# print("insert ! ")
-					values = [sid, day, ts, row[i]]
+					power = row[i] if row[i] >= 0 else 0  # avoid unexpected negative values
+					values = [sid, day, ts, power]
 					ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 
 	print("Successfully Saved raw data in Cassandra : table {}".format(table_name))
@@ -302,8 +303,8 @@ def main():
 	since = args.since
 	to = args.to
 
-	now = pd.Timestamp.now(tz="UTC")
-	now_local = pd.Timestamp.now()  # default tz = CET, unaware timestamp
+	now = pd.Timestamp.now(tz="UTC").replace(microsecond=0) # remove microseconds for simplicity
+	now_local = pd.Timestamp.now().replace(microsecond=0)  # default tz = CET, unaware timestamp
 	start_timing = setInitSeconds(getTiming(since, now))  	# UTC
 	to_timing = setInitSeconds(getTiming(to, now)) 			# UTC
 
@@ -321,6 +322,7 @@ def main():
 	print("Mode : {}".format(mode))
 	print("since : {} => {}".format(since, start_timing))
 	print("to    : {} => {}".format(to, to_timing))
+	print("now : ", now_local)
 	print("Number of Homes : ", nb_homes)
 	print("Number of Fluksos : ", len(sensors))
 	print("groups : ", groups)
@@ -345,10 +347,10 @@ def main():
 	# =========================================================
 
 	# STEP 4 : save raw flukso data in cassandra
-	# saveRawToCassandra(homes, homes_missing, "raw")
+	saveRawToCassandra(homes, homes_missing, "raw")
 
 	# STEP 5 : save missing raw data in cassandra
-	# saveIncompleteRows(to_timing, homes, "raw_missing")
+	saveIncompleteRows(to_timing, homes, "raw_missing")
 
 	# STEP 6 : save power flukso data in cassandra
 	# cp.savePowerDataToCassandra(homes, "power")
@@ -359,7 +361,7 @@ def main():
 	# =========================================================
 
 	end = time.time() - begin 
-	print("> Chunk of data processing time : {}.".format(timedelta(seconds=end)))
+	print("> Processing time : {}.".format(timedelta(seconds=end)))
 
 if __name__ == "__main__":
 	main()

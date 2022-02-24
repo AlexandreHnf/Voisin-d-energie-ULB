@@ -101,6 +101,9 @@ class Home:
 
         filler = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
 
+        if self.home_id == "CDB019":
+            print(filler)
+
         for sensor in self.sensors:
             data_dfs.append(sensor.getSerie())
 
@@ -128,6 +131,9 @@ class Home:
 
         incomplete_raw_df = energy_df[energy_df.isna().any(axis=1)]  # with CET timezones
         print("nb of nan: ", energy_df.isna().sum().sum()) # count nb of nan in the entire df
+
+        if self.home_id == "CDB019":
+            print(energy_df)
 
         energy_df.fillna(0, inplace=True)
         

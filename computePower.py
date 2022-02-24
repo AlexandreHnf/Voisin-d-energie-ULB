@@ -21,7 +21,7 @@ def savePowerDataToCassandra(homes, table_name):
 	- homes : Home objects 
 		=> contains cons_prod_df : timestamp, P_cons, P_prod, P_tot
 	"""
-	print("saving power data to Cassandra...")
+	print("saving in Cassandra...   => table : {}".format(table_name))
 	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	for hid, home in homes.items():
