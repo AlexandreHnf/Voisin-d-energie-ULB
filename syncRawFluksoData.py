@@ -261,6 +261,25 @@ def saveRawToCassandra(homes, missing, table_name):
 # ====================================================================================
 
 
+def saveFluksoDataToCsv(homes):
+    print("saving flukso data in csv...")
+    for home in homes:
+        # filepath = "output/fluksoData/{}.csv".format(home.getHomeID())
+        power_df = home.getRawDF()
+        cons_prod_df = home.getConsProdDF()
+        combined_df = power_df.join(cons_prod_df)
+
+        outname = home.getHomeID() + '.csv'
+        outdir = OUTPUT_FILE
+        if not os.path.exists(outdir):
+            os.mkdir(outdir)
+        filepath = os.path.join(outdir, outname)
+
+        combined_df.to_csv(filepath)
+
+    print("Successfully Saved flukso data in csv")
+
+
 def processArguments():
 	""" 
 	# 29-10-2021 from Midnight to midnight :
@@ -344,13 +363,16 @@ def main():
 	homes = generateHomes(session, sensors, since, start_timing, to_timing, home_ids, homes_missing, mode)
 	grouped_homes = generateGroupedHomes(homes, groups)
 
+	saveFluksoDataToCsv(homes.values())
+	saveFluksoDataToCsv(grouped_homes.values())
+
 	# =========================================================
 
 	# STEP 4 : save raw flukso data in cassandra
-	saveRawToCassandra(homes, homes_missing, "raw")
+	# saveRawToCassandra(homes, homes_missing, "raw")
 
 	# STEP 5 : save missing raw data in cassandra
-	saveIncompleteRows(to_timing, homes, "raw_missing")
+	# saveIncompleteRows(to_timing, homes, "raw_missing")
 
 	# STEP 6 : save power flukso data in cassandra
 	# cp.savePowerDataToCassandra(homes, "power")
