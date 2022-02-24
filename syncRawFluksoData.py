@@ -23,6 +23,8 @@ import copy
 import pandas as pd
 import numpy as np
 import tmpo
+import time
+from datetime import timedelta
 import matplotlib.pyplot as plt
 
 # Hide warnings :
@@ -292,6 +294,7 @@ def processArguments():
 
 
 def main():
+	begin = time.time()
 	argparser = processArguments()
 
 	args = argparser.parse_args()
@@ -355,6 +358,8 @@ def main():
 
 	# =========================================================
 
+	end = time.time() - begin 
+	print("> Chunk of data processing time : {}.".format(timedelta(seconds=end)))
 
 if __name__ == "__main__":
 	main()
