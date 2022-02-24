@@ -99,15 +99,11 @@ class Home:
         """
         data_dfs = []
 
-        filler = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
-
-        # if self.home_id == "CDB019":
-        #     print(filler)
-
         for sensor in self.sensors:
             data_dfs.append(sensor.getSerie())
 
-        data_dfs.append(filler)
+        # filler = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
+        # data_dfs.append(filler)
 
         return data_dfs
         
@@ -119,28 +115,32 @@ class Home:
         """
         data_dfs = self.createSeries()  # list of series, one per flukso sensor
         energy_df = pd.concat(data_dfs, axis=1)  # combined series, 1 col = 1 sensor
-        del data_dfs
-        energy_df.columns = self.columns_names + ["fill"]
-        energy_df = energy_df.drop(['fill'], axis=1) # remove the filler col
-
-        energy_df.index = pd.DatetimeIndex(energy_df.index, name="time")
-        # convert all timestamps to local timezone (CET)
-        local_timestamps = getLocalTimestampsIndex(energy_df)
-        energy_df.index = [tps for tps in local_timestamps]
-        print("nb timestamps : ", len(energy_df.index))
-
-        incomplete_raw_df = energy_df[energy_df.isna().any(axis=1)]  # with CET timezones
-        print("nb of nan: ", energy_df.isna().sum().sum()) # count nb of nan in the entire df
-
-        # if self.home_id == "CDB019":
-        #     print(energy_df)
-
-        energy_df.fillna(0, inplace=True)
         
-        raw_df = energy2power(energy_df, local_timestamps[0])  # cumulative energy to power conversion
-        del energy_df
+        power_df = energy2power(energy_df) # cumulative energy to power conversion
+        filler = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
+        raw_df = pd.concat([power_df, filler], axis=1)
+        del energy_df; del data_dfs; del power_df; del filler
+        
+        raw_df.columns = self.columns_names + ["fill"]
+        raw_df = raw_df.drop(['fill'], axis=1) # remove the filler col
+
+        # timestamps column
+        raw_df.index = pd.DatetimeIndex(raw_df.index, name="time")
+        # convert all timestamps to local timezone (CET)
+        local_timestamps = getLocalTimestampsIndex(raw_df)
+        raw_df.index = [tps for tps in local_timestamps]
+        print("nb timestamps : ", len(raw_df.index))
+
+        incomplete_raw_df = raw_df[raw_df.isna().any(axis=1)]  # with CET timezones
+        print("nb of nan: ", raw_df.isna().sum().sum()) # count nb of nan in the entire df
+
+        if self.home_id == "ECHASC":
+            print(raw_df.head(20))
 
         raw_df.fillna(0, inplace=True)
+        
+        raw_df.drop(local_timestamps[0], inplace=True)  # drop first row because no data after conversion
+
         raw_df = raw_df.round(1)  # round with 2 decimals
 
         return raw_df, incomplete_raw_df
