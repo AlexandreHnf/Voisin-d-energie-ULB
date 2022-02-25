@@ -53,6 +53,19 @@ def insert(session, keyspace, table, columns, values):
     session.execute(query)
 
 
+def batch_insert(session, inserts):
+	""" 
+	Gets a string containing a series of Insert queries
+	and use batch to execute them all at once
+	condition : same partition keys for each insert query
+	"""
+	query = "BEGIN BATCH " 
+	query += inserts
+	query += "APPLY BATCH;"
+
+	session.execute(query)
+
+
 def getCompoundKeyStr(primary_keys):
     return "(" + "".join(primary_keys) + ")"
 
