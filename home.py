@@ -145,6 +145,7 @@ class Home:
 
         return raw_df, incomplete_raw_df
 
+
     def getConsumptionProductionDF(self):
         """ 
         P_cons = P_tot - P_prod
