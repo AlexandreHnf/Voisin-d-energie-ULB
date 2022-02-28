@@ -127,6 +127,28 @@ def writeGroupsFromFluksoIDs():
             gf.write(group[:-1] + "\n")  # -1 to remove the last ","
 
 
+def writeGroupsConfigCassandra(cassandra_session, table_name):
+    """ 
+    write groups config data in cassandra table 
+    1 row = all the installations ids of a group (home ids)
+    """
+    groups_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Groups")
+    nb_groups = len(set(groups_df["GroupId"]))
+
+    with open(GROUPS_FILE, "w") as gf:
+        cols = ["group_id", "homes"]
+        for i in range(nb_groups):
+            home_ids = []
+            grp_df = groups_df.loc[groups_df["GroupId"] == i+1]  # get group i
+            for install_id in grp_df["InstalationId"]:
+                if install_id not in home_ids:
+                    home_ids.append(install_id)
+
+            ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, [str(i+1), home_ids])
+
+    print("Successfully inserted groups stats in table : {}".format(table_name))
+
+
 def writeGroupsFromInstallationsIds():
     """
     get the list of installations IDs from the excel file and save them into a simple
@@ -208,7 +230,8 @@ def createTableSensorConfig(cassandra_session, table_name):
     """
     cols = ["home_id TEXT", "phase TEXT", "flukso_id TEXT", "sensor_id TEXT", "sensor_token TEXT", 
             "net FLOAT", "con FLOAT", "pro FLOAT"]
-    ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, ["home_id"], [], {})
+    ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, 
+        ["home_id, sensor_id"], [], {})
 
 
 def createTableGroupsConfig(cassandra_session, table_name):
@@ -216,8 +239,8 @@ def createTableGroupsConfig(cassandra_session, table_name):
     create a table with groups config
     group_id, list of home ids
     """
-    cols = ["home_id TEXT", "homes LIST<TEXT>"]
-    ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, ["home_id"], [], {})
+    cols = ["group_id TEXT", "homes LIST<TEXT>"]
+    ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, ["group_id"], [], {})
 
 
 def createTablePerInstallation(cassandra_session, compact_df):
@@ -328,11 +351,13 @@ def main():
     # > get the useful flukso sensors data in a compact csv
     compact_df = getCompactSensorDF()
     # saveToCsv(compact_df)
-    writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
 
     # > create config tables
     # createTableSensorConfig(cassandra_session, "sensors_config")
-    # createTableGroupsConfig(cassandra_session, "groups_config")
+    createTableGroupsConfig(cassandra_session, "groups_config")
+
+    # writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
+    writeGroupsConfigCassandra(cassandra_session, "groups_config")
 
     # > setup the groups of flukso in a txt file 
     # writeGroupsFromFluksoIDs()
