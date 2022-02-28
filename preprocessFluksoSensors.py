@@ -190,6 +190,15 @@ def correctPhaseSigns(sensors_df=None):
 # ==========================================================================
 
 
+def createTableSensorConfig(table_name):
+    """ 
+    compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
+    """
+    cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+    cols = ["home_id TEXT", "phase TEXT", "flukso_id TEXT", "sensor_token TEXT", "net FLOAT", "con FLOAT", "pro FLOAT"]
+    ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, ["home_id"], [], {})
+
+
 def createTablePerInstallation(compact_df):
     """ 
     compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
@@ -301,6 +310,9 @@ def main():
     # > get the useful flukso sensors data in a compact csv
     compact_df = getCompactSensorDF()
     # saveToCsv(compact_df)
+
+    # > create config tables
+    createTableSensorConfig("sensors_config")
 
     # > setup the groups of flukso in a txt file 
     # writeGroupsFromFluksoIDs()

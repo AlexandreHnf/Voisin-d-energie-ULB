@@ -15,26 +15,28 @@ from datetime import date, timedelta
 # called by syncRawFluksoData.py just after writing raw data to cassandra
 # ====================================================================================
 
-def savePowerDataToCassandra(homes, table_name):
+def savePowerDataToCassandra(cassandra_session, homes, table_name):
 	""" 
 	save power flukso data to cassandra : P_cons, P_prod, P_tot
 	- homes : Home objects 
 		=> contains cons_prod_df : timestamp, P_cons, P_prod, P_tot
 	"""
 	print("saving in Cassandra...   => table : {}".format(table_name))
-	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	for hid, home in homes.items():
 		print(hid)
 		cons_prod_df = home.getConsProdDF()
 
 		col_names = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot"]
+		insert_queries = ""
 		for timestamp, row in cons_prod_df.iterrows():
 			day = str(timestamp.date())
 			# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
 			ts = str(timestamp)[:19] + "Z"
 			values = [hid, day, ts] + list(row)
-			ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
+			insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
+
+		ptc.batch_insert(cassandra_session, insert_queries)
 	
 	print("Successfully saved power data in cassandra : table {}".format(table_name))
 

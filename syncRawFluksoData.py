@@ -195,7 +195,7 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 
 	col_names = ["sensor_id", "ts"]
 	for hid, home in homes.items():
-		print(hid, end=" ")
+		print(hid)
 		inc_power_df = home.getIncompletePowerDF()
 		sensors_ids = inc_power_df.columns
 
@@ -209,9 +209,7 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 					if np.isnan(row[i]):
 						values = [sensor_id, ts]
 						# ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
-						insert_queries += "INSERT INTO {}.{} ({}) VALUES ({});".format(
-							CASSANDRA_KEYSPACE, table_name, ",".join(col_names), ",".join(ptc.getRightFormat(values))
-						)
+						insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
 		ptc.batch_insert(cassandra_session, insert_queries)
 
 	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
@@ -267,7 +265,7 @@ def saveRawToCassandra2(cassandra_session, homes, missing, table_name):
 	print("saving in Cassandra...   => table : {}".format(table_name))
 
 	for hid, home in homes.items():
-		print(hid, end=" ")
+		print(hid)
 		power_df = home.getRawDF()
 		power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1) # add date column
 		by_day_df = power_df.groupby("date")  # group by date
@@ -285,9 +283,7 @@ def saveRawToCassandra2(cassandra_session, homes, missing, table_name):
 					if (is_earlier and miss) or (not is_earlier):
 						power = group[sid][i] if group[sid][i] >= 0 else 0 # avoid unexpected negative values
 						values = [sid, date, ts, power]
-						insert_queries += "INSERT INTO {}.{} ({}) VALUES ({});".format(
-							CASSANDRA_KEYSPACE, table_name, ",".join(col_names), ",".join(ptc.getRightFormat(values))
-						)
+						insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
 
 				ptc.batch_insert(cassandra_session, insert_queries)
 
@@ -411,10 +407,10 @@ def main():
 	saveIncompleteRows(cassandra_session, to_timing, homes, "raw_missing")
 
 	# STEP 6 : save power flukso data in cassandra
-	# cp.savePowerDataToCassandra(homes, "power")
+	cp.savePowerDataToCassandra(cassandra_session, homes, "power")
 	
 	# STEP 7 : save groups of power flukso data in cassandra
-	# cp.savePowerDataToCassandra(grouped_homes, "groups_power")
+	cp.savePowerDataToCassandra(cassandra_session, grouped_homes, "groups_power")
 
 	# =========================================================
 

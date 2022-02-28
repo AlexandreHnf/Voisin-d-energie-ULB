@@ -53,6 +53,14 @@ def insert(session, keyspace, table, columns, values):
     session.execute(query)
 
 
+def getInsertQuery(keyspace, table, columns, values):
+    """ 
+    Get the prepared statement for an insert query
+    """
+    return "INSERT INTO {}.{} ({}) VALUES ({});" \
+                    .format(keyspace, table, ",".join(columns), ",".join(getRightFormat(values)))
+
+
 def batch_insert(session, inserts):
 	""" 
 	Gets a string containing a series of Insert queries
@@ -104,7 +112,7 @@ def createTable(session, keyspace, table_name, columns, primary_keys, clustering
                     getClusteringKeyStr(clustering_keys),
                     getOrdering(ordering))
 
-    # print("===>  create table query : ", query)
+    print("===>  create table query : ", query)
     session.execute(query) 
     print("successfully created table " + table_name)
 
