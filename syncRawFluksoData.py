@@ -184,7 +184,7 @@ def getFluksoData(sensor_file, path=""):
 
 def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 	"""
-	Save raw missing data to Cassandra cluster
+	Save raw missing data to Cassandra table
 	-> incomplete rows (with null values)
 	"""
 	print("saving in Cassandra...   => table : {}".format(table_name))
@@ -199,16 +199,20 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 		inc_power_df = home.getIncompletePowerDF()
 		sensors_ids = inc_power_df.columns
 
+		insert_queries = ""
 		for timestamp, row in inc_power_df.iterrows():  # timestamp = CET timezone (local)
 			# if valid timestamp
 			if (to_timing - timestamp).days < LIMIT_TIMING_RAW: # 2 days max
-				day = str(timestamp.date())
 				# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
 				ts = str(timestamp)[:19] + "Z"
 				for i, sensor_id in enumerate(sensors_ids):
 					if np.isnan(row[i]):
 						values = [sensor_id, ts]
-						ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
+						# ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
+						insert_queries += "INSERT INTO {}.{} ({}) VALUES ({});".format(
+							CASSANDRA_KEYSPACE, table_name, ",".join(col_names), ",".join(ptc.getRightFormat(values))
+						)
+		ptc.batch_insert(cassandra_session, insert_queries)
 
 	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
 
