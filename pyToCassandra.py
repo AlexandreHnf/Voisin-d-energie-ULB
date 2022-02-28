@@ -57,7 +57,7 @@ def batch_insert(session, inserts):
 	""" 
 	Gets a string containing a series of Insert queries
 	and use batch to execute them all at once
-	condition : same partition keys for each insert query
+	condition : same partition keys for each insert query for higher performance
 	"""
 	query = "BEGIN BATCH " 
 	query += inserts
