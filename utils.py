@@ -8,6 +8,13 @@ from datetime import date, timedelta, datetime
 import pyToCassandra as ptc
 
 
+def getProgDir():
+	import __main__
+	main_path = os.path.abspath(__main__.__file__)
+	main_path = os.path.dirname(main_path) + os.sep
+	return main_path
+
+
 def read_sensor_info(path, sensor_file):
 	"""
 	read csv file of sensors data
@@ -17,7 +24,7 @@ def read_sensor_info(path, sensor_file):
 	return sensors
 
 
-def getSensorsConfig(cassandra_session, table_name):
+def getSensorsConfigCassandra(cassandra_session, table_name):
 	""" 
 	Get flukso sensors configurations : home ids, sensors ids, tokens, 
 	indices for each phase
@@ -26,9 +33,7 @@ def getSensorsConfig(cassandra_session, table_name):
 	sensors_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, ["*"], 
 				"", "allow filtering", "")
 
-	by_home_id = sensors_df.set_index("sensor_id")
-
-	return by_home_id
+	return sensors_df.set_index("sensor_id")
 
 
 def getSensorsIds(sensors):
@@ -46,6 +51,36 @@ def getSensorsIds(sensors):
 			ids[home_ids[i]].append(sensor_ids[i])
 	
 	return ids		
+
+
+def getFLuksoGroups():
+    """
+    returns Groups with format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
+    """
+    groups = []
+    with open(GROUPS_FILE) as f:
+        lines = f.readlines()
+        for line in lines:
+            groups.append(line.strip().split(","))
+
+    return groups
+
+
+def getGroupsConfigCassandra(cassandra_session, table_name):
+	""" 
+	get groups config from cassandra table
+	with format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
+	"""
+	groups_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, ["*"], 
+				"", "allow filtering", "")
+	groups_df.set_index("group_id", inplace=True)
+	by_gid = groups_df.groupby("group_id")
+
+	groups = []
+	for gid, group in by_gid:
+		groups.append(list(group["homes"][0]))
+
+	return groups
 
 
 def setInitSeconds(ts):
@@ -119,26 +154,6 @@ def getLastXDates():
 		dates.append(day.strftime('%Y-%m-%d'))
 
 	return dates
-
-
-def getProgDir():
-	import __main__
-	main_path = os.path.abspath(__main__.__file__)
-	main_path = os.path.dirname(main_path) + os.sep
-	return main_path
-
-
-def getFLuksoGroups():
-    """
-    returns Groups with format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
-    """
-    groups = []
-    with open(GROUPS_FILE) as f:
-        lines = f.readlines()
-        for line in lines:
-            groups.append(line.strip().split(","))
-
-    return groups
 
 
 def getLocalTimestampsIndex(df):

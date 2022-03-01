@@ -354,10 +354,10 @@ def main():
 
     # > create config tables
     # createTableSensorConfig(cassandra_session, "sensors_config")
-    createTableGroupsConfig(cassandra_session, "groups_config")
+    # createTableGroupsConfig(cassandra_session, "groups_config")
 
     # writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
-    writeGroupsConfigCassandra(cassandra_session, "groups_config")
+    # writeGroupsConfigCassandra(cassandra_session, "groups_config")
 
     # > setup the groups of flukso in a txt file 
     # writeGroupsFromFluksoIDs()

@@ -377,25 +377,24 @@ def main():
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 	# sensors, tmpo_session = getFluksoData(UPDATED_SENSORS_FILE)
-	sensors_config = getSensorsConfig(cassandra_session, "sensors_config")
-	print(sensors_config.head(5))
+	sensors_config = getSensorsConfigCassandra(cassandra_session, "sensors_config")
 	tmpo_session = getTmpoSession(sensors_config)
 	ids = getSensorsIds(sensors_config)
 
 	home_ids = list(sensors_config.groupby("home_id").indices)
 	nb_homes = len(home_ids)
+
+	groups_config = getGroupsConfigCassandra(cassandra_session, "groups_config")
 	
-	"""
-	groups = getFLuksoGroups()
 	
 	print("Mode : {}".format(mode))
 	print("since : {} => {}".format(since, start_timing))
 	print("to    : {} => {}".format(to, to_timing))
 	print("now : ", now_local)
 	print("Number of Homes : ", nb_homes)
-	print("Number of Fluksos : ", len(sensors))
-	print("groups : ", groups)
-
+	print("Number of Fluksos : ", len(sensors_config))
+	print("groups : ", groups_config)
+	"""
 	# =========================================================
 
 	# STEP 1 : get last registered timestamp in raw table
