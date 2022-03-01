@@ -5,6 +5,8 @@ import math
 from constants import *
 from datetime import date, timedelta, datetime
 
+import pyToCassandra as ptc
+
 
 def read_sensor_info(path, sensor_file):
 	"""
@@ -15,13 +17,27 @@ def read_sensor_info(path, sensor_file):
 	return sensors
 
 
+def getSensorsConfig(cassandra_session, table_name):
+	""" 
+	Get flukso sensors configurations : home ids, sensors ids, tokens, 
+	indices for each phase
+	"""
+
+	sensors_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, ["*"], 
+				"", "allow filtering", "")
+
+	by_home_id = sensors_df.set_index("sensor_id")
+
+	return by_home_id
+
+
 def getSensorsIds(sensors):
 	""" 
 	sensors of the form : home_id, phase, flukso_id, sensor_id, token, net, con, pro
 	return {home_id = [sensor_id1, sensor_id2, ...]}
 	"""
-	home_ids = sensors.home_ID
-	sensor_ids = sensors.sensor_id
+	home_ids = sensors.home_id
+	sensor_ids = sensors.index
 	ids = {}
 	for i in range(len(home_ids)):
 		if home_ids[i] not in ids:

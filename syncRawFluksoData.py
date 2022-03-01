@@ -125,19 +125,19 @@ def getMissingRaw(session, ids, table_name, default_timing, now):
 # ====================================================================================
 
 
-def generateHomes(tmpo_session, sensors_info, since, since_timing, to_timing, home_ids, homes_missing, mode):
+def generateHomes(tmpo_session, sensors_config, since, since_timing, to_timing, home_ids, homes_missing, mode):
 	homes = {}
 
 	for hid in home_ids:
 		print("========================= HOME {} =====================".format(hid))
-		home_sensors = sensors_info.loc[sensors_info["home_ID"] == hid]
+		home_sensors = sensors_config.loc[sensors_config["home_ID"] == hid]
 		sensors = [] # list of Sensor objects
 		if mode == "automatic":
 			since_timing = homes_missing[hid]["first_ts"]
 		for i in range(len(home_sensors)):
 			sensors.append(Sensor(tmpo_session, home_sensors.flukso_id[i], home_sensors.sensor_id[i], 
 							since_timing, to_timing))
-		home = Home(sensors_info, since, since_timing, to_timing, hid, sensors)
+		home = Home(sensors_config, since, since_timing, to_timing, hid, sensors)
 		homes[hid] = home
 		# print(home.getRawDF().head(10))
 
@@ -161,9 +161,23 @@ def generateGroupedHomes(homes, groups):
 	return grouped_homes
 
 
+def getTmpoSession(sensors_config, path=""):
+	""" 
+	Get tmpo (via api) session with all the sensors in it
+	"""
+	if not path:
+		path = getProgDir()
+
+	tmpo_session = tmpo.Session(path)
+	for sid, row in sensors_config.iterrows():
+		tmpo_session.add(sid, row["sensor_token"])
+
+	tmpo_session.sync()
+
+
 def getFluksoData(sensor_file, path=""):
 	"""
-	get Flukso data (via API) 
+	get Flukso tmpo session (via API) + sensors info (IDs, ...)
 	"""
 	if not path:
 		path = getProgDir()
@@ -362,12 +376,16 @@ def main():
 	# =============================================================
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-	sensors, tmpo_session = getFluksoData(UPDATED_SENSORS_FILE)
-	ids = getSensorsIds(sensors)
+	# sensors, tmpo_session = getFluksoData(UPDATED_SENSORS_FILE)
+	sensors_config = getSensorsConfig(cassandra_session, "sensors_config")
+	print(sensors_config.head(5))
+	tmpo_session = getTmpoSession(sensors_config)
+	ids = getSensorsIds(sensors_config)
 
-	home_ids = set(sensors["home_ID"])
+	home_ids = list(sensors_config.groupby("home_id").indices)
 	nb_homes = len(home_ids)
-
+	
+	"""
 	groups = getFLuksoGroups()
 	
 	print("Mode : {}".format(mode))
@@ -413,6 +431,7 @@ def main():
 	cp.savePowerDataToCassandra(cassandra_session, grouped_homes, "groups_power")
 
 	# =========================================================
+	"""
 
 	end = time.time() - begin 
 	print("> Processing time : {}.".format(timedelta(seconds=end)))

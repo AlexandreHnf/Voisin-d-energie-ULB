@@ -135,9 +135,13 @@ def selectQuery(session, keyspace, table, columns, where_clause, allow_filtering
     columns = * or a list of columns
     SELECT <> FROM <> WHERE <> ... ALLOW FILTERING
     """
+
+    where = ""
+    if len(where_clause) > 0:
+        where = "WHERE"
     
-    query = "SELECT {} FROM {}.{} WHERE {} {} {};".format(
-        ",".join(columns), keyspace, table, where_clause, limit, allow_filtering
+    query = "SELECT {} FROM {}.{} {} {} {} {};".format(
+        ",".join(columns), keyspace, table, where, where_clause, limit, allow_filtering
     )
 
     # print("===> select query : ", query)
