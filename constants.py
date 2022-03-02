@@ -20,13 +20,22 @@ GIDS_FILE =                             "sensors/grp_ids.json"
 
 
 # sample frequency
-FREQ = [8, "S"]  # 8 sec.
-
-# cassandra keyspaces
-CASSANDRA_KEYSPACE = "flukso" 
+FREQ =                                  [8, "S"]  # 8 sec.
 
 # missing raw data time limit
-LIMIT_TIMING_RAW = 2  # days
+LIMIT_TIMING_RAW =                      2  # days
 
 # nb of days limit when getting the last timestamp of raw table
-LAST_TS_DAYS = 2  # days
+LAST_TS_DAYS =                          2  # days
+
+
+# cassandra keyspaces
+CASSANDRA_KEYSPACE =                    "flukso" 
+
+# cassandra tables names
+TBL_SENSORS_CONFIG =                    "sensors_config"
+TBL_GROUPS_CONFIG =                     "groups_config"
+TBL_RAW =                               "raw"
+TBL_RAW_MISSING =                       "raw_missing"
+TBL_POWER =                             "power"
+TBL_GROUPS_POWER =                      "groups_power"

@@ -13,8 +13,8 @@ import tmpo
 class Home:
 
     def __init__(self, sensors_info, since, since_timing, to_timing, home_id, sensors):
-        # self.sensors_info = sensors_info.loc[sensors_info["home_ID"] == home_id]
-        self.sensors_info = sensors_info
+        # self.sensors_config = sensors_info.loc[sensors_info["home_ID"] == home_id]
+        self.sensors_config = sensors_info
         self.sensors = sensors
         self.since = since
         self.since_timing = since_timing
@@ -61,12 +61,12 @@ class Home:
         ex : CDB007 :> {FL08000436: [Main, ...], FL08000437: [Phase L2, ...]}
         """
         flukso_names = {}
-        for i in range(len(self.sensors_info)):
-            phase = self.sensors_info.index[i]
-            if self.sensors_info.flukso_id[i] not in flukso_names:
-                flukso_names[self.sensors_info.flukso_id[i]] = [phase]
+        for i in range(len(self.sensors_config)):
+            phase = self.sensors_config.index[i]
+            if self.sensors_config.flukso_id[i] not in flukso_names:
+                flukso_names[self.sensors_config.flukso_id[i]] = [phase]
             else:
-                flukso_names[self.sensors_info.flukso_id[i]].append(phase)
+                flukso_names[self.sensors_config.flukso_id[i]].append(phase)
         return flukso_names
 
     def getAggregatedDataPerFlukso(self):
@@ -154,11 +154,11 @@ class Home:
                                     self.raw_df.index,
                                     ["P_cons", "P_prod", "P_tot"])
 
-        for i, sid in enumerate(self.sensors_info.index):
+        for i, sid in enumerate(self.sensors_config.index):
             # sid = self.columns_names[i]
-            # c = self.sensors_info.loc[sid]["con"]
-            p = self.sensors_info.loc[sid]["pro"]
-            n = self.sensors_info.loc[sid]["net"]
+            # c = self.sensors_config.loc[sid]["con"]
+            p = self.sensors_config.loc[sid]["pro"]
+            n = self.sensors_config.loc[sid]["net"]
 
             # cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + c * self.raw_df[sid]
             cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * self.raw_df[sid]

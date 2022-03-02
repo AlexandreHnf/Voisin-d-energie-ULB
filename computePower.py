@@ -24,7 +24,7 @@ def savePowerDataToCassandra(cassandra_session, homes, table_name):
 	print("saving in Cassandra...   => table : {}".format(table_name))
 
 	for hid, home in homes.items():
-		print(hid)
+		print(hid, end=" ")
 		cons_prod_df = home.getConsProdDF()
 
 		col_names = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot"]
@@ -49,6 +49,8 @@ def savePowerDataToCassandra(cassandra_session, homes, table_name):
 def getRawData(session, since, ids, table_name):
 	""" 
 	get raw flukso data from cassandra since a certain amount of time
+	return dictionary of the format : 
+		{hid: {sid1: df, sid2: df, ...}, ...}
 	"""
 	now = pd.Timestamp.now(tz="CET")
 	timing = setInitSeconds(getTiming(since, now))
@@ -73,26 +75,27 @@ def getRawData(session, since, ids, table_name):
 	return homes_rawdata
 
 
-def getConsumptionProductionDF(sensors, homes_rawdata, ids):
+def getConsumptionProductionDF(sensors_config, homes_rawdata, ids):
 	""" 
 	compute power data from raw data (coming from cassandra 'raw' table) : 
 	P_cons = P_tot - P_prod
 	P_net = P_prod + P_cons
 	"""
 	homes_stats = {}
-	for home_id in ids:
+	for hid, home_sensors in sensors_config.groupby("home_id"):
+	# for home_id in ids:
 		# print("================> ", home_id)
-		home_sensors = sensors.loc[sensors["home_ID"] == home_id]
-		first_sid = list(homes_rawdata[home_id].keys())[0]
-		cons_prod_df = homes_rawdata[home_id][first_sid][["sensor_id","day", "ts"]].copy()
+		# home_sensors = sensors.loc[sensors["home_ID"] == home_id]
+		first_sid = list(homes_rawdata[hid].keys())[0]
+		cons_prod_df = homes_rawdata[hid][first_sid][["sensor_id","day", "ts"]].copy()
 		cons_prod_df = cons_prod_df.rename(columns={"sensor_id": "home_id"})
-		cons_prod_df["home_id"] = home_id  # replace 1st sensor_id by home_id
+		cons_prod_df["home_id"] = hid  # replace 1st sensor_id by home_id
 		cons_prod_df["P_cons"] = 0
 		cons_prod_df["P_prod"] = 0
 		cons_prod_df["P_tot"] = 0
 
-		for sid in ids[home_id]:
-			sensor_df = homes_rawdata[home_id][sid]
+		for sid in ids[hid]:
+			sensor_df = homes_rawdata[hid][sid]
 			p = home_sensors.loc[home_sensors['sensor_id'] == sid, 'pro'].iloc[0]
 			n = home_sensors.loc[home_sensors['sensor_id'] == sid, 'net'].iloc[0]
 			# print("{} : p: {}, n: {}".format(sid, p, n))
@@ -104,7 +107,7 @@ def getConsumptionProductionDF(sensors, homes_rawdata, ids):
 
 		cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
 		# print(cons_prod_df.head(5))
-		homes_stats[home_id] = cons_prod_df
+		homes_stats[hid] = cons_prod_df
 
 	return homes_stats
 
@@ -187,30 +190,30 @@ def saveGroupsStatsToCassandra(session, groups_powers, table_name):
 # ====================================================================================
 
 def main():
-	session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-	sensors = read_sensor_info("", UPDATED_SENSORS_FILE)
-	home_ids = set(sensors.home_ID)
-	ids = getSensorsIds(sensors)
+	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+	# sensors = read_sensor_info("", UPDATED_SENSORS_FILE)
+	sensors_config = getSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
+	home_ids = list(sensors_config.groupby("home_id").indices)
+	ids = getSensorsIds(sensors_config)
 
 	# test raw data retrieval
-	since = "s2022-02-14-16-10-00"
+	since = "s2022-03-02-16-18-08"
 	# since = "3min"
-	homes_rawdata = getRawData(session, since, ids, "raw") 
+	homes_rawdata = getRawData(cassandra_session, since, ids, TBL_RAW) 
 
 	
 	print("==============================================")
 
 	# powers computations (p_cons, p_prod, p_tot)
-	homes_powers = getConsumptionProductionDF(sensors, homes_rawdata, ids)
+	homes_powers = getConsumptionProductionDF(sensors_config, homes_rawdata, ids)
 
-	groups = getFLuksoGroups()
+	groups_config = getGroupsConfigCassandra(cassandra_session, TBL_GROUPS_CONFIG)
 	# groups powers computations
-	groups_powers = getGroupsPowers(homes_powers, groups)
+	groups_powers = getGroupsPowers(homes_powers, groups_config)
 
-	"""
-	saveStatsToCassandra(session, homes_powers, "stats")
-	saveGroupsStatsToCassandra(session, groups_powers, "groups_stats")
-	"""	
+	saveStatsToCassandra(cassandra_session, homes_powers, "power2")
+	saveGroupsStatsToCassandra(cassandra_session, groups_powers, "groups_power2")
+	
 
 
 if __name__ == "__main__":

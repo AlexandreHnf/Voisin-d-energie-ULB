@@ -128,7 +128,7 @@ def getMissingRaw(session, ids, table_name, default_timing, now):
 def generateHomes(tmpo_session, sensors_config, since, since_timing, to_timing, home_ids, homes_missing, mode):
 	homes = {}
 
-	for hid, home_sensors in sensors_config:
+	for hid, home_sensors in sensors_config.groupby("home_id"):
 		print("========================= HOME {} =====================".format(hid))
 		# home_sensors = sensors_config.loc[sensors_config["home_ID"] == hid]
 		sensors = [] # list of Sensor objects
@@ -137,7 +137,7 @@ def generateHomes(tmpo_session, sensors_config, since, since_timing, to_timing, 
 		# for i in range(len(home_sensors)):
 		for sid, row in home_sensors.iterrows():
 			sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
-		home = Home(sensors_config, since, since_timing, to_timing, hid, sensors)
+		home = Home(home_sensors, since, since_timing, to_timing, hid, sensors)
 		homes[hid] = home
 		# print(home.getRawDF().head(10))
 
@@ -174,6 +174,8 @@ def getTmpoSession(sensors_config, path=""):
 
 	tmpo_session.sync()
 
+	return tmpo_session
+
 
 def getFluksoData(sensor_file, path=""):
 	"""
@@ -209,7 +211,7 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 
 	col_names = ["sensor_id", "ts"]
 	for hid, home in homes.items():
-		print(hid)
+		print(hid, end=" ")
 		inc_power_df = home.getIncompletePowerDF()
 		sensors_ids = inc_power_df.columns
 
@@ -249,37 +251,6 @@ def saveRawToCassandra(cassandra_session, homes, missing, table_name):
 
 	for hid, home in homes.items():
 		print(hid, end=" ")
-		power_df = home.getRawDF()
-
-		col_names = ["sensor_id", "day", "ts", "power"]
-		sensors_ids = power_df.columns
-		for timestamp, row in power_df.iterrows():
-			day = str(timestamp.date())
-			# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
-			ts = str(timestamp)[:19] + "Z"
-			for i, sid in enumerate(sensors_ids):
-				miss = missing[hid][sid]["s"].loc[(missing[hid][sid]["s"]['ts'] == pd.Timestamp(str(timestamp)[:19]))].any().all()
-				is_earlier = isEarlier(timestamp, missing[hid][sid]["lts"])
-				# print("{} => miss: {}, is earlier ? {}, value : {}".format(timestamp, miss, is_earlier, row[i]), end=" ")
-				# if before last timestamp of the sensor & missing data OR after last timestamp (new data)
-				if (is_earlier and miss) or (not is_earlier):
-					# print("insert ! ")
-					power = row[i] if row[i] >= 0 else 0  # avoid unexpected negative values
-					values = [sid, day, ts, power]
-					ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
-
-	print("Successfully Saved raw data in Cassandra : table {}".format(table_name))
-
-
-def saveRawToCassandra2(cassandra_session, homes, missing, table_name):
-	"""
-	Save raw flukso flukso data to Cassandra table
-	Save per sensor : 1 row = 1 sensor + 1 timestamp + 1 power value
-	"""
-	print("saving in Cassandra...   => table : {}".format(table_name))
-
-	for hid, home in homes.items():
-		print(hid)
 		power_df = home.getRawDF()
 		power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1) # add date column
 		by_day_df = power_df.groupby("date")  # group by date
@@ -377,14 +348,14 @@ def main():
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 	# sensors, tmpo_session = getFluksoData(UPDATED_SENSORS_FILE)
-	sensors_config = getSensorsConfigCassandra(cassandra_session, "sensors_config")
+	sensors_config = getSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
 	tmpo_session = getTmpoSession(sensors_config)
 	ids = getSensorsIds(sensors_config)
 
 	home_ids = list(sensors_config.groupby("home_id").indices)
 	nb_homes = len(home_ids)
 
-	groups_config = getGroupsConfigCassandra(cassandra_session, "groups_config")
+	groups_config = getGroupsConfigCassandra(cassandra_session, TBL_GROUPS_CONFIG)
 	
 	
 	print("Mode : {}".format(mode))
@@ -402,7 +373,7 @@ def main():
 	print("default timing : ", default_timing)
 
 	# STEP 2 : get missing raw data in raw_missing table
-	homes_missing = getMissingRaw(cassandra_session, ids, "raw_missing", default_timing, now_local)
+	homes_missing = getMissingRaw(cassandra_session, ids, TBL_RAW_MISSING, default_timing, now_local)
 	# print(homes_missing["CDB014"])
 
 	# =========================================================
@@ -413,22 +384,22 @@ def main():
 	grouped_homes = generateGroupedHomes(homes, groups_config)
 	
 	saveFluksoDataToCsv(homes.values())
-	# saveFluksoDataToCsv(grouped_homes.values())
+	saveFluksoDataToCsv(grouped_homes.values())
 
 	# =========================================================
-
+	
 	# STEP 4 : save raw flukso data in cassandra
-	# saveRawToCassandra2(cassandra_session, homes, homes_missing, "raw")
+	saveRawToCassandra(cassandra_session, homes, homes_missing, TBL_RAW)
 
 	# STEP 5 : save missing raw data in cassandra
-	# saveIncompleteRows(cassandra_session, to_timing, homes, "raw_missing")
+	saveIncompleteRows(cassandra_session, to_timing, homes, TBL_RAW_MISSING)
 
 	# STEP 6 : save power flukso data in cassandra
-	# cp.savePowerDataToCassandra(cassandra_session, homes, "power")
+	cp.savePowerDataToCassandra(cassandra_session, homes, TBL_POWER)
 	
 	# STEP 7 : save groups of power flukso data in cassandra
-	# cp.savePowerDataToCassandra(cassandra_session, grouped_homes, "groups_power")
-
+	cp.savePowerDataToCassandra(cassandra_session, grouped_homes, TBL_GROUPS_POWER)
+	
 	# =========================================================
 	
 
