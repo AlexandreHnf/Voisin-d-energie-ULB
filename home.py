@@ -13,7 +13,8 @@ import tmpo
 class Home:
 
     def __init__(self, sensors_info, since, since_timing, to_timing, home_id, sensors):
-        self.sensors_info = sensors_info.loc[sensors_info["home_ID"] == home_id]
+        # self.sensors_info = sensors_info.loc[sensors_info["home_ID"] == home_id]
+        self.sensors_info = sensors_info
         self.sensors = sensors
         self.since = since
         self.since_timing = since_timing
@@ -80,12 +81,9 @@ class Home:
     def getColumnsNames(self):
         """ 
         get columns names of the form : 
-        flukso_id phase1, flukso_id phase2, ...
+        [flukso sensor1, flukso sensor2, ...]
         """ 
         col_names = []
-        # for phase, row in self.sensors_info.iterrows():
-        #     name = "{} {}".format(row["flukso_id"], phase)
-        #     col_names.append(name)
 
         for sensor in self.sensors:
             col_names.append(sensor.getSensorID())
@@ -156,21 +154,22 @@ class Home:
                                     self.raw_df.index,
                                     ["P_cons", "P_prod", "P_tot"])
 
-        for i, phase in enumerate(self.sensors_info.index):
-            fluksoid_phase = self.columns_names[i]
-            # c = self.sensors_info.loc[phase]["con"]
-            p = self.sensors_info.loc[phase]["pro"]
-            n = self.sensors_info.loc[phase]["net"]
+        for i, sid in enumerate(self.sensors_info.index):
+            # sid = self.columns_names[i]
+            # c = self.sensors_info.loc[sid]["con"]
+            p = self.sensors_info.loc[sid]["pro"]
+            n = self.sensors_info.loc[sid]["net"]
 
-            # cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + c * self.raw_df[fluksoid_phase]
-            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * self.raw_df[fluksoid_phase]
-            cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * self.raw_df[fluksoid_phase]
+            # cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + c * self.raw_df[sid]
+            cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * self.raw_df[sid]
+            cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * self.raw_df[sid]
 
         cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
 
         cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
 
         return cons_prod_df
+
 
     def getColNamesWithID(self, df, home_id):
         col_names = df.columns
@@ -180,6 +179,7 @@ class Home:
 
         return new_col_names
 
+
     def appendFluksoData(self, raw_df, home_id):
         # print(len(self.raw_df), len(raw_df))
 
@@ -187,6 +187,7 @@ class Home:
             self.raw_df = self.raw_df.rename(self.getColNamesWithID(self.raw_df, self.home_id), axis=1)
         raw_df = raw_df.rename(self.getColNamesWithID(raw_df, home_id), axis=1)
         self.raw_df = self.raw_df.join(raw_df)
+
 
     def addConsProd(self, cons_prod_df):
         self.cons_prod_df = self.cons_prod_df.add(cons_prod_df, fill_value=0)

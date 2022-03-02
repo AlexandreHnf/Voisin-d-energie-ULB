@@ -128,15 +128,15 @@ def getMissingRaw(session, ids, table_name, default_timing, now):
 def generateHomes(tmpo_session, sensors_config, since, since_timing, to_timing, home_ids, homes_missing, mode):
 	homes = {}
 
-	for hid in home_ids:
+	for hid, home_sensors in sensors_config:
 		print("========================= HOME {} =====================".format(hid))
-		home_sensors = sensors_config.loc[sensors_config["home_ID"] == hid]
+		# home_sensors = sensors_config.loc[sensors_config["home_ID"] == hid]
 		sensors = [] # list of Sensor objects
 		if mode == "automatic":
 			since_timing = homes_missing[hid]["first_ts"]
-		for i in range(len(home_sensors)):
-			sensors.append(Sensor(tmpo_session, home_sensors.flukso_id[i], home_sensors.sensor_id[i], 
-							since_timing, to_timing))
+		# for i in range(len(home_sensors)):
+		for sid, row in home_sensors.iterrows():
+			sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
 		home = Home(sensors_config, since, since_timing, to_timing, hid, sensors)
 		homes[hid] = home
 		# print(home.getRawDF().head(10))
@@ -394,7 +394,7 @@ def main():
 	print("Number of Homes : ", nb_homes)
 	print("Number of Fluksos : ", len(sensors_config))
 	print("groups : ", groups_config)
-	"""
+	
 	# =========================================================
 
 	# STEP 1 : get last registered timestamp in raw table
@@ -409,28 +409,28 @@ def main():
 
 	# STEP 3 : generate homes and grouped homes
 	print("Generating homes data and getting Flukso data...")
-	homes = generateHomes(tmpo_session, sensors, since, start_timing, to_timing, home_ids, homes_missing, mode)
-	grouped_homes = generateGroupedHomes(homes, groups)
-
+	homes = generateHomes(tmpo_session, sensors_config, since, start_timing, to_timing, home_ids, homes_missing, mode)
+	grouped_homes = generateGroupedHomes(homes, groups_config)
+	
 	saveFluksoDataToCsv(homes.values())
 	# saveFluksoDataToCsv(grouped_homes.values())
 
 	# =========================================================
 
 	# STEP 4 : save raw flukso data in cassandra
-	saveRawToCassandra2(cassandra_session, homes, homes_missing, "raw")
+	# saveRawToCassandra2(cassandra_session, homes, homes_missing, "raw")
 
 	# STEP 5 : save missing raw data in cassandra
-	saveIncompleteRows(cassandra_session, to_timing, homes, "raw_missing")
+	# saveIncompleteRows(cassandra_session, to_timing, homes, "raw_missing")
 
 	# STEP 6 : save power flukso data in cassandra
-	cp.savePowerDataToCassandra(cassandra_session, homes, "power")
+	# cp.savePowerDataToCassandra(cassandra_session, homes, "power")
 	
 	# STEP 7 : save groups of power flukso data in cassandra
-	cp.savePowerDataToCassandra(cassandra_session, grouped_homes, "groups_power")
+	# cp.savePowerDataToCassandra(cassandra_session, grouped_homes, "groups_power")
 
 	# =========================================================
-	"""
+	
 
 	end = time.time() - begin 
 	print("> Processing time : {}.".format(timedelta(seconds=end)))
