@@ -206,3 +206,10 @@ def energy2power(energy_df):
 	power_df = power_df.resample(str(FREQ[0]) + FREQ[1]).mean()
 
 	return power_df
+
+
+def getTimeSpent(time_begin, time_end):
+	""" 
+	Get the time spent in seconds between 2 timings (time.time())
+	"""
+	return timedelta(seconds=time_end - time_begin)
