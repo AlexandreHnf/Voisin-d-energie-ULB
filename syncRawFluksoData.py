@@ -80,7 +80,7 @@ def getDefaultTiming(mode, start_timing, cassandra_session, ids):
 		last_timestamp = getLastRegisteredTimestamp(cassandra_session, ids)
 		if not last_timestamp.empty:  # != None
 			return last_timestamp.iloc[0]['ts'].tz_localize("CET").tz_convert("UTC")
-		else:
+		else:  # if no registered timestamp in raw table yet
 			return start_timing
 	
 	elif mode == "manual":

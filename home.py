@@ -97,10 +97,11 @@ class Home:
         data_dfs = []
 
         for sensor in self.sensors:
-            data_dfs.append(sensor.getSerie())
-
-        # filler = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
-        # data_dfs.append(filler)
+            s = sensor.getSerie()
+            if self.since_timing == 0:
+                first_unix_ts = list(s.index)[0]
+                self.since_timing = pd.Timestamp(datetime.datetime.fromtimestamp(first_unix_ts)).tz_localize("UTC")
+            data_dfs.append(s)
 
         return data_dfs
         
@@ -154,15 +155,9 @@ class Home:
                                     ["P_cons", "P_prod", "P_tot"])
 
         for i, sid in enumerate(self.sensors_config.index):
-            # sid = self.columns_names[i]
-            # c = self.sensors_config.loc[sid]["con"]
             p = self.sensors_config.loc[sid]["pro"]
             n = self.sensors_config.loc[sid]["net"]
 
-            if self.home_id == "ECHASC":
-                print("{} : p: {}, n: {}".format(sid, p, n))
-
-            # cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + c * self.raw_df[sid]
             cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * self.raw_df[sid]
             cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * self.raw_df[sid]
 
