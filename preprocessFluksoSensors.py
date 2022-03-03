@@ -170,8 +170,8 @@ def writeGroupsFromInstallationsIds():
             gf.write(group[:-1] + "\n")  # -1 to remove the last ","
 
 
-def saveToCsv(df):
-    df.to_csv(COMPACT_SENSOR_FILE, index=None, header=True)
+def saveToCsv(df, filename):
+    df.to_csv(filename, index=None, header=True)
 
 
 # ==========================================================================
@@ -180,7 +180,7 @@ def saveToCsv(df):
 def correctPhaseSigns(sensors_df=None):
     """
     functions to modify the signs of different phases (defined in a txt file of the form
-    install_ID:phase1,phase2...)
+    installation_ID:phase1,phase2...)
     and write the corrected content in another csv file
     """
     to_modif = {}
@@ -194,8 +194,8 @@ def correctPhaseSigns(sensors_df=None):
     # -----------------------------------------------------------------------
 
     # reading the csv file
-    if sensors_df is None:
-        sensors_df = pd.read_csv(COMPACT_SENSOR_FILE)
+    # if sensors_df is None:
+    #     sensors_df = pd.read_csv(COMPACT_SENSOR_FILE)
 
     print("nb of rows : ", len(sensors_df))
     for i in range(len(sensors_df)):
@@ -209,14 +209,16 @@ def correctPhaseSigns(sensors_df=None):
                 elif phase[-1] != "-":
                     sensors_df.loc[i, "phase"] = phase + "-"
                 # change net sign
-                sensors_df.loc[i, "net"] = str(-1 * float(sensors_df.loc[i, "net"]))
+                sensors_df.loc[i, "net"] = -1 * sensors_df.loc[i, "net"]
                 # change con sign
-                sensors_df.loc[i, "con"] = str(-1 * float(sensors_df.loc[i, "con"]))
+                sensors_df.loc[i, "con"] = -1 * sensors_df.loc[i, "con"]
                 # change pro sign
-                sensors_df.loc[i, "pro"] = str(-1 * float(sensors_df.loc[i, "pro"]))
+                sensors_df.loc[i, "pro"] = -1 * sensors_df.loc[i, "pro"]
 
     # writing into the file
-    sensors_df.to_csv(UPDATED_FLUKSO_TECHNICAL_FILE, index=False)
+    # sensors_df.to_csv(UPDATED_FLUKSO_TECHNICAL_FILE, index=False)
+
+    return sensors_df
 
 
 # ==========================================================================
@@ -350,21 +352,20 @@ def main():
 
     # > get the useful flukso sensors data in a compact csv
     compact_df = getCompactSensorDF()
-    # saveToCsv(compact_df)
+    # saveToCsv(compact_df, COMPACT_SENSOR_FILE)
+    # > correct phase signs
+    compact_df = correctPhaseSigns(compact_df)
 
     # > create config tables
     # createTableSensorConfig(cassandra_session, "sensors_config")
     # createTableGroupsConfig(cassandra_session, "groups_config")
 
-    # writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
+    writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
     # writeGroupsConfigCassandra(cassandra_session, "groups_config")
 
     # > setup the groups of flukso in a txt file 
     # writeGroupsFromFluksoIDs()
     # writeGroupsFromInstallationsIds()
-
-    # > correct phase signs
-    # correctPhaseSigns(compact_df)
 
     # > create cassandra tables 
     # createInstallationsTable(cassandra_session, compact_df, "raw_home")

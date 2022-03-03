@@ -397,19 +397,19 @@ def main():
 	# =========================================================
 	
 	# STEP 4 : save raw flukso data in cassandra
-	saveRawToCassandra(cassandra_session, homes, homes_missing, TBL_RAW)
+	# saveRawToCassandra(cassandra_session, homes, homes_missing, TBL_RAW)
 	ts4 = time.time()
 
 	# STEP 5 : save missing raw data in cassandra
-	saveIncompleteRows(cassandra_session, to_timing, homes, TBL_RAW_MISSING)
+	# saveIncompleteRows(cassandra_session, to_timing, homes, TBL_RAW_MISSING)
 	ts5 = time.time()
 
 	# STEP 6 : save power flukso data in cassandra
-	cp.savePowerDataToCassandra(cassandra_session, homes, TBL_POWER)
+	# cp.savePowerDataToCassandra(cassandra_session, homes, TBL_POWER)
 	ts6 = time.time()
 	
 	# STEP 7 : save groups of power flukso data in cassandra
-	cp.savePowerDataToCassandra(cassandra_session, grouped_homes, TBL_GROUPS_POWER)
+	# cp.savePowerDataToCassandra(cassandra_session, grouped_homes, TBL_GROUPS_POWER)
 	ts7 = time.time()
 	
 	# =========================================================

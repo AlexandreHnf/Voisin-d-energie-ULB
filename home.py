@@ -13,7 +13,6 @@ import tmpo
 class Home:
 
     def __init__(self, sensors_info, since, since_timing, to_timing, home_id, sensors):
-        # self.sensors_config = sensors_info.loc[sensors_info["home_ID"] == home_id]
         self.sensors_config = sensors_info
         self.sensors = sensors
         self.since = since
@@ -159,6 +158,9 @@ class Home:
             # c = self.sensors_config.loc[sid]["con"]
             p = self.sensors_config.loc[sid]["pro"]
             n = self.sensors_config.loc[sid]["net"]
+
+            if self.home_id == "ECHASC":
+                print("{} : p: {}, n: {}".format(sid, p, n))
 
             # cons_prod_df["P_cons"] = cons_prod_df["P_cons"] + c * self.raw_df[sid]
             cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * self.raw_df[sid]
