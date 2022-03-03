@@ -83,9 +83,6 @@ def getConsumptionProductionDF(sensors_config, homes_rawdata, ids):
 	"""
 	homes_stats = {}
 	for hid, home_sensors in sensors_config.groupby("home_id"):
-	# for home_id in ids:
-		# print("================> ", home_id)
-		# home_sensors = sensors.loc[sensors["home_ID"] == home_id]
 		first_sid = list(homes_rawdata[hid].keys())[0]
 		cons_prod_df = homes_rawdata[hid][first_sid][["sensor_id","day", "ts"]].copy()
 		cons_prod_df = cons_prod_df.rename(columns={"sensor_id": "home_id"})
@@ -94,10 +91,10 @@ def getConsumptionProductionDF(sensors_config, homes_rawdata, ids):
 		cons_prod_df["P_prod"] = 0
 		cons_prod_df["P_tot"] = 0
 
-		for sid in ids[hid]:
+		for sid in home_sensors.index:
 			sensor_df = homes_rawdata[hid][sid]
-			p = home_sensors.loc[home_sensors['sensor_id'] == sid, 'pro'].iloc[0]
-			n = home_sensors.loc[home_sensors['sensor_id'] == sid, 'net'].iloc[0]
+			p = home_sensors.loc[sid]["pro"]
+			n = home_sensors.loc[sid]["net"]
 			# print("{} : p: {}, n: {}".format(sid, p, n))
 
 			cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * sensor_df["power"]
@@ -128,7 +125,7 @@ def getGroupsPowers(home_powers, groups):
 	groups format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
 	"""
 	groups_powers = {}
-	print(groups)
+	# print(groups)
 	for i, group in enumerate(groups):
 		# print(home_stats[group[0]].head(2))
 		cons_prod_df = concentrateConsProdDf(copy.copy(home_powers[group[0]]))
