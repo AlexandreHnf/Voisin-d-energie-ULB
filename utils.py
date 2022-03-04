@@ -98,8 +98,8 @@ def setInitSeconds(ts):
 def getTiming(t, now):
 	"""
 	get the timestamp of the "since"
-	format : YY-MM-DD H-M-S UTC 
-	ex : the timestamp 20 min ago
+	since = "Xdays" or "Xhours" or "Xmin" or a specific date : "sYYYY-MM-DD-H-M-S"
+	return format : YY-MM-DD H-M-S UTC
 	return a timestamp with UTC timezone
 	"""
 	timing = 0

@@ -292,11 +292,11 @@ def createInstallationsTable(cassandra_session, compact_df, table_name):
 def createRawFluksoTable(cassandra_session, table_name):
 	""" 
 	compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
-	create a cassandra table for the raw flukso data
-		columns : flukso_sensor_id, day, timestamp, power_value 
+	create a cassandra table for the raw flukso data : 
+		columns : flukso_sensor_id, day, timestamp, insertion_time, power_value 
 	"""
 
-	columns = ["sensor_id TEXT", "day TEXT", "ts TIMESTAMP", "power FLOAT"]
+	columns = ["sensor_id TEXT", "day TEXT", "ts TIMESTAMP", "insertion_time TIMESTAMP", "power FLOAT"]
 	ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, columns, ["sensor_id, day"], ["ts"], {"ts":"ASC"})
 
 
@@ -360,7 +360,7 @@ def main():
     # createTableSensorConfig(cassandra_session, "sensors_config")
     # createTableGroupsConfig(cassandra_session, "groups_config")
 
-    writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
+    # writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
     # writeGroupsConfigCassandra(cassandra_session, "groups_config")
 
     # > setup the groups of flukso in a txt file 

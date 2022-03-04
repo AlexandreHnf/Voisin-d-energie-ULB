@@ -98,9 +98,9 @@ class Home:
 
         for sensor in self.sensors:
             s = sensor.getSerie()
-            if self.since_timing == 0:
-                first_unix_ts = list(s.index)[0]
-                self.since_timing = pd.Timestamp(datetime.datetime.fromtimestamp(first_unix_ts)).tz_localize("UTC")
+            # if self.since_timing == 0:
+            #     first_unix_ts = list(s.index)[0]
+            #     self.since_timing = pd.Timestamp(datetime.datetime.fromtimestamp(first_unix_ts)).tz_localize("UTC")
             data_dfs.append(s)
 
         return data_dfs

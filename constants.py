@@ -28,6 +28,10 @@ LIMIT_TIMING_RAW =                      2  # days
 # nb of days limit when getting the last timestamp of raw table
 LAST_TS_DAYS =                          2  # days
 
+# "since" default value for the earliest timestamp of a flukso
+# normally since = 0, but for testing, we put since = 5min 
+SINCE_INIT = "5min"
+
 
 # cassandra keyspaces
 CASSANDRA_KEYSPACE =                    "flukso" 
