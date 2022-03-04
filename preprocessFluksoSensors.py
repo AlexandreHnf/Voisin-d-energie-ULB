@@ -296,13 +296,23 @@ def createRawFluksoTable(cassandra_session, table_name):
 		columns : flukso_sensor_id, day, timestamp, insertion_time, power_value 
 	"""
 
-	columns = ["sensor_id TEXT", "day TEXT", "ts TIMESTAMP", "insertion_time TIMESTAMP", "power FLOAT"]
+	columns = ["sensor_id TEXT", 
+			   "day TEXT", 
+			   "ts TIMESTAMP", 
+			   "insertion_time TIMESTAMP", 
+			   "power FLOAT"]
 	ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, columns, ["sensor_id, day"], ["ts"], {"ts":"ASC"})
 
 
 def createPowerTable(cassandra_session, table_name):
 
-    power_cols = ["home_id TEXT", "day TEXT", "ts TIMESTAMP", "P_cons FLOAT", "P_prod FLOAT", "P_tot FLOAT"]
+    power_cols = ["home_id TEXT", 
+				  "day TEXT", 
+				  "ts TIMESTAMP", 
+				  "P_cons FLOAT", 
+				  "P_prod FLOAT", 
+				  "P_tot FLOAT", 
+				  "insertion_time TIMESTAMP"]
     ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, power_cols, ["home_id, day"], ["ts"], {"ts":"ASC"})
 
 

@@ -23,17 +23,18 @@ def savePowerDataToCassandra(cassandra_session, homes, table_name):
 	"""
 	print("saving in Cassandra...   => table : {}".format(table_name))
 
+	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
 	for hid, home in homes.items():
 		print(hid, end=" ")
 		cons_prod_df = home.getConsProdDF()
 
-		col_names = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot"]
+		col_names = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot", "insertion_time"]
 		insert_queries = ""
 		for timestamp, row in cons_prod_df.iterrows():
 			day = str(timestamp.date())
 			# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
 			ts = str(timestamp)[:19] + "Z"
-			values = [hid, day, ts] + list(row)
+			values = [hid, day, ts] + list(row) + [insertion_time]
 			insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
 
 		ptc.batch_insert(cassandra_session, insert_queries)
@@ -150,6 +151,7 @@ def saveStatsToCassandra(session, homes_powers, table_name):
 	"""
 	print("saving in Cassandra : flukso.{} table...".format(table_name))
 
+	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
 	for hid, cons_prod_df in homes_powers.items():
 		print(hid)
 		
@@ -157,6 +159,7 @@ def saveStatsToCassandra(session, homes_powers, table_name):
 		for _, row in cons_prod_df.iterrows():
 			values = list(row)
 			values[2] = str(values[2]) + "Z"  # timestamp (ts)
+			values.append(insertion_time)
 			print(values)
 			ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 
@@ -172,6 +175,7 @@ def saveGroupsStatsToCassandra(session, groups_powers, table_name):
 	"""
 	print("saving in Cassandra : flukso.{} table...".format(table_name))
 
+	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
 	for gid, cons_prod_df in groups_powers.items():
 		print(gid)
 		
@@ -179,6 +183,7 @@ def saveGroupsStatsToCassandra(session, groups_powers, table_name):
 		for date, row in cons_prod_df.iterrows():
 			values = [gid] + list(date) + list(row)  # date : ("date", "ts")
 			values[2] = str(values[2]) + "Z"  # timestamp (ts)
+			values.append(insertion_time)
 			print(values)
 			ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 
