@@ -4,7 +4,7 @@ import numpy as np
 from constants import *
 import pyToCassandra as ptc
 import json
-
+from utils import * 
 
 # ==========================================================================
 
@@ -89,10 +89,12 @@ def writeSensorsConfigCassandra(cassandra_session, compact_df, table_name):
     """ 
     write sensors config to cassandra table 
     """
-    col_names = ["home_id", "phase", "flukso_id", "sensor_id", "sensor_token", "net", "con", "pro"]
-    for index, row in compact_df.iterrows():
-        # print(list(row))
-        ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, list(row))
+    col_names = ["insertion_time", "home_id", "phase", "flukso_id", "sensor_id", "sensor_token", "net", "con", "pro"]
+    insertion_time = str(pd.Timestamp.now())[:19] + "Z"
+
+    for _, row in compact_df.iterrows():
+        values = [insertion_time] + list(row)
+        ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 
     print("Successfully inserted sensors config in table : {}".format(table_name))
 
@@ -230,10 +232,17 @@ def createTableSensorConfig(cassandra_session, table_name):
     """ 
     create a sensors config table
     """
-    cols = ["home_id TEXT", "phase TEXT", "flukso_id TEXT", "sensor_id TEXT", "sensor_token TEXT", 
-            "net FLOAT", "con FLOAT", "pro FLOAT"]
+    cols = ["insertion_time TIMESTAMP", 
+            "home_id TEXT", 
+            "phase TEXT", 
+            "flukso_id TEXT", 
+            "sensor_id TEXT", 
+            "sensor_token TEXT", 
+            "net FLOAT", 
+            "con FLOAT", 
+            "pro FLOAT"]
     ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, 
-        ["home_id, sensor_id"], [], {})
+        ["insertion_time, home_id, sensor_id"], [], {})
 
 
 def createTableGroupsConfig(cassandra_session, table_name):
@@ -241,8 +250,10 @@ def createTableGroupsConfig(cassandra_session, table_name):
     create a table with groups config
     group_id, list of home ids
     """
-    cols = ["group_id TEXT", "homes LIST<TEXT>"]
-    ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, ["group_id"], [], {})
+    cols = ["insertion_time TIMESTAMP", 
+            "group_id TEXT", 
+            "homes LIST<TEXT>"]
+    ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, ["insertion_time, group_id"], [], {})
 
 
 def createTablePerInstallation(cassandra_session, compact_df):
@@ -365,12 +376,15 @@ def main():
     # saveToCsv(compact_df, COMPACT_SENSOR_FILE)
     # > correct phase signs
     compact_df = correctPhaseSigns(compact_df)
+    print("nb sensors : ", len(compact_df))
 
     # > create config tables
-    # createTableSensorConfig(cassandra_session, "sensors_config")
-    # createTableGroupsConfig(cassandra_session, "groups_config")
+    createTableSensorConfig(cassandra_session, "sensors_config")
+    createTableGroupsConfig(cassandra_session, "groups_config")
 
-    # writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
+    # now = pd.Timestamp.now(tz="UTC").replace(microsecond=0)   # default tz = CET, unaware timestamp
+    # sensors_config_time = setInitSeconds(getTiming(input("Sensors config update time : "), now))
+    writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
     # writeGroupsConfigCassandra(cassandra_session, "groups_config")
 
     # > setup the groups of flukso in a txt file 
