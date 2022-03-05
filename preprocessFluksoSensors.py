@@ -137,16 +137,18 @@ def writeGroupsConfigCassandra(cassandra_session, table_name):
     groups_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Groups")
     nb_groups = len(set(groups_df["GroupId"]))
 
-    with open(GROUPS_FILE, "w") as gf:
-        cols = ["group_id", "homes"]
-        for i in range(nb_groups):
-            home_ids = []
-            grp_df = groups_df.loc[groups_df["GroupId"] == i+1]  # get group i
-            for install_id in grp_df["InstalationId"]:
-                if install_id not in home_ids:
-                    home_ids.append(install_id)
+    cols = ["insertion_time", "group_id", "homes"]
+    insertion_time = str(pd.Timestamp.now())[:19] + "Z"
 
-            ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, [str(i+1), home_ids])
+    for i in range(nb_groups):
+        home_ids = []
+        grp_df = groups_df.loc[groups_df["GroupId"] == i+1]  # get group i
+        for install_id in grp_df["InstalationId"]:
+            if install_id not in home_ids:
+                home_ids.append(install_id)
+
+        values = [insertion_time, str(i+1), home_ids]
+        ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, values)
 
     print("Successfully inserted groups stats in table : {}".format(table_name))
 
@@ -199,7 +201,6 @@ def correctPhaseSigns(sensors_df=None):
     # if sensors_df is None:
     #     sensors_df = pd.read_csv(COMPACT_SENSOR_FILE)
 
-    print("nb of rows : ", len(sensors_df))
     for i in range(len(sensors_df)):
         hid = sensors_df.loc[i, "home_ID"]
         if hid in to_modif:
@@ -379,13 +380,13 @@ def main():
     print("nb sensors : ", len(compact_df))
 
     # > create config tables
-    createTableSensorConfig(cassandra_session, "sensors_config")
-    createTableGroupsConfig(cassandra_session, "groups_config")
+    # createTableSensorConfig(cassandra_session, "sensors_config")
+    # createTableGroupsConfig(cassandra_session, "groups_config")
 
     # now = pd.Timestamp.now(tz="UTC").replace(microsecond=0)   # default tz = CET, unaware timestamp
     # sensors_config_time = setInitSeconds(getTiming(input("Sensors config update time : "), now))
-    writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
-    # writeGroupsConfigCassandra(cassandra_session, "groups_config")
+    # writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
+    writeGroupsConfigCassandra(cassandra_session, "groups_config")
 
     # > setup the groups of flukso in a txt file 
     # writeGroupsFromFluksoIDs()
