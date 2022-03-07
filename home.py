@@ -21,7 +21,9 @@ class Home:
         self.home_id = home_id
         self.columns_names = self.getColumnsNames()
 
-        self.raw_df, self.incomplete_raw_df = self.createFluksoRawDF()
+        self.energy_df = self.getEnergyRawDf()
+        self.raw_df = self.createFluksoRawDF()
+        self.incomplete_raw_df = self.findIncompleteRawDf()
         self.cons_prod_df = self.getConsumptionProductionDF()
 
     def getRawDF(self):
@@ -104,6 +106,48 @@ class Home:
             data_dfs.append(s)
 
         return data_dfs
+
+    
+    def getEnergyRawDf(self):
+        """
+        Get a dataframe with all the raw cumulative energy series from each sensor
+        of the home 
+        1 column = 1 sensor
+        """
+        data_dfs = self.createSeries()  # list of series, one per flukso sensor
+        energy_df = pd.concat(data_dfs, axis=1)  # combined series
+        del data_dfs
+
+        # print(energy_df)
+
+        return energy_df
+
+
+    def findIncompleteRawDf(self):
+        """ 
+        From the cumulative energy dataframe, 
+        1) fill the gaps in the timestamps with NaN values
+        2) get a dataframe containing all the lines with NaN values (= incomplete rows)
+        """
+
+        filler = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
+        filled_df = pd.concat([self.energy_df, filler], axis=1)
+        del filler
+        filled_df.columns = self.columns_names + ["fill"]
+        filled_df = filled_df.drop(['fill'], axis=1) # remove the filler col
+
+        incomplete_raw_df = filled_df[filled_df.isna().any(axis=1)]  # with CET timezones
+        print("nb of nan: ", filled_df.isna().sum().sum()) # count nb of nan in the entire df
+
+        incomplete_raw_df.index = pd.DatetimeIndex(incomplete_raw_df.index, name="time")
+        # convert all timestamps to local timezone (CET)
+        local_timestamps = getLocalTimestampsIndex(incomplete_raw_df)
+        incomplete_raw_df.index = [tps for tps in local_timestamps]
+
+        # if self.home_id == "ECHASC":
+        #     print("incomplete_raw_df", incomplete_raw_df.head(30))
+
+        return incomplete_raw_df
         
 
     def createFluksoRawDF(self):
@@ -111,14 +155,11 @@ class Home:
         create a dataframe where the colums are the phases of the Flukso and the rows are the
         data : 1 row = 1 timestamp = 1 power value
         """
-        data_dfs = self.createSeries()  # list of series, one per flukso sensor
-        energy_df = pd.concat(data_dfs, axis=1)  # combined series, 1 col = 1 sensor
         
-        power_df = energy2power(energy_df) # cumulative energy to power conversion
+        power_df = energy2power(self.energy_df) # cumulative energy to power conversion
         filler = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
         raw_df = pd.concat([power_df, filler], axis=1)
-        del energy_df; del data_dfs; del power_df; del filler
-        
+        del power_df; del filler
         raw_df.columns = self.columns_names + ["fill"]
         raw_df = raw_df.drop(['fill'], axis=1) # remove the filler col
 
@@ -129,19 +170,16 @@ class Home:
         raw_df.index = [tps for tps in local_timestamps]
         print("nb timestamps : ", len(raw_df.index))
 
-        incomplete_raw_df = raw_df[raw_df.isna().any(axis=1)]  # with CET timezones
-        print("nb of nan: ", raw_df.isna().sum().sum()) # count nb of nan in the entire df
-
         if self.home_id == "ECHASC":
-            print(raw_df.head(20))
+            print("raw_df", raw_df.head(30))
 
         raw_df.fillna(0, inplace=True)
         
-        raw_df.drop(local_timestamps[0], inplace=True)  # drop first row because no data after conversion
+        raw_df.drop(local_timestamps[0], inplace=True)  # drop first row because NaN after conversion
 
         raw_df = raw_df.round(1)  # round with 2 decimals
 
-        return raw_df, incomplete_raw_df
+        return raw_df
 
 
     def getConsumptionProductionDF(self):

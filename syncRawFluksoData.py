@@ -94,7 +94,7 @@ def getMissingRaw(session, ids, table_name, default_timing, now):
 	""" 
 	get the rows of raw data with missing values
 	(cassandra table 'raw_missing')
-	'now' : no tz, but CET timezone by default
+	'now' : no tz, but CET by default
 	"""
 	homes_missing = {}
 	for home_id, sensors_ids in ids.items():
@@ -217,7 +217,7 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 
 		insert_queries = ""
 		for timestamp, row in inc_power_df.iterrows():  # timestamp = CET timezone (local)
-			# if valid timestamp
+			# if valid timestamp  TODO : replace to_timing by "now"
 			if (to_timing - timestamp).days < LIMIT_TIMING_RAW: # 2 days max
 				# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
 				ts = str(timestamp)[:19] + "Z"

@@ -29,8 +29,11 @@ class Sensor:
 
         len_dff = len(dff.index)
         if len(dff.index) == 0:
+            # print("{} > 0".format(self.sensor_id))
             dff = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
         # print("{} - {} : {}, {}".format(self.flukso_id, self.sensor_id, len_dff, dff.index[0]))
+
+        # print("{} : {} sec freq".format(self.sensor_id, (dff.index[1] - dff.index[0]).seconds))
 
         return dff
 

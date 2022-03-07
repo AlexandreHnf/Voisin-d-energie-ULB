@@ -11,7 +11,7 @@ from utils import *
 
 def getFluksosDic(installation_ids_df):
     """ 
-    Return a dictionary, 
+    Return a dictionary of the form : 
     key = flukso id, value = installation id 
     ex : {'FL08000475': 'CDB001'}
     """
@@ -47,6 +47,7 @@ def getCompactSensorDF():
     """
     read the excel sheet containing the flukso ids, the sensors ids, the tokens
     and compact them into a simpler usable csv file
+    columns : home_id, phase, flukso_id, sensor_id, token, net, con, pro
     """
     # 'Sensors' sheet
     sensors_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Sensors")
@@ -257,50 +258,6 @@ def createTableGroupsConfig(cassandra_session, table_name):
     ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, ["insertion_time, group_id"], [], {})
 
 
-def createTablePerInstallation(cassandra_session, compact_df):
-    """ 
-    compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
-    1 installation = 1 table
-    """
-    home_ids = set(compact_df.home_ID)
-    for home_id in home_ids:
-        columns = ["day TEXT", "ts TIMESTAMP"]
-        home_df = compact_df.loc[compact_df["home_ID"] == home_id]
-        for hid, phase, fid, sid, t, n, c, p in home_df.values:
-            print("{}-{}".format(fid, phase))
-            phase = phase.replace(" ", "_")
-            phase = phase.replace("-", "1")
-            columns.append("{}_{} FLOAT".format(fid, phase))
-        columns += ["P_cons FLOAT", "P_prod FLOAT", "P_tot FLOAT"]
-        
-        print(home_id, columns, end="\n\n")
-
-        ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, home_id, columns, ["day"], ["ts"], {"ts":"DESC"})
-
-
-def createInstallationsTable(cassandra_session, compact_df, table_name):
-    """ 
-    compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
-    1 table = home_id, day, timestamp, phase 1, ... phase n
-    1 table = home_id, day, timestamp, p_cons, p_prod, p_tot
-    """
-    home_ids = set(compact_df.home_ID)
-    max_nb_phases = 0
-    for home_id in home_ids:
-        nb_phases = len(compact_df.loc[compact_df["home_ID"] == home_id])
-        if nb_phases > max_nb_phases:
-            max_nb_phases = nb_phases
-
-    columns = ["home_id TEXT", "day TEXT", "ts TIMESTAMP"]
-    for i in range(max_nb_phases):
-        index = "i+1"
-        if len(index) == 1:
-            index = "0" + index
-        columns.append("phase{} FLOAT".format(i+1))
-
-    ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, columns, ["home_id, day"], ["ts"], {"ts":"ASC"})
-
-
 def createRawFluksoTable(cassandra_session, table_name):
 	""" 
 	compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
@@ -356,7 +313,12 @@ def saveHomeIds(compact_df):
     with open(IDS_FILE, "w") as f:
         json.dump(ids, f, indent = 4, sort_keys=True)
 
+
 def saveGroupsIds():
+    """ 
+    Save groups ids in a json file 
+    {"group1": [home_id1, home_id2, ...], ...}
+    """
     groups_ids = {} 
     with open(GROUPS_FILE) as f:
         lines = f.readlines()
@@ -365,6 +327,7 @@ def saveGroupsIds():
 
     with open(GIDS_FILE, "w") as f:
         json.dump(groups_ids, f, indent = 4, sort_keys=True)
+
 
 # ==========================================================================
 
@@ -386,14 +349,13 @@ def main():
     # now = pd.Timestamp.now(tz="UTC").replace(microsecond=0)   # default tz = CET, unaware timestamp
     # sensors_config_time = setInitSeconds(getTiming(input("Sensors config update time : "), now))
     # writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
-    writeGroupsConfigCassandra(cassandra_session, "groups_config")
+    # writeGroupsConfigCassandra(cassandra_session, "groups_config")
 
     # > setup the groups of flukso in a txt file 
     # writeGroupsFromFluksoIDs()
     # writeGroupsFromInstallationsIds()
 
     # > create cassandra tables 
-    # createInstallationsTable(cassandra_session, compact_df, "raw_home")
     # createRawFluksoTable(cassandra_session, "raw")
     # createPowerTable(cassandra_session, "power")
     # createPowerTable(cassandra_session, "groups_power")
