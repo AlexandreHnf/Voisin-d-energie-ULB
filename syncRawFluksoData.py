@@ -216,6 +216,7 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 		sensors_ids = inc_power_df.columns
 
 		insert_queries = ""
+		i = 0
 		for timestamp, row in inc_power_df.iterrows():  # timestamp = CET timezone (local)
 			# if valid timestamp  TODO : replace to_timing by "now"
 			if (to_timing - timestamp).days < LIMIT_TIMING_RAW: # 2 days max
@@ -226,7 +227,12 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 						values = [sensor_id, ts]
 						# ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 						insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
-		ptc.batch_insert(cassandra_session, insert_queries)
+
+						if (i+1) % QUERIES_PER_BATCH_INSERT == 0:
+							ptc.batch_insert(cassandra_session, insert_queries)
+							insert_queries = ""
+							
+						i+=1
 
 	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
 
@@ -251,7 +257,7 @@ def saveRawToCassandra(cassandra_session, homes, missing, table_name):
 
 	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
 	for hid, home in homes.items():
-		print(hid, end=" ")
+		print(hid)
 		power_df = home.getRawDF()
 		power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1) # add date column
 		by_day_df = power_df.groupby("date")  # group by date
@@ -271,7 +277,10 @@ def saveRawToCassandra(cassandra_session, homes, missing, table_name):
 						values = [sid, date, ts, insertion_time, power]
 						insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
 
-				ptc.batch_insert(cassandra_session, insert_queries)
+					if (i+1) % QUERIES_PER_BATCH_INSERT == 0:
+						ptc.batch_insert(cassandra_session, insert_queries)
+						insert_queries = ""
+				
 
 	print("Successfully Saved raw data in Cassandra : table {}".format(table_name))
 
@@ -390,8 +399,8 @@ def main():
 	grouped_homes = generateGroupedHomes(homes, groups_config)
 	ts3 = time.time()
 	
-	# saveFluksoDataToCsv(homes.values())
-	# saveFluksoDataToCsv(grouped_homes.values())
+	saveFluksoDataToCsv(homes.values())
+	saveFluksoDataToCsv(grouped_homes.values())
 
 	# =========================================================
 	

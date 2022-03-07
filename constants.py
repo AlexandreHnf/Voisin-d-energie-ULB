@@ -43,3 +43,6 @@ TBL_RAW =                               "raw"
 TBL_RAW_MISSING =                       "raw_missing"
 TBL_POWER =                             "power"
 TBL_GROUPS_POWER =                      "groups_power"
+
+
+QUERIES_PER_BATCH_INSERT =              10000
