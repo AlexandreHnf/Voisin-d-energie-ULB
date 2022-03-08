@@ -43,6 +43,8 @@ def savePowerDataToCassandra(cassandra_session, homes, table_name):
 				insert_queries = ""
 
 			i+=1
+		
+		ptc.batch_insert(cassandra_session, insert_queries)
 	
 	print("Successfully saved power data in cassandra : table {}".format(table_name))
 

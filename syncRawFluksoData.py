@@ -234,6 +234,8 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 							
 						i+=1
 
+		ptc.batch_insert(cassandra_session, insert_queries)
+
 	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
 
 
@@ -281,6 +283,7 @@ def saveRawToCassandra(cassandra_session, homes, missing, table_name):
 						ptc.batch_insert(cassandra_session, insert_queries)
 						insert_queries = ""
 				
+				ptc.batch_insert(cassandra_session, insert_queries) 
 
 	print("Successfully Saved raw data in Cassandra : table {}".format(table_name))
 

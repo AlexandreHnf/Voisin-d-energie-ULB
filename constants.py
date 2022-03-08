@@ -45,4 +45,4 @@ TBL_POWER =                             "power"
 TBL_GROUPS_POWER =                      "groups_power"
 
 
-QUERIES_PER_BATCH_INSERT =              10000
+QUERIES_PER_BATCH_INSERT =              10
