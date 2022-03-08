@@ -216,7 +216,7 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 		sensors_ids = inc_power_df.columns
 
 		insert_queries = ""
-		i = 0
+		nb_inserts = 0
 		for timestamp, row in inc_power_df.iterrows():  # timestamp = CET timezone (local)
 			# if valid timestamp  TODO : replace to_timing by "now"
 			if (to_timing - timestamp).days < LIMIT_TIMING_RAW: # 2 days max
@@ -225,14 +225,13 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 				for i, sensor_id in enumerate(sensors_ids):
 					if np.isnan(row[i]):
 						values = [sensor_id, ts]
-						# ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 						insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
 
-						if (i+1) % QUERIES_PER_BATCH_INSERT == 0:
+						if (nb_inserts+1) % INSERTS_PER_BATCH == 0:
 							ptc.batch_insert(cassandra_session, insert_queries)
 							insert_queries = ""
 							
-						i+=1
+						nb_inserts+=1
 
 		ptc.batch_insert(cassandra_session, insert_queries)
 
@@ -271,15 +270,15 @@ def saveRawToCassandra(cassandra_session, homes, missing, table_name):
 				insert_queries = ""
 				for i, timestamp in enumerate(group[sid].index):
 					ts = str(timestamp)[:19] + "Z"
-					miss = missing[hid][sid]["s"].loc[(missing[hid][sid]["s"]['ts'] == pd.Timestamp(str(timestamp)[:19]))].any().all()
-					is_earlier = isEarlier(timestamp, missing[hid][sid]["lts"])
+					# miss = missing[hid][sid]["s"].loc[(missing[hid][sid]["s"]['ts'] == pd.Timestamp(str(timestamp)[:19]))].any().all()
+					# is_earlier = isEarlier(timestamp, missing[hid][sid]["lts"])
 					# if before last timestamp of the sensor & missing data OR after last timestamp (new data)
-					if (is_earlier and miss) or (not is_earlier):
-						power = group[sid][i] if group[sid][i] >= 0 else 0 # avoid unexpected negative values
-						values = [sid, date, ts, insertion_time, power]
-						insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
+					# if (is_earlier and miss) or (not is_earlier):
+					power = group[sid][i]
+					values = [sid, date, ts, insertion_time, power]
+					insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
 
-					if (i+1) % QUERIES_PER_BATCH_INSERT == 0:
+					if (i+1) % INSERTS_PER_BATCH == 0:
 						ptc.batch_insert(cassandra_session, insert_queries)
 						insert_queries = ""
 				
@@ -412,15 +411,15 @@ def main():
 	ts4 = time.time()
 
 	# STEP 5 : save missing raw data in cassandra
-	saveIncompleteRows(cassandra_session, to_timing, homes, TBL_RAW_MISSING)
+	# saveIncompleteRows(cassandra_session, to_timing, homes, TBL_RAW_MISSING)
 	ts5 = time.time()
 
 	# STEP 6 : save power flukso data in cassandra
-	cp.savePowerDataToCassandra(cassandra_session, homes, TBL_POWER)
+	# cp.savePowerDataToCassandra(cassandra_session, homes, TBL_POWER)
 	ts6 = time.time()
 	
 	# STEP 7 : save groups of power flukso data in cassandra
-	cp.savePowerDataToCassandra(cassandra_session, grouped_homes, TBL_GROUPS_POWER)
+	# cp.savePowerDataToCassandra(cassandra_session, grouped_homes, TBL_GROUPS_POWER)
 	ts7 = time.time()
 	
 	# =========================================================

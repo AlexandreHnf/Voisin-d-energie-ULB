@@ -30,7 +30,7 @@ def savePowerDataToCassandra(cassandra_session, homes, table_name):
 
 		col_names = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot", "insertion_time"]
 		insert_queries = ""
-		i = 0
+		nb_inserts = 0
 		for timestamp, row in cons_prod_df.iterrows():
 			day = str(timestamp.date())
 			# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
@@ -38,11 +38,11 @@ def savePowerDataToCassandra(cassandra_session, homes, table_name):
 			values = [hid, day, ts] + list(row) + [insertion_time]
 			insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
 
-			if (i+1) % QUERIES_PER_BATCH_INSERT == 0:
+			if (nb_inserts+1) % INSERTS_PER_BATCH == 0:
 				ptc.batch_insert(cassandra_session, insert_queries)
 				insert_queries = ""
 
-			i+=1
+			nb_inserts+=1
 		
 		ptc.batch_insert(cassandra_session, insert_queries)
 	
