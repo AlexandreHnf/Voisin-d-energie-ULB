@@ -110,7 +110,7 @@ def getTiming(t, now):
 								  hour=int(e[3]), minute=int(e[4]), second=int(e[5]), 
 								  tz="CET").tz_convert("UTC")
 		else:  # since x min, x hours, x days...
-			print("time delta : ", pd.Timedelta(t))
+			# print("time delta : ", pd.Timedelta(t))
 			timing = now - pd.Timedelta(t)
 	else:
 		timing = now  # now

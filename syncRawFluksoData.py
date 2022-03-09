@@ -127,6 +127,41 @@ def getMissingRaw(session, ids, table_name, default_timing, now):
 	return homes_missing
  
 
+def getFirstTiming(cassandra_session, tmpo_session, ids, table_name, default_timing, now):
+	""" 
+	For each home, get the start timing for the query based on the missing data table
+	(containing for each sensor the first timestamp with missing data from the previous query)
+	if no timestamp available yet for this sensor, we get the first ever timestamp available
+	for the Flukso sensor with tmpo API
+
+	default_timing = last registered timestamp for a home : UTC tz
+	'now' : no tz, but CET by default
+	"""
+	timings = {}
+	for home_id, sensors_ids in ids.items():
+		timings[home_id] = {"first_ts": now} # first_ts = earliest timestamp among all sensors of this home
+		
+		for sid in sensors_ids:
+			where_clause = "sensor_id = {}".format("'"+sid+"'")
+			sensor_missing_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, "*", where_clause, "ALLOW FILTERING", "")
+			
+			if len(sensor_missing_df) > 0:
+				# we get a local timestamp (CET)
+				first_ts = sensor_missing_df.iloc[0]["ts"]
+			
+				# if 'first_ts' is older (in the past) than the current first_ts
+				if isEarlier(first_ts, timings[home_id]["first_ts"]):
+					timings[home_id]["first_ts"] = first_ts
+			
+			else:
+				timings[home_id]["first_ts"] = setInitSeconds(getTiming("4min", now))  # TEMPORARY
+		
+		if timings[home_id]["first_ts"] == now:  # if no missing data for this home
+			timings[home_id]["first_ts"] = default_timing  # UTC tz
+		timings[home_id]["first_ts"] = timings[home_id]["first_ts"].tz_localize("CET").tz_convert("UTC")
+
+	return timings
+
 # ====================================================================================
 
 
@@ -138,6 +173,7 @@ def generateHomes(tmpo_session, sensors_config, since, since_timing, to_timing, 
 		sensors = [] # list of Sensor objects
 		if mode == "automatic":
 			since_timing = homes_missing[hid]["first_ts"]
+			print(hid, since_timing)
 
 		for sid, row in home_sensors.iterrows():
 			sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
@@ -244,7 +280,7 @@ def getColumnsNames(columns):
 	return res
 
 
-def saveRawToCassandra(cassandra_session, homes, missing, table_name):
+def saveRawToCassandra(cassandra_session, homes, table_name):
 	"""
 	Save raw flukso flukso data to Cassandra table
 	Save per sensor : 1 row = 1 sensor + 1 timestamp + 1 power value
@@ -267,10 +303,6 @@ def saveRawToCassandra(cassandra_session, homes, missing, table_name):
 				insert_queries = ""
 				for i, timestamp in enumerate(date_rows[sid].index):
 					ts = str(timestamp)[:19] + "Z"
-					# miss = missing[hid][sid]["s"].loc[(missing[hid][sid]["s"]['ts'] == pd.Timestamp(str(timestamp)[:19]))].any().all()
-					# is_earlier = isEarlier(timestamp, missing[hid][sid]["lts"])
-					# if before last timestamp of the sensor & missing data OR after last timestamp (new data)
-					# if (is_earlier and miss) or (not is_earlier):
 					power = date_rows[sid][i]
 					values = [sid, date, ts, insertion_time, power]
 					insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
@@ -367,8 +399,8 @@ def main():
 	
 	
 	print("Mode : {}".format(mode))
-	print("since : {} (CET) => {} (UTC)".format(since, start_timing))
-	print("to    : {} (CET) => {} (UTC)".format(to, to_timing))
+	print("start timing : {} (CET) => {} (UTC)".format(since, start_timing))
+	print("to timing    : {} (CET) => {} (UTC)".format(to, to_timing))
 	print("now (CET) : ", now_local)
 	print("Number of Homes : ", nb_homes)
 	print("Number of Fluksos : ", len(set(sensors_config.flukso_id)))
@@ -385,15 +417,15 @@ def main():
 	ts1 = time.time()
 
 	# STEP 2 : get missing raw data in raw_missing table
-	homes_missing = getMissingRaw(cassandra_session, ids, TBL_RAW_MISSING, default_timing, now_local)
-	# print(homes_missing["CDB014"])
+	first_timings = getFirstTiming(cassandra_session, tmpo_session, ids, TBL_RAW_MISSING, default_timing, now_local)
+	# print(first_timings["CDB014"])
 	ts2 = time.time()
 
 	# =========================================================
 
 	# STEP 3 : generate homes and grouped homes
 	print("Generating homes data and getting Flukso data...")
-	homes = generateHomes(tmpo_session, sensors_config, since, start_timing, to_timing, home_ids, homes_missing, mode)
+	homes = generateHomes(tmpo_session, sensors_config, since, start_timing, to_timing, home_ids, first_timings, mode)
 	grouped_homes = generateGroupedHomes(homes, groups_config)
 	ts3 = time.time()
 	
@@ -403,7 +435,7 @@ def main():
 	# =========================================================
 	
 	# STEP 4 : save raw flukso data in cassandra
-	saveRawToCassandra(cassandra_session, homes, homes_missing, TBL_RAW)
+	saveRawToCassandra(cassandra_session, homes, TBL_RAW)
 	ts4 = time.time()
 
 	# STEP 5 : save missing raw data in cassandra
