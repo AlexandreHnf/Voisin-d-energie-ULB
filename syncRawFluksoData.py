@@ -49,11 +49,14 @@ def getLastRegisteredTimestamp(cassandra_session, ids):
 	""" 
 	get the last registered timestamp of the raw table
 	- None if no timestamp in the table
+
+	We assume that if there is data in raw table, each sensor has the same last timestmap
+	registered. 
 	"""
 	print("Getting last timestamp...")
 
 	# we assume the sensor_id is present in the table
-	sid = ids[list(ids.keys())[0]][0]
+	sid = ids[list(ids.keys())[0]][0]  # we take the first sensor available
 	# print("sid for the last ts : ", sid)
 
 	dates = ["'" + d + "'" for d in getLastXDates()]
@@ -72,8 +75,8 @@ def getDefaultTiming(mode, start_timing, cassandra_session, ids):
 	If automatic mode : we find the last registered timestamp in raw table
 	If manual mode : the default timing is the specified start_timing
 
-	if last_timestamp comes from raw table, it is a tz-naive Timestamp CET time
-	=> convert it to an aware UTC timezone
+	if last_timestamp comes from raw table, it is a tz-naive Timestamp with CET timezone
+	=> convert it to an tz-aware Timestamp with UTC timezone
 	"""
 	if mode == "automatic":
 		# get last registered timestamp in raw table
@@ -98,7 +101,7 @@ def getMissingRaw(session, ids, table_name, default_timing, now):
 	"""
 	homes_missing = {}
 	for home_id, sensors_ids in ids.items():
-		homes_missing[home_id] = {"first_ts": now}
+		homes_missing[home_id] = {"first_ts": now}  # first_ts = earliest timestamp among all sensors of this home
 
 		for sid in sensors_ids:
 			where_clause = "sensor_id = {}".format("'"+sid+"'")
@@ -122,7 +125,7 @@ def getMissingRaw(session, ids, table_name, default_timing, now):
 		# print("{} : first ts : {}".format(home_id, homes_missing[home_id]["first_ts"]))
 	
 	return homes_missing
-
+ 
 
 # ====================================================================================
 
@@ -200,8 +203,7 @@ def getFluksoData(sensor_file, path=""):
 
 def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 	"""
-	Save raw missing data to Cassandra table
-	-> incomplete rows (with null values)
+	For each home, save the first timestamp with no data (nan values) for each sensors
 	"""
 	print("saving in Cassandra...   => table : {}".format(table_name))
 
@@ -215,25 +217,18 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 		inc_power_df = home.getIncompletePowerDF()
 		sensors_ids = inc_power_df.columns
 		for sid in sensors_ids:
-			insert_queries = ""
-			nb_inserts = 0
-			for i, timestamp in enumerate(inc_power_df.index):
-				# if valid timestamp  TODO : replace to_timing by "now"
-				if (to_timing - timestamp).days < LIMIT_TIMING_RAW: # 2 days max
-					# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
-					ts = str(timestamp)[:19] + "Z"
+			if inc_power_df[sid].isnull().values.any():  # if the column contains null
+				for i, timestamp in enumerate(inc_power_df.index):
+					# if valid timestamp  TODO : replace to_timing by "now"
+					if (to_timing - timestamp).days < LIMIT_TIMING_RAW: # 2 days max
+						# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
+						ts = str(timestamp)[:19] + "Z"
+						if np.isnan(inc_power_df[sid][i]):
 
-					if np.isnan(inc_power_df[sid][i]):
-						values = [sid, ts]
-						insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
-
-						if (nb_inserts+1) % INSERTS_PER_BATCH == 0:
-							ptc.batch_insert(cassandra_session, insert_queries)
-							insert_queries = ""
-							
-						nb_inserts+=1
-
-			ptc.batch_insert(cassandra_session, insert_queries)
+							values = [sid, ts]
+							ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
+							# as soon as we find the first ts with null value, we go to next sensor
+							break
 
 	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
 
@@ -253,6 +248,7 @@ def saveRawToCassandra(cassandra_session, homes, missing, table_name):
 	"""
 	Save raw flukso flukso data to Cassandra table
 	Save per sensor : 1 row = 1 sensor + 1 timestamp + 1 power value
+		home_df : timestamp, sensor_id1, sensor_id2, sensor_id3 ... sensor_idN
 	"""
 	print("saving in Cassandra...   => table : {}".format(table_name))
 
@@ -265,6 +261,7 @@ def saveRawToCassandra(cassandra_session, homes, missing, table_name):
 
 		col_names = ["sensor_id", "day", "ts", "insertion_time", "power"]
 		for date, date_rows in by_day_df:  # loop through each group (each date group)
+
 			for sid in date_rows:  # loop through each column, 1 column = 1 sensor
 				if sid == "date": continue
 				insert_queries = ""
@@ -359,7 +356,6 @@ def main():
 	# =============================================================
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-	# sensors, tmpo_session = getFluksoData(UPDATED_SENSORS_FILE)
 	sensors_config = getSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
 	tmpo_session = getTmpoSession(sensors_config)
 	ids = getSensorsIds(sensors_config)

@@ -32,7 +32,7 @@ def savePowerDataToCassandra(cassandra_session, homes, table_name):
 
 		col_names = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot", "insertion_time"]
 		for date, date_rows in by_day_df:  # loop through each group (each date group)
-			
+
 			insert_queries = ""
 			nb_inserts = 0
 			for timestamp, row in date_rows.iterrows():
@@ -47,7 +47,7 @@ def savePowerDataToCassandra(cassandra_session, homes, table_name):
 
 				nb_inserts+=1
 		
-		ptc.batch_insert(cassandra_session, insert_queries)
+			ptc.batch_insert(cassandra_session, insert_queries)
 	
 	print("Successfully saved power data in cassandra : table {}".format(table_name))
 
