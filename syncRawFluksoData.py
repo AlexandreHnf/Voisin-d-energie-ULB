@@ -166,14 +166,15 @@ def getFirstTiming(cassandra_session, tmpo_session, ids, table_name, default_tim
 
 
 def generateHomes(tmpo_session, sensors_config, since, since_timing, to_timing, home_ids, homes_missing, mode):
+	print("======================= HOMES =======================")
 	homes = {}
 
 	for hid, home_sensors in sensors_config.groupby("home_id"):
-		print("========================= HOME {} =====================".format(hid))
+		print("> {} | ".format(hid), end="")
 		sensors = [] # list of Sensor objects
 		if mode == "automatic":
 			since_timing = homes_missing[hid]["first_ts"]
-			print(hid, since_timing)
+			# print(hid, since_timing)
 
 		for sid, row in home_sensors.iterrows():
 			sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
@@ -184,9 +185,10 @@ def generateHomes(tmpo_session, sensors_config, since, since_timing, to_timing, 
 
 
 def generateGroupedHomes(homes, groups):
+	print("======================= GROUPS =======================")
 	grouped_homes = {}
 	for i, group in enumerate(groups):  # group = tuple (home1, home2, ..)
-		print("========================= GROUP {} ====================".format(i + 1))
+		print("> {} | ".format(i + 1))
 		home = copy.copy(homes[group[0]])
 		for j in range(1, len(group)):
 			print(homes[group[j]].getHomeID(), end=" ")
@@ -422,31 +424,37 @@ def main():
 	ts2 = time.time()
 
 	# =========================================================
-
+	
 	# STEP 3 : generate homes and grouped homes
+	print("==================================================")
 	print("Generating homes data and getting Flukso data...")
 	homes = generateHomes(tmpo_session, sensors_config, since, start_timing, to_timing, home_ids, first_timings, mode)
 	grouped_homes = generateGroupedHomes(homes, groups_config)
 	ts3 = time.time()
 	
+	print("==================================================")
 	saveFluksoDataToCsv(homes.values())
 	saveFluksoDataToCsv(grouped_homes.values())
 
 	# =========================================================
 	
 	# STEP 4 : save raw flukso data in cassandra
+	print("==================================================")
 	saveRawToCassandra(cassandra_session, homes, TBL_RAW)
 	ts4 = time.time()
 
 	# STEP 5 : save missing raw data in cassandra
+	print("==================================================")
 	saveIncompleteRows(cassandra_session, to_timing, homes, TBL_RAW_MISSING)
 	ts5 = time.time()
 
 	# STEP 6 : save power flukso data in cassandra
+	print("==================================================")
 	cp.savePowerDataToCassandra(cassandra_session, homes, TBL_POWER)
 	ts6 = time.time()
 	
 	# STEP 7 : save groups of power flukso data in cassandra
+	print("==================================================")
 	cp.savePowerDataToCassandra(cassandra_session, grouped_homes, TBL_GROUPS_POWER)
 	ts7 = time.time()
 	
