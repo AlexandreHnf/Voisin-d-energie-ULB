@@ -34,6 +34,27 @@ def getSensorsConfigCassandra(cassandra_session, table_name):
 				"", "allow filtering", "")
 
 	return sensors_df.set_index("sensor_id")
+	
+
+def getCurrentSensorsConfigCassandra(cassandra_session, table_name):
+	""" 
+	Get the last registered sensors configuration
+	sensors configurations columns : home ids, sensors ids, tokens, indices for each phase (net, pro, con)
+	"""
+
+	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, ["*"], 
+				"", "allow filtering", "")
+	
+	by_date_df = all_configs_df.groupby("insertion_time")
+	dates = list(by_date_df.groups.keys())
+	current_config_id = dates[-1]   # last config registered
+
+	print("SENSORS CONFIGS ")
+	for config_id, sensors_config in by_date_df:
+		print(config_id)
+		print(sensors_config.head(5))
+
+	return current_config_id, by_date_df
 
 
 def getSensorsIds(sensors):

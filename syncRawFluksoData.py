@@ -93,38 +93,18 @@ def getDefaultTiming(mode, start_timing, cassandra_session, ids):
 # ====================================================================================
 
 
-def getMissingRaw(session, ids, table_name, default_timing, now):
+def getMissingRaw(session, table_name):
 	""" 
-	get the rows of raw data with missing values
-	(cassandra table 'raw_missing')
-	'now' : no tz, but CET by default
+	get the missing raw data timings
+	- for each sensor config, we get for each sensor the first timestamp with missing data (null)
+	and the last timestamp with missing data based on the previous performed query
 	"""
-	homes_missing = {}
-	for home_id, sensors_ids in ids.items():
-		homes_missing[home_id] = {"first_ts": now}  # first_ts = earliest timestamp among all sensors of this home
 
-		for sid in sensors_ids:
-			where_clause = "sensor_id = {}".format("'"+sid+"'")
-			sensor_df = ptc.selectQuery(session, CASSANDRA_KEYSPACE, table_name, "*", where_clause, "ALLOW FILTERING", "")
-
-			homes_missing[home_id][sid] = {"s": sensor_df, "lts": convertTimezone(default_timing, "CET")}
-
-			if len(sensor_df) > 0:
-				first_ts = sensor_df.iloc[0]["ts"]  # we get a local timestamp (CET)
-				# if 'first_ts' is older (in the past) than the current first_ts
-				if isEarlier(first_ts, homes_missing[home_id]["first_ts"]):
-					homes_missing[home_id]["first_ts"] = first_ts
-
-				# save last timestamp of the sensor (CET tz)
-				homes_missing[home_id][sid]["lts"] = sensor_df.iloc[len(sensor_df)-1]["ts"].tz_localize("CET")
-
-		if homes_missing[home_id]["first_ts"] == now:
-			homes_missing[home_id]["first_ts"] = default_timing  # UTC tz
-		else:  # convert to UTC timezone for the future tmpo query
-			homes_missing[home_id]["first_ts"] = homes_missing[home_id]["first_ts"].tz_localize("CET").tz_convert("UTC")
-		# print("{} : first ts : {}".format(home_id, homes_missing[home_id]["first_ts"]))
+	all_missing_df = ptc.selectQuery(session, CASSANDRA_KEYSPACE, table_name, "*", "", "", "")
+	# group by config id (id = insertion time)
+	by_config_df = all_missing_df.groupby("sensors_config_time")  # sort the keys by default
 	
-	return homes_missing
+	return by_config_df
  
 
 def getFirstTiming(cassandra_session, tmpo_session, ids, table_name, default_timing, now):
@@ -154,6 +134,7 @@ def getFirstTiming(cassandra_session, tmpo_session, ids, table_name, default_tim
 					timings[home_id]["first_ts"] = first_ts
 			
 			else:
+				# TODO : change to tmpo first_timestamp()
 				timings[home_id]["first_ts"] = setInitSeconds(getTiming("4min", now))  # TEMPORARY
 		
 		if timings[home_id]["first_ts"] == now:  # if no missing data for this home
@@ -211,8 +192,10 @@ def getTmpoSession(sensors_config, path=""):
 
 	tmpo_session = tmpo.Session(path)
 	for sid, row in sensors_config.iterrows():
+		print(sid, row["sensor_token"])
 		tmpo_session.add(sid, row["sensor_token"])
 
+	print("SYNC : ")
 	tmpo_session.sync()
 
 	return tmpo_session
@@ -390,7 +373,9 @@ def main():
 	# =============================================================
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+	current_config_id, all_sensors_configs = getCurrentSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
 	sensors_config = getSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
+	# sensors_config = all_sensors_configs.get_group(current_config_id).set_index("sensor_id")
 	tmpo_session = getTmpoSession(sensors_config)
 	ids = getSensorsIds(sensors_config)
 
@@ -420,7 +405,6 @@ def main():
 
 	# STEP 2 : get start and end timings for all homes for the query
 	first_timings = getFirstTiming(cassandra_session, tmpo_session, ids, TBL_RAW_MISSING, default_timing, now_local)
-	# print(first_timings["CDB014"])
 	ts2 = time.time()
 
 	# =========================================================

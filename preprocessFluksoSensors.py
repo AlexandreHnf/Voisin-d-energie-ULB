@@ -367,7 +367,7 @@ def main():
     # createRawFluksoTable(cassandra_session, "raw")
     # createPowerTable(cassandra_session, "power")
     # createPowerTable(cassandra_session, "groups_power")
-    createRawMissingTable(cassandra_session, "raw_missing")
+    # createRawMissingTable(cassandra_session, "raw_missing")
 
     # > save home ids to json
     # saveHomeIds(compact_df)
