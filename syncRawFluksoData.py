@@ -183,19 +183,36 @@ def generateGroupedHomes(homes, groups):
 	return grouped_homes
 
 
+def testSession(sensors_config, path=""):
+	if not path:
+		path = getProgDir()
+
+	for sid, row in sensors_config.iterrows():
+		try:
+			print("{}, {}".format(sid, row["sensor_token"]))
+			tmpo_session = tmpo.Session(path)
+			tmpo_session.add(sid, row["sensor_token"])
+			tmpo_session.sync()
+			print("=> OK")
+		except:
+			print("=> NOT OK")
+			continue
+
+
 def getTmpoSession(sensors_config, path=""):
 	""" 
 	Get tmpo (via api) session with all the sensors in it
 	"""
 	if not path:
 		path = getProgDir()
+		# print(path)
 
 	tmpo_session = tmpo.Session(path)
 	for sid, row in sensors_config.iterrows():
-		print(sid, row["sensor_token"])
+		# print(sid, row["sensor_token"])
 		tmpo_session.add(sid, row["sensor_token"])
 
-	print("SYNC : ")
+	# print("SYNC : ")
 	tmpo_session.sync()
 
 	return tmpo_session
@@ -374,16 +391,18 @@ def main():
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 	current_config_id, all_sensors_configs = getCurrentSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
-	sensors_config = getSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
-	# sensors_config = all_sensors_configs.get_group(current_config_id).set_index("sensor_id")
+	# sensors_config = getSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
+	sensors_config = all_sensors_configs.get_group(current_config_id).set_index("sensor_id")
+	# testSession(sensors_config)
 	tmpo_session = getTmpoSession(sensors_config)
 	ids = getSensorsIds(sensors_config)
 
 	home_ids = list(sensors_config.groupby("home_id").indices)
 	nb_homes = len(home_ids)
 
-	groups_config = getGroupsConfigCassandra(cassandra_session, TBL_GROUPS_CONFIG)
-	
+	current_grpconfig_id, all_groups_configs = getGroupsConfigsCassandra(cassandra_session, TBL_GROUPS_CONFIG)
+	# groups_config = getGroupsConfigCassandra(cassandra_session, TBL_GROUPS_CONFIG)	
+	groups_config = all_groups_configs.get_group(current_grpconfig_id)
 	
 	print("Mode : {}".format(mode))
 	print("start timing : {} (CET) => {} (UTC)".format(since, start_timing))

@@ -104,6 +104,25 @@ def getGroupsConfigCassandra(cassandra_session, table_name):
 	return groups
 
 
+def getGroupsConfigsCassandra(cassandra_session, table_name):
+	""" 
+	get all groups config from cassandra table
+	with format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
+	"""
+	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, ["*"], 
+				"", "allow filtering", "")
+	by_date_df = all_configs_df.groupby("insertion_time")
+	dates = list(by_date_df.groups.keys())
+	current_config_id = dates[-1]   # last config registered
+
+	print("GROUPS CONFIGS ")
+	for config_id, groups_config in by_date_df:
+		print(config_id)
+		print(groups_config.head(5))
+	
+	return current_config_id, by_date_df
+
+
 def setInitSeconds(ts):
 	""" 
 	SS = 00 if M even, 04 if odd
