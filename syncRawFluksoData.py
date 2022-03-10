@@ -257,8 +257,8 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 		for sid in sensors_ids:
 			if inc_power_df[sid].isnull().values.any():  # if the column contains null
 				for i, timestamp in enumerate(inc_power_df.index):
-					# if valid timestamp  TODO : replace to_timing by "now"
-					if (to_timing - timestamp).days < LIMIT_TIMING_RAW: # 2 days max
+					# if valid timestamp
+					if (to_timing - timestamp).days < LIMIT_TIMING_RAW: # X days from now max
 						# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
 						ts = str(timestamp)[:19] + "Z"
 						if np.isnan(inc_power_df[sid][i]):
@@ -418,7 +418,7 @@ def main():
 	print("default timing : ", default_timing)
 	ts1 = time.time()
 
-	# STEP 2 : get missing raw data in raw_missing table
+	# STEP 2 : get start and end timings for all homes for the query
 	first_timings = getFirstTiming(cassandra_session, tmpo_session, ids, TBL_RAW_MISSING, default_timing, now_local)
 	# print(first_timings["CDB014"])
 	ts2 = time.time()
@@ -445,7 +445,7 @@ def main():
 
 	# STEP 5 : save missing raw data in cassandra
 	print("==================================================")
-	saveIncompleteRows(cassandra_session, to_timing, homes, TBL_RAW_MISSING)
+	saveIncompleteRows(cassandra_session, now, homes, TBL_RAW_MISSING)
 	ts5 = time.time()
 
 	# STEP 6 : save power flukso data in cassandra

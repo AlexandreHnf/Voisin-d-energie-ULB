@@ -22,7 +22,7 @@ GIDS_FILE =                             "sensors/grp_ids.json"
 # sample frequency
 FREQ =                                  [8, "S"]  # 8 sec.
 
-# missing raw data time limit
+# missing raw data time limit = keep data from max X time back from now
 LIMIT_TIMING_RAW =                      2  # days
 
 # nb of days limit when getting the last timestamp of raw table

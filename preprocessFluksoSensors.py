@@ -286,9 +286,17 @@ def createPowerTable(cassandra_session, table_name):
 
 
 def createRawMissingTable(cassandra_session, table_name):
+    """ 
+    Raw missing table contains timestamps range where there is missing data
+    from a specific query given a specific configuration of the sensors 
+    """
 
-    cols = ["sensor_id TEXT", "ts TIMESTAMP"]
-    ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, ["sensor_id"], ["ts"], {"ts":"ASC"})
+    cols = ["sensor_id TEXT", 
+            "sensors_config_time TIMESTAMP",
+            "start_ts TIMESTAMP",
+            "end_ts TIMESTAMP"]
+    ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, 
+                    ["sensor_id, sensors_config_time"], ["start_ts"], {"start_ts":"ASC"})
 
 
 # ==========================================================================
@@ -359,7 +367,7 @@ def main():
     # createRawFluksoTable(cassandra_session, "raw")
     # createPowerTable(cassandra_session, "power")
     # createPowerTable(cassandra_session, "groups_power")
-    # createRawMissingTable(cassandra_session, "raw_missing")
+    createRawMissingTable(cassandra_session, "raw_missing")
 
     # > save home ids to json
     # saveHomeIds(compact_df)
