@@ -353,9 +353,6 @@ def main():
     # > create config tables
     # createTableSensorConfig(cassandra_session, "sensors_config")
     # createTableGroupsConfig(cassandra_session, "groups_config")
-
-    # now = pd.Timestamp.now(tz="UTC").replace(microsecond=0)   # default tz = CET, unaware timestamp
-    # sensors_config_time = setInitSeconds(getTiming(input("Sensors config update time : "), now))
     # writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
     # writeGroupsConfigCassandra(cassandra_session, "groups_config")
 

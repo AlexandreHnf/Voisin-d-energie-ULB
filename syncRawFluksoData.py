@@ -102,7 +102,7 @@ def getMissingRaw(session, table_name):
 
 	all_missing_df = ptc.selectQuery(session, CASSANDRA_KEYSPACE, table_name, "*", "", "", "")
 	# group by config id (id = insertion time)
-	by_config_df = all_missing_df.groupby("sensors_config_time")  # sort the keys by default
+	by_config_df = all_missing_df.groupby("sensors_config_time")  # keys sorted by default
 	
 	return by_config_df
  
@@ -147,6 +147,9 @@ def getFirstTiming(cassandra_session, tmpo_session, ids, table_name, default_tim
 
 
 def generateHomes(tmpo_session, sensors_config, since, since_timing, to_timing, home_ids, homes_missing, mode):
+	""" 
+	
+	"""
 	print("======================= HOMES =======================")
 	homes = {}
 
@@ -165,20 +168,29 @@ def generateHomes(tmpo_session, sensors_config, since, since_timing, to_timing, 
 	return homes
 
 
-def generateGroupedHomes(homes, groups):
+def generateGroupedHomes(homes, groups_config):
+	""" 
+	We receive a groups configuration of the form : 
+	group_id, homes (list of home_ids)
+	"""
 	print("======================= GROUPS =======================")
 	grouped_homes = {}
-	for i, group in enumerate(groups):  # group = tuple (home1, home2, ..)
-		print("> {} | ".format(i + 1))
-		home = copy.copy(homes[group[0]])
-		for j in range(1, len(group)):
-			print(homes[group[j]].getHomeID(), end=" ")
-			home.appendFluksoData(homes[group[j]].getRawDF(), homes[group[j]].getHomeID())
-			home.addConsProd(homes[group[j]].getConsProdDF())
-		home.setHomeID("group_" + str(i + 1))
+	print(groups_config)
+	by_group_id = groups_config.groupby("group_id")
+
+	for gid, group in by_group_id:
+		print("> {} : ".format(gid))
+		home_ids = list(group["homes"][group.index[0]])
+		print("Home ids : ", home_ids)
+		home = copy.copy(homes[home_ids[0]])
+		for j in range(1, len(home_ids)):
+			print(homes[home_ids[j]].getHomeID(), end=" ")
+			home.appendFluksoData(homes[home_ids[j]].getRawDF(), homes[home_ids[j]].getHomeID())
+			home.addConsProd(homes[home_ids[j]].getConsProdDF())
+		home.setHomeID("group_" + gid)
 		print()
 
-		grouped_homes["group" + str(i+1)] = home
+		grouped_homes["group" + gid] = home
 
 	return grouped_homes
 
@@ -221,6 +233,7 @@ def getTmpoSession(sensors_config, path=""):
 def getFluksoData(sensor_file, path=""):
 	"""
 	get Flukso tmpo session (via API) + sensors info (IDs, ...)
+	from a csv file containing the sensors configurations
 	"""
 	if not path:
 		path = getProgDir()
@@ -269,17 +282,6 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 							break
 
 	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
-
-
-def getColumnsNames(columns):
-	res = []
-	for i in range(len(columns)):
-		index = str(i+1)
-		# if len(index) == 1:
-		#     index = "0" + index
-		res.append("phase" + index)
-
-	return res
 
 
 def saveRawToCassandra(cassandra_session, homes, table_name):
