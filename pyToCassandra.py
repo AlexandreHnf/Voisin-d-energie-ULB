@@ -49,7 +49,7 @@ def insert(session, keyspace, table, columns, values):
     """
     query = "INSERT INTO {}.{} ({}) VALUES ({});" \
                     .format(keyspace, table, ",".join(columns), ",".join(getRightFormat(values)))
-    # print("===> insert query :", query)
+    print("===> insert query :", query)
     session.execute(query)
 
 

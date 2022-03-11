@@ -7,6 +7,7 @@ Script to fetch Fluksometer data using the tmpo protocol and
 """
 
 from email.policy import default
+from gevent import config
 
 from setuptools import setup
 from home import *
@@ -135,7 +136,7 @@ def getFirstTiming(cassandra_session, tmpo_session, ids, table_name, default_tim
 			
 			else:
 				# TODO : change to tmpo first_timestamp()
-				timings[home_id]["first_ts"] = setInitSeconds(getTiming("4min", now))  # TEMPORARY
+				timings[home_id]["first_ts"] = setInitSeconds(getTiming("3min", now))  # TEMPORARY
 		
 		if timings[home_id]["first_ts"] == now:  # if no missing data for this home
 			timings[home_id]["first_ts"] = default_timing  # UTC tz
@@ -252,7 +253,7 @@ def getFluksoData(sensor_file, path=""):
 # ====================================================================================
 
 
-def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
+def saveMissingData(cassandra_session, config_id, to_timing, homes, table_name):
 	"""
 	For each home, save the first timestamp with no data (nan values) for each sensors
 	"""
@@ -261,25 +262,31 @@ def saveIncompleteRows(cassandra_session, to_timing, homes, table_name):
 	ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, table_name)  # truncate existing rows
 
 	to_timing = convertTimezone(to_timing, "CET")
+	sensors_config_time = str(config_id)[:19] + "Z"
 
-	col_names = ["sensor_id", "ts"]
+	col_names = ["sensor_id", "sensors_config_time", "start_ts", "end_ts"]
 	for hid, home in homes.items():
 		print(hid, end=" ")
 		inc_power_df = home.getIncompletePowerDF()
-		sensors_ids = inc_power_df.columns
-		for sid in sensors_ids:
-			if inc_power_df[sid].isnull().values.any():  # if the column contains null
-				for i, timestamp in enumerate(inc_power_df.index):
-					# if valid timestamp
-					if (to_timing - timestamp).days < LIMIT_TIMING_RAW: # X days from now max
-						# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
-						ts = str(timestamp)[:19] + "Z"
-						if np.isnan(inc_power_df[sid][i]):
-
-							values = [sid, ts]
-							ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
-							# as soon as we find the first ts with null value, we go to next sensor
-							break
+		if len(inc_power_df) > 0:
+			sensors_ids = inc_power_df.columns
+			for sid in sensors_ids:
+				last_ts = str(inc_power_df.index[-1])[:19] + "Z"
+				if inc_power_df[sid].isnull().values.any():  # if the column contains null
+					for i, timestamp in enumerate(inc_power_df.index):
+						# if valid timestamp
+						if (to_timing - timestamp).days < LIMIT_TIMING_RAW: # X days from now max
+							# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
+							first_ts = str(timestamp)[:19] + "Z"
+							if np.isnan(inc_power_df[sid][i]):
+								
+								values = [sid, sensors_config_time, first_ts, last_ts]
+								print("start_ts : ", first_ts)
+								print("end_ts: ", last_ts)
+								print("sensors config time : ", sensors_config_time)
+								ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
+								# as soon as we find the first ts with null value, we go to next sensor
+								break
 
 	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
 
@@ -450,7 +457,7 @@ def main():
 
 	# STEP 5 : save missing raw data in cassandra
 	print("==================================================")
-	saveIncompleteRows(cassandra_session, now, homes, TBL_RAW_MISSING)
+	saveMissingData(cassandra_session, current_config_id, now, homes, TBL_RAW_MISSING)
 	ts5 = time.time()
 
 	# STEP 6 : save power flukso data in cassandra
