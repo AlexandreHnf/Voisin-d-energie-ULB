@@ -4,9 +4,11 @@ class Configuration:
     def __init__(self, sconfig_id, sconfig_df, gconfig_df):
         self.sconfig_id = sconfig_id
         self.sconfig_df = sconfig_df
-        self.gconfig_df = gconfig_df 
+        self.gconfig_df = gconfig_df
 
-    def getSensorConfigID(self):
+        self.ids = self.getHomeSensors()
+
+    def getConfigID(self):
         return self.sconfig_id
 
     def getSensorsConfig(self):
@@ -22,3 +24,17 @@ class Configuration:
         - group_id, homes (list of home ids)
         """
         return self.gconfig_df
+
+    def getHomeSensors(self):
+        """ 
+        return a dictionary with
+        key : home id, value : list of sensor ids
+        """
+        ids = {}
+        for hid, home in self.sconfig_df.groupby("home_id"):
+            ids[hid] = list(home.index)
+        
+        return ids
+
+    def getIds(self):
+        return self.ids
