@@ -10,6 +10,7 @@ from home import *
 from gui import *
 from constants import *
 import pyToCassandra as ptc
+from sensorConfig import Configuration
 from utils import * 
 import computePower as cp
 from sensor import *
@@ -104,12 +105,26 @@ def getMissingRaw(session, table_name):
 	return by_config_df
 
 
-def getNeededConfigs(all_sensors_configs, all_groups_configs, missing_data, cur_sconfig, cur_gconfig):
+def getNeededConfigs(all_sensors_configs, all_groups_configs, missing_data, cur_sconfig):
 	""" 
 	From the missing data table, deduce the configurations to use
 	Return a list of Configuration objects
+	all_sensors_configs and all_groups_configs : a groupby object : 
+		keys = config ids (insertion dates), values = dataframe
+
+	return : list of Configuration objects, each object = 1 config
 	"""
-	pass
+	configs = []
+	needed_configs = list(missing_data.keys())
+	if cur_sconfig not in needed_configs:
+		needed_configs.append(cur_sconfig)
+
+	for config_id in needed_configs:
+		config = Configuration(config_id, all_sensors_configs.get_group(config_id), 
+							   config_id, all_groups_configs.get_group(config_id))
+		configs.append(config)
+
+	return configs
  
 
 def getFirstTiming(cassandra_session, tmpo_session, ids, table_name, default_timing, now):

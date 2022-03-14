@@ -86,12 +86,12 @@ def getCompactSensorDF():
     return compact_df
 
 
-def writeSensorsConfigCassandra(cassandra_session, compact_df, table_name):
+def writeSensorsConfigCassandra(cassandra_session, compact_df, table_name, now):
     """ 
     write sensors config to cassandra table 
     """
     col_names = ["insertion_time", "home_id", "phase", "flukso_id", "sensor_id", "sensor_token", "net", "con", "pro"]
-    insertion_time = str(pd.Timestamp.now())[:19] + "Z"
+    insertion_time = str(now)[:19] + "Z"
 
     for _, row in compact_df.iterrows():
         values = [insertion_time] + list(row)
@@ -130,7 +130,7 @@ def writeGroupsFromFluksoIDs():
             gf.write(group[:-1] + "\n")  # -1 to remove the last ","
 
 
-def writeGroupsConfigCassandra(cassandra_session, table_name):
+def writeGroupsConfigCassandra(cassandra_session, table_name, now):
     """ 
     write groups config data in cassandra table 
     1 row = all the installations ids of a group (home ids)
@@ -139,7 +139,7 @@ def writeGroupsConfigCassandra(cassandra_session, table_name):
     nb_groups = len(set(groups_df["GroupId"]))
 
     cols = ["insertion_time", "group_id", "homes"]
-    insertion_time = str(pd.Timestamp.now())[:19] + "Z"
+    insertion_time = str(now)[:19] + "Z"
 
     for i in range(nb_groups):
         home_ids = []
@@ -352,13 +352,16 @@ def main():
     compact_df = correctPhaseSigns(compact_df)
     print("nb sensors : ", len(compact_df))
 
+    now = pd.Timestamp.now()
+
     # > create config tables
     # createTableSensorConfig(cassandra_session, "sensors_config")
     # createTableGroupsConfig(cassandra_session, "groups_config")
-    # writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config")
-    # writeGroupsConfigCassandra(cassandra_session, "groups_config")
+    # : /!\ run both at the same time to have consistent ids
+    # writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config", now)
+    # writeGroupsConfigCassandra(cassandra_session, "groups_config", now)
 
-    # > setup the groups of flukso in a txt file 
+    # > setup the groups of flukso in a txt file
     # writeGroupsFromFluksoIDs()
     # writeGroupsFromInstallationsIds()
 
