@@ -6,10 +6,6 @@ Script to fetch Fluksometer data using the tmpo protocol and
 - save the raw data in Cassandra database
 """
 
-from email.policy import default
-from gevent import config
-
-from setuptools import setup
 from home import *
 from gui import *
 from constants import *
@@ -106,6 +102,14 @@ def getMissingRaw(session, table_name):
 	by_config_df = all_missing_df.groupby("config_id")  # keys sorted by default
 	
 	return by_config_df
+
+
+def getNeededConfigs(all_sensors_configs, all_groups_configs, missing_data, cur_sconfig, cur_gconfig):
+	""" 
+	From the missing data table, deduce the configurations to use
+	Return a list of Configuration objects
+	"""
+	pass
  
 
 def getFirstTiming(cassandra_session, tmpo_session, ids, table_name, default_timing, now):
@@ -474,7 +478,7 @@ def main():
 	# =========================================================
 	
 
-	print("=============== Timings ===================")
+	print("================= Timings ===================")
 	print("> Setup time : {}.".format(getTimeSpent(begin, setup_time)))
 	print("> Step 1 time (last ts) : {}.".format(getTimeSpent(setup_time, ts1)))
 	print("> Step 2 time (missing) : {}.".format(getTimeSpent(ts1, ts2)))

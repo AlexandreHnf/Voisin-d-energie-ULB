@@ -40,6 +40,7 @@ def getCurrentSensorsConfigCassandra(cassandra_session, table_name):
 	""" 
 	Get the last registered sensors configuration
 	sensors configurations columns : home ids, sensors ids, tokens, indices for each phase (net, pro, con)
+	method : get all rows of the table, groupby config id (sorted by dates) and pick the last one
 	"""
 
 	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, ["*"], 
