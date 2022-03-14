@@ -15,7 +15,7 @@ from datetime import date, timedelta
 # called by syncRawFluksoData.py just after writing raw data to cassandra
 # ====================================================================================
 
-def savePowerDataToCassandra(cassandra_session, homes, table_name):
+def savePowerDataToCassandra(cassandra_session, homes, sensors_config_id, table_name):
 	""" 
 	save power flukso data to cassandra : P_cons, P_prod, P_tot
 	- homes : Home objects 
@@ -24,13 +24,14 @@ def savePowerDataToCassandra(cassandra_session, homes, table_name):
 	print("saving in Cassandra...   => table : {}".format(table_name))
 
 	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
+	config_id = str(sensors_config_id)[:19] + "Z"
 	for hid, home in homes.items():
 		print(hid, end=" ")
 		cons_prod_df = home.getConsProdDF()
 		cons_prod_df['date'] = cons_prod_df.apply(lambda row: str(row.name.date()), axis=1) # add date column
 		by_day_df = cons_prod_df.groupby("date")  # group by date
 
-		col_names = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot", "insertion_time"]
+		col_names = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot", "insertion_time", "config_id"]
 		for date, date_rows in by_day_df:  # loop through each group (each date group)
 
 			insert_queries = ""
@@ -38,7 +39,7 @@ def savePowerDataToCassandra(cassandra_session, homes, table_name):
 			for timestamp, row in date_rows.iterrows():
 				# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
 				ts = str(timestamp)[:19] + "Z"
-				values = [hid, date, ts] + list(row)[:-1] + [insertion_time]  # [:-1] to avoid date column
+				values = [hid, date, ts] + list(row)[:-1] + [insertion_time, config_id]  # [:-1] to avoid date column
 				insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
 
 				if (nb_inserts+1) % INSERTS_PER_BATCH == 0:

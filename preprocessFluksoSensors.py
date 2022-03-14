@@ -262,13 +262,14 @@ def createRawFluksoTable(cassandra_session, table_name):
 	""" 
 	compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
 	create a cassandra table for the raw flukso data : 
-		columns : flukso_sensor_id, day, timestamp, insertion_time, power_value 
+		columns : flukso_sensor_id, day, timestamp, insertion_time, config_id, power_value 
 	"""
 
 	columns = ["sensor_id TEXT", 
 			   "day TEXT", 
 			   "ts TIMESTAMP", 
 			   "insertion_time TIMESTAMP", 
+               "config_id TIMESTAMP",
 			   "power FLOAT"]
 	ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, columns, ["sensor_id, day"], ["ts"], {"ts":"ASC"})
 
@@ -281,7 +282,8 @@ def createPowerTable(cassandra_session, table_name):
 				  "P_cons FLOAT", 
 				  "P_prod FLOAT", 
 				  "P_tot FLOAT", 
-				  "insertion_time TIMESTAMP"]
+				  "insertion_time TIMESTAMP",
+                  "config_id TIMESTAMP",]
     ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, power_cols, ["home_id, day"], ["ts"], {"ts":"ASC"})
 
 
@@ -292,11 +294,11 @@ def createRawMissingTable(cassandra_session, table_name):
     """
 
     cols = ["sensor_id TEXT", 
-            "sensors_config_time TIMESTAMP",
+            "config_id TIMESTAMP",
             "start_ts TIMESTAMP",
             "end_ts TIMESTAMP"]
     ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, 
-                    ["sensor_id, sensors_config_time"], ["start_ts"], {"start_ts":"ASC"})
+                    ["sensor_id, config_id"], ["start_ts"], {"start_ts":"ASC"})
 
 
 # ==========================================================================

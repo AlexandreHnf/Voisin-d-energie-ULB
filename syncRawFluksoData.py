@@ -103,7 +103,7 @@ def getMissingRaw(session, table_name):
 
 	all_missing_df = ptc.selectQuery(session, CASSANDRA_KEYSPACE, table_name, "*", "", "", "")
 	# group by config id (id = insertion time)
-	by_config_df = all_missing_df.groupby("sensors_config_time")  # keys sorted by default
+	by_config_df = all_missing_df.groupby("config_id")  # keys sorted by default
 	
 	return by_config_df
  
@@ -262,9 +262,9 @@ def saveMissingData(cassandra_session, config_id, to_timing, homes, table_name):
 	ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, table_name)  # truncate existing rows
 
 	to_timing = convertTimezone(to_timing, "CET")
-	sensors_config_time = str(config_id)[:19] + "Z"
+	config_id = str(config_id)[:19] + "Z"
 
-	col_names = ["sensor_id", "sensors_config_time", "start_ts", "end_ts"]
+	col_names = ["sensor_id", "config_id", "start_ts", "end_ts"]
 	for hid, home in homes.items():
 		print(hid, end=" ")
 		inc_power_df = home.getIncompletePowerDF()
@@ -280,10 +280,10 @@ def saveMissingData(cassandra_session, config_id, to_timing, homes, table_name):
 							first_ts = str(timestamp)[:19] + "Z"
 							if np.isnan(inc_power_df[sid][i]):
 								
-								values = [sid, sensors_config_time, first_ts, last_ts]
+								values = [sid, config_id, first_ts, last_ts]
 								print("start_ts : ", first_ts)
 								print("end_ts: ", last_ts)
-								print("sensors config time : ", sensors_config_time)
+								print("sensors config time : ", config_id)
 								ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 								# as soon as we find the first ts with null value, we go to next sensor
 								break
@@ -291,7 +291,7 @@ def saveMissingData(cassandra_session, config_id, to_timing, homes, table_name):
 	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
 
 
-def saveRawToCassandra(cassandra_session, homes, table_name):
+def saveRawToCassandra(cassandra_session, homes, sensors_config_id, table_name):
 	"""
 	Save raw flukso flukso data to Cassandra table
 	Save per sensor : 1 row = 1 sensor + 1 timestamp + 1 power value
@@ -300,13 +300,14 @@ def saveRawToCassandra(cassandra_session, homes, table_name):
 	print("saving in Cassandra...   => table : {}".format(table_name))
 
 	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
+	config_id = str(sensors_config_id)[:19] + "Z"
 	for hid, home in homes.items():
 		print(hid)
 		power_df = home.getRawDF()
 		power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1) # add date column
 		by_day_df = power_df.groupby("date")  # group by date
 
-		col_names = ["sensor_id", "day", "ts", "insertion_time", "power"]
+		col_names = ["sensor_id", "day", "ts", "insertion_time", "config_id", "power"]
 		for date, date_rows in by_day_df:  # loop through each group (each date group)
 
 			for sid in date_rows:  # loop through each column, 1 column = 1 sensor
@@ -315,7 +316,7 @@ def saveRawToCassandra(cassandra_session, homes, table_name):
 				for i, timestamp in enumerate(date_rows[sid].index):
 					ts = str(timestamp)[:19] + "Z"
 					power = date_rows[sid][i]
-					values = [sid, date, ts, insertion_time, power]
+					values = [sid, date, ts, insertion_time, config_id, power]
 					insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
 
 					if (i+1) % INSERTS_PER_BATCH == 0:
@@ -452,7 +453,7 @@ def main():
 	
 	# STEP 4 : save raw flukso data in cassandra
 	print("==================================================")
-	saveRawToCassandra(cassandra_session, homes, TBL_RAW)
+	saveRawToCassandra(cassandra_session, homes, current_config_id, TBL_RAW)
 	ts4 = time.time()
 
 	# STEP 5 : save missing raw data in cassandra
@@ -462,12 +463,12 @@ def main():
 
 	# STEP 6 : save power flukso data in cassandra
 	print("==================================================")
-	cp.savePowerDataToCassandra(cassandra_session, homes, TBL_POWER)
+	cp.savePowerDataToCassandra(cassandra_session, homes, current_config_id, TBL_POWER)
 	ts6 = time.time()
 	
 	# STEP 7 : save groups of power flukso data in cassandra
 	print("==================================================")
-	cp.savePowerDataToCassandra(cassandra_session, grouped_homes, TBL_GROUPS_POWER)
+	cp.savePowerDataToCassandra(cassandra_session, grouped_homes, current_config_id, TBL_GROUPS_POWER)
 	ts7 = time.time()
 	
 	# =========================================================
