@@ -190,7 +190,9 @@ def generateHomes(tmpo_session, config, since, since_timing, to_timing, homes_mi
 		sensors = [] # list of Sensor objects
 		if mode == "automatic":
 			since_timing = homes_missing[hid]["first_ts"]
+			to_timing = homes_missing[hid]["last_ts"]
 			# print(hid, since_timing)
+			print(hid, to_timing)
 
 		for sid, row in home_sensors.iterrows():
 			sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
@@ -282,7 +284,7 @@ def getFluksoData(sensor_file, path=""):
 # ====================================================================================
 
 
-def saveMissingData(cassandra_session, config_id, to_timing, homes, table_name):
+def saveMissingData(cassandra_session, config, to_timing, homes, table_name):
 	"""
 	For each home, save the first timestamp with no data (nan values) for each sensors
 	"""
@@ -291,7 +293,7 @@ def saveMissingData(cassandra_session, config_id, to_timing, homes, table_name):
 	ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, table_name)  # truncate existing rows
 
 	to_timing = convertTimezone(to_timing, "CET")
-	config_id = str(config_id)[:19] + "Z"
+	config_id = str(config.getConfigID())[:19] + "Z"
 
 	col_names = ["sensor_id", "config_id", "start_ts", "end_ts"]
 	for hid, home in homes.items():
@@ -320,16 +322,17 @@ def saveMissingData(cassandra_session, config_id, to_timing, homes, table_name):
 	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
 
 
-def saveRawToCassandra(cassandra_session, homes, sensors_config_id, table_name):
+def saveRawToCassandra(cassandra_session, homes, config, table_name):
 	"""
 	Save raw flukso flukso data to Cassandra table
 	Save per sensor : 1 row = 1 sensor + 1 timestamp + 1 power value
 		home_df : timestamp, sensor_id1, sensor_id2, sensor_id3 ... sensor_idN
 	"""
 	print("saving in Cassandra...   => table : {}".format(table_name))
+	# TODO : insert a row only if the timestamp is after the start timing for each sensor
 
 	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
-	config_id = str(sensors_config_id)[:19] + "Z"
+	config_id = str(config.getConfigID())[:19] + "Z"
 	for hid, home in homes.items():
 		print(hid)
 		power_df = home.getRawDF()
@@ -487,31 +490,31 @@ def main():
 		# saveFluksoDataToCsv(homes.values())
 		# saveFluksoDataToCsv(grouped_homes.values())
 
+		# =========================================================
+		
+		# STEP 4 : save raw flukso data in cassandra
+		print("==================================================")
+		saveRawToCassandra(cassandra_session, homes, current_config_id, TBL_RAW)
+		ts4 = time.time()
+
+		# STEP 5 : save missing raw data in cassandra
+		print("==================================================")
+		saveMissingData(cassandra_session, current_config_id, now, homes, TBL_RAW_MISSING)
+		ts5 = time.time()
+
+		# STEP 6 : save power flukso data in cassandra
+		print("==================================================")
+		cp.savePowerDataToCassandra(cassandra_session, homes, current_config_id, TBL_POWER)
+		ts6 = time.time()
+		
+		# STEP 7 : save groups of power flukso data in cassandra
+		print("==================================================")
+		cp.savePowerDataToCassandra(cassandra_session, grouped_homes, current_config_id, TBL_GROUPS_POWER)
+		ts7 = time.time()
+	
 	# =========================================================
 	
-	# STEP 4 : save raw flukso data in cassandra
-	print("==================================================")
-	saveRawToCassandra(cassandra_session, homes, current_config_id, TBL_RAW)
-	ts4 = time.time()
-
-	# STEP 5 : save missing raw data in cassandra
-	print("==================================================")
-	saveMissingData(cassandra_session, current_config_id, now, homes, TBL_RAW_MISSING)
-	ts5 = time.time()
-
-	# STEP 6 : save power flukso data in cassandra
-	print("==================================================")
-	cp.savePowerDataToCassandra(cassandra_session, homes, current_config_id, TBL_POWER)
-	ts6 = time.time()
-	
-	# STEP 7 : save groups of power flukso data in cassandra
-	print("==================================================")
-	cp.savePowerDataToCassandra(cassandra_session, grouped_homes, current_config_id, TBL_GROUPS_POWER)
-	ts7 = time.time()
-	
-	# =========================================================
-	
-
+	# TODO : refactor timings with configs
 	print("================= Timings ===================")
 	print("> Setup time : {}.".format(getTimeSpent(begin, setup_time)))
 	print("> Step 1 time (last ts) : {}.".format(getTimeSpent(setup_time, ts1)))

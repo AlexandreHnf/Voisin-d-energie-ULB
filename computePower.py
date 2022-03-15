@@ -15,7 +15,7 @@ from datetime import date, timedelta
 # called by syncRawFluksoData.py just after writing raw data to cassandra
 # ====================================================================================
 
-def savePowerDataToCassandra(cassandra_session, homes, sensors_config_id, table_name):
+def savePowerDataToCassandra(cassandra_session, homes, config, table_name):
 	""" 
 	save power flukso data to cassandra : P_cons, P_prod, P_tot
 	- homes : Home objects 
@@ -24,7 +24,7 @@ def savePowerDataToCassandra(cassandra_session, homes, sensors_config_id, table_
 	print("saving in Cassandra...   => table : {}".format(table_name))
 
 	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
-	config_id = str(sensors_config_id)[:19] + "Z"
+	config_id = str(config.getConfigID())[:19] + "Z"
 	for hid, home in homes.items():
 		print(hid, end=" ")
 		cons_prod_df = home.getConsProdDF()
