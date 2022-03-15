@@ -141,7 +141,7 @@ def selectQuery(session, keyspace, table, columns, where_clause, allow_filtering
         where = "WHERE"
     
     query = "SELECT {} FROM {}.{} {} {} {} {};".format(
-        ",".join(columns), keyspace, table, where, where_clause, limit, allow_filtering
+        ",".join(columns), keyspace, table, where, where_clause, allow_filtering, limit
     )
 
     # print("===> select query : ", query)

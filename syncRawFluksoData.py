@@ -44,7 +44,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 # ====================================================================================
 
 
-def getLastRegisteredTimestamp(cassandra_session, ids):
+def getLastRegisteredTimestamp(cassandra_session, config):
 	""" 
 	get the last registered timestamp of the raw table
 	- None if no timestamp in the table
@@ -55,13 +55,14 @@ def getLastRegisteredTimestamp(cassandra_session, ids):
 	print("Getting last timestamp...")
 
 	# we assume the sensor_id is present in the table
-	sid = ids[list(ids.keys())[0]][0]  # we take the first sensor available
+	sid = config.getFirstSensorId()  # we take the first sensor available
 	# print("sid for the last ts : ", sid)
 
 	dates = ["'" + d + "'" for d in getLastXDates()]
 	ts_df = None
 	for date in dates:
-		where_clause = "sensor_id = {} AND day = {} ORDER BY ts DESC".format("'"+sid+"'", date)
+		where_clause = "sensor_id = '{}' AND day = {} AND config_id = '{}.000000+0000' ORDER BY ts DESC".format(
+						sid, date, str(config.getConfigID()))
 		ts_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, "raw", ["ts"], where_clause, "", "LIMIT 1")
 		if len(ts_df) > 0:
 			return ts_df
@@ -69,7 +70,7 @@ def getLastRegisteredTimestamp(cassandra_session, ids):
 	return ts_df
 
 
-def getDefaultTiming(mode, start_timing, cassandra_session, ids):
+def getDefaultTiming(mode, start_timing, cassandra_session, config):
 	""" 
 	If automatic mode : we find the last registered timestamp in raw table
 	If manual mode : the default timing is the specified start_timing
@@ -79,7 +80,7 @@ def getDefaultTiming(mode, start_timing, cassandra_session, ids):
 	"""
 	if mode == "automatic":
 		# get last registered timestamp in raw table
-		last_timestamp = getLastRegisteredTimestamp(cassandra_session, ids)
+		last_timestamp = getLastRegisteredTimestamp(cassandra_session, config)
 		if not last_timestamp.empty:  # != None
 			return last_timestamp.iloc[0]['ts'].tz_localize("CET").tz_convert("UTC")
 		else:  # if no registered timestamp in raw table yet
@@ -128,7 +129,7 @@ def getNeededConfigs(all_sensors_configs, all_groups_configs, missing_data, cur_
 	return configs
  
 
-def getTimings(cassandra_session, tmpo_session, config, current_config_id, missing_data, table_name, default_timing, now):
+def getTimings(cassandra_session, tmpo_session, config, current_config_id, table_name, default_timing, now):
 	""" 
 	For each home, get the start timing for the query based on the missing data table
 	(containing for each sensor the first timestamp with missing data from the previous query)
@@ -160,8 +161,8 @@ def getTimings(cassandra_session, tmpo_session, config, current_config_id, missi
 				if timings[home_id]["last_ts"] is None:
 					timings[home_id]["last_ts"] = last_ts
 			
-			else:
-				if config.getConfigID() == current_config_id:
+			else:  # if no missing data for this sensor, we take all data from its first timestamp
+				if config.getConfigID() == current_config_id:  # only if current config
 					# TODO : change to tmpo first_timestamp()
 					timings[home_id]["first_ts"] = setInitSeconds(getTiming("3min", now))  # TEMPORARY
 		
@@ -174,14 +175,17 @@ def getTimings(cassandra_session, tmpo_session, config, current_config_id, missi
 # ====================================================================================
 
 
-def generateHomes(tmpo_session, sensors_config, since, since_timing, to_timing, home_ids, homes_missing, mode):
+def generateHomes(tmpo_session, config, since, since_timing, to_timing, homes_missing, mode):
 	""" 
-	
+	Given a configuration (sensors information, homes..), generate home objects
+	1 home = combination of sensors (Sensor objects).
+	For each home, query tmpo to get data given a predefined time interval, then
+	compute power raw data, production, consumption, total  
 	"""
 	print("======================= HOMES =======================")
 	homes = {}
 
-	for hid, home_sensors in sensors_config.groupby("home_id"):
+	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
 		print("> {} | ".format(hid), end="")
 		sensors = [] # list of Sensor objects
 		if mode == "automatic":
@@ -461,13 +465,13 @@ def main():
 	
 	# =========================================================
 
-	# STEP 1 : get last registered timestamp in raw table
-	default_timing = getDefaultTiming(mode, start_timing, cassandra_session, ids)
+	# STEP 1 : get last registered timestamp in raw table (using current config)
+	default_timing = getDefaultTiming(mode, start_timing, cassandra_session, configs[-1])
 	print("default timing : ", default_timing)
 	ts1 = time.time()
 
 	# STEP 2 : get start and end timings for all homes for the query
-	first_timings = getTimings(cassandra_session, tmpo_session, ids, TBL_RAW_MISSING, default_timing, now_local)
+	timings = getTimings(cassandra_session, tmpo_session, ids, TBL_RAW_MISSING, default_timing, now_local)
 	ts2 = time.time()
 
 	# =========================================================
@@ -475,7 +479,7 @@ def main():
 	# STEP 3 : generate homes and grouped homes
 	print("==================================================")
 	print("Generating homes data and getting Flukso data...")
-	homes = generateHomes(tmpo_session, sensors_config, since, start_timing, to_timing, home_ids, first_timings, mode)
+	homes = generateHomes(tmpo_session, sensors_config, since, start_timing, to_timing, timings, mode)
 	grouped_homes = generateGroupedHomes(homes, groups_config)
 	ts3 = time.time()
 	

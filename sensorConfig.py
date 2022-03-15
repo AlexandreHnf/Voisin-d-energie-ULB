@@ -11,6 +11,13 @@ class Configuration:
     def getConfigID(self):
         return self.sconfig_id
 
+    def getFirstSensorId(self):
+        """ 
+        Get the first sensor id of the list of sensors
+        -> useful when all sensors of a home share the same property for ex.
+        """
+        return self.ids[list(self.ids.keys())[0]][0]
+
     def getSensorsConfig(self):
         """ 
         get a dataframe with columns : 
