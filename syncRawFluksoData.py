@@ -383,6 +383,32 @@ def saveFluksoDataToCsv(homes):
     print("Successfully Saved flukso data in csv")
 
 
+# ====================================================================================
+
+
+def showProcessingTimes(configs, begin, setup_time, last_ts_time, config_timers):
+	""" 
+	Display processing time for each step of 1 query
+	- TODO : replace all this by a Timer class
+	"""
+	print("================= Timings ===================")
+	print("> Setup time : {}.".format(getTimeSpent(begin, setup_time)))
+	print("> Last ts : {}.".format(getTimeSpent(setup_time, last_ts_time)))
+
+	for i, config in enumerate(configs):
+		config_id = config.getConfigID()
+		print("> Config {} : {}".format(i+1, str(config_id)))
+		t = config_timers[config_id]
+		print("  > Timings : {}.".format(getTimeSpent(t[0], t[1])))
+		print("  > Generate homes : {}.".format(getTimeSpent(t[1], t[2])))
+		print("  > save raw : {}.".format(getTimeSpent(t[2], t[3])))
+		print("  > Save missing : {}.".format(getTimeSpent(t[3], t[4])))
+		print("  > Save power : {}.".format(getTimeSpent(t[4], t[5])))
+		print("  > Save groups power : {}.".format(getTimeSpent(t[5], t[6])))
+	
+	print("> Total Processing time : {}.".format(getTimeSpent(begin, time.time())))
+
+
 def processArguments():
 	""" 
 	# 29-10-2021 from Midnight to midnight :
@@ -441,9 +467,7 @@ def main():
 	# sensors_config = getSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
 	# sensors_config = all_sensors_configs.get_group(current_config_id).set_index("sensor_id")
 	# testSession(sensors_config)
-
 	# ids = getSensorsIds(sensors_config)
-
 	# home_ids = list(sensors_config.groupby("home_id").indices)
 	# nb_homes = len(home_ids)
 
@@ -458,6 +482,7 @@ def main():
 	print("start timing : {} (CET) => {} (UTC)".format(since, start_timing))
 	print("to timing    : {} (CET) => {} (UTC)".format(to, to_timing))
 	print("now (CET) : ", now_local)
+	print("Number of configs : ", len(configs))
 
 	setup_time = time.time()
 	
@@ -466,9 +491,13 @@ def main():
 	# STEP 1 : get last registered timestamp in raw table (using current config)
 	default_timing = getDefaultTiming(mode, start_timing, cassandra_session, configs[-1])
 	print("default timing : ", default_timing)
-	ts1 = time.time()
+	last_ts_time = time.time()
+
+	config_timers = {}
 
 	for config in configs:
+		config_id = config.getConfigID()
+		config_timers[config_id] = [time.time()]
 
 		print("Number of Homes : ", config.getNbHomes())
 		print("Number of Fluksos : ", len(set(config.getSensorsConfig().flukso_id)))
@@ -479,7 +508,7 @@ def main():
 
 		# STEP 2 : get start and end timings for all homes for the query
 		timings = getTimings(cassandra_session, tmpo_session, config, current_config_id, TBL_RAW_MISSING, default_timing, now_local)
-		ts2 = time.time()
+		config_timers[config_id].append(time.time())
 
 		# =========================================================
 		
@@ -488,7 +517,7 @@ def main():
 		print("Generating homes data and getting Flukso data...")
 		homes = generateHomes(tmpo_session, config, since, start_timing, to_timing, timings, mode, now)
 		grouped_homes = generateGroupedHomes(homes, config)
-		ts3 = time.time()
+		config_timers[config_id].append(time.time())
 	
 		# print("==================================================")
 		# saveFluksoDataToCsv(homes.values())
@@ -499,36 +528,27 @@ def main():
 		# STEP 4 : save raw flukso data in cassandra
 		print("==================================================")
 		saveRawToCassandra(cassandra_session, homes, current_config_id, TBL_RAW)
-		ts4 = time.time()
+		config_timers[config_id].append(time.time())
 
 		# STEP 5 : save missing raw data in cassandra
 		print("==================================================")
 		saveMissingData(cassandra_session, current_config_id, now, homes, TBL_RAW_MISSING)
-		ts5 = time.time()
+		config_timers[config_id].append(time.time())
 
 		# STEP 6 : save power flukso data in cassandra
 		print("==================================================")
 		cp.savePowerDataToCassandra(cassandra_session, homes, current_config_id, TBL_POWER)
-		ts6 = time.time()
+		config_timers[config_id].append(time.time())
 		
 		# STEP 7 : save groups of power flukso data in cassandra
 		print("==================================================")
 		cp.savePowerDataToCassandra(cassandra_session, grouped_homes, current_config_id, TBL_GROUPS_POWER)
-		ts7 = time.time()
+		config_timers[config_id].append(time.time())
 	
 	# =========================================================
 	
-	# TODO : refactor timings with configs
-	print("================= Timings ===================")
-	print("> Setup time : {}.".format(getTimeSpent(begin, setup_time)))
-	print("> Step 1 time (last ts) : {}.".format(getTimeSpent(setup_time, ts1)))
-	print("> Step 2 time (missing) : {}.".format(getTimeSpent(ts1, ts2)))
-	print("> Step 3 time (generate homes) : {}.".format(getTimeSpent(ts2, ts3)))
-	print("> Step 4 time (save raw) : {}.".format(getTimeSpent(ts3, ts4)))
-	print("> Step 5 time (save missing) : {}.".format(getTimeSpent(ts4, ts5)))
-	print("> Step 6 time (save power) : {}.".format(getTimeSpent(ts5, ts6)))
-	print("> Step 7 time (save groups power) : {}.".format(getTimeSpent(ts6, ts7)))
-	print("> Total Processing time : {}.".format(getTimeSpent(begin, time.time())))
+	showProcessingTimes(begin, setup_time, last_ts_time, config_timers)
+	
 
 
 if __name__ == "__main__":
