@@ -175,7 +175,7 @@ def getTimings(cassandra_session, tmpo_session, config, current_config_id, table
 # ====================================================================================
 
 
-def generateHomes(tmpo_session, config, since, since_timing, to_timing, homes_missing, mode):
+def generateHomes(tmpo_session, config, since, since_timing, to_timing, homes_missing, mode, now):
 	""" 
 	Given a configuration (sensors information, homes..), generate home objects
 	1 home = combination of sensors (Sensor objects).
@@ -190,9 +190,9 @@ def generateHomes(tmpo_session, config, since, since_timing, to_timing, homes_mi
 		sensors = [] # list of Sensor objects
 		if mode == "automatic":
 			since_timing = homes_missing[hid]["first_ts"]
-			to_timing = homes_missing[hid]["last_ts"]
+			to_timing = now if homes_missing[hid]["last_ts"] is None else homes_missing[hid]["last_ts"]
 			# print(hid, since_timing)
-			print(hid, to_timing)
+			# print(hid, to_timing)
 
 		for sid, row in home_sensors.iterrows():
 			sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
@@ -243,7 +243,7 @@ def testSession(sensors_config, path=""):
 			continue
 
 
-def getTmpoSession(sensors_config, path=""):
+def getTmpoSession(config, path=""):
 	""" 
 	Get tmpo (via api) session with all the sensors in it
 	"""
@@ -252,12 +252,13 @@ def getTmpoSession(sensors_config, path=""):
 		# print(path)
 
 	tmpo_session = tmpo.Session(path)
-	for sid, row in sensors_config.iterrows():
+	for sid, row in config.getSensorsConfig().iterrows():
 		# print(sid, row["sensor_token"])
 		tmpo_session.add(sid, row["sensor_token"])
 
 	# print("SYNC : ")
 	tmpo_session.sync()
+	print("> tmpo synchronization OK")
 
 	return tmpo_session
 
@@ -438,13 +439,13 @@ def main():
 
 	current_config_id, all_sensors_configs = getCurrentSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
 	# sensors_config = getSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
-	sensors_config = all_sensors_configs.get_group(current_config_id).set_index("sensor_id")
+	# sensors_config = all_sensors_configs.get_group(current_config_id).set_index("sensor_id")
 	# testSession(sensors_config)
-	tmpo_session = getTmpoSession(sensors_config)  # TODO : create a session per config
-	ids = getSensorsIds(sensors_config)
 
-	home_ids = list(sensors_config.groupby("home_id").indices)
-	nb_homes = len(home_ids)
+	# ids = getSensorsIds(sensors_config)
+
+	# home_ids = list(sensors_config.groupby("home_id").indices)
+	# nb_homes = len(home_ids)
 
 	current_gconfig_id, all_groups_configs = getGroupsConfigsCassandra(cassandra_session, TBL_GROUPS_CONFIG)
 	# groups_config = getGroupsConfigCassandra(cassandra_session, TBL_GROUPS_CONFIG)	
@@ -457,10 +458,6 @@ def main():
 	print("start timing : {} (CET) => {} (UTC)".format(since, start_timing))
 	print("to timing    : {} (CET) => {} (UTC)".format(to, to_timing))
 	print("now (CET) : ", now_local)
-	print("Number of Homes : ", nb_homes)
-	print("Number of Fluksos : ", len(set(sensors_config.flukso_id)))
-	print("Number of Fluksos sensors : ", len(sensors_config))
-	print("groups : ", groups_config)
 
 	setup_time = time.time()
 	
@@ -473,6 +470,13 @@ def main():
 
 	for config in configs:
 
+		print("Number of Homes : ", config.getNbHomes())
+		print("Number of Fluksos : ", len(set(config.getSensorsConfig().flukso_id)))
+		print("Number of Fluksos sensors : ", len(config.getSensorsConfig()))
+		print("Number of groups : ", len(config.getGroupsConfig()))
+
+		tmpo_session = getTmpoSession(config) 
+
 		# STEP 2 : get start and end timings for all homes for the query
 		timings = getTimings(cassandra_session, tmpo_session, config, current_config_id, TBL_RAW_MISSING, default_timing, now_local)
 		ts2 = time.time()
@@ -482,8 +486,8 @@ def main():
 		# STEP 3 : generate homes and grouped homes
 		print("==================================================")
 		print("Generating homes data and getting Flukso data...")
-		homes = generateHomes(tmpo_session, config, since, start_timing, to_timing, timings, mode)
-		grouped_homes = generateGroupedHomes(homes, groups_config)
+		homes = generateHomes(tmpo_session, config, since, start_timing, to_timing, timings, mode, now)
+		grouped_homes = generateGroupedHomes(homes, config)
 		ts3 = time.time()
 	
 		# print("==================================================")

@@ -8,6 +8,9 @@ class Configuration:
 
         self.ids = self.getHomeSensors()
 
+    def getNbHomes(self):
+        return len(self.ids)
+
     def getConfigID(self):
         return self.sconfig_id
 
