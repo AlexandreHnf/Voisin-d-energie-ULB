@@ -46,3 +46,5 @@ TBL_GROUPS_POWER =                      "groups_power"
 
 
 INSERTS_PER_BATCH =                     11000
+
+FROM_FIRST_TS =                         "4min"  # TEMPORARY
