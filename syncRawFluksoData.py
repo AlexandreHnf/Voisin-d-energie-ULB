@@ -130,6 +130,31 @@ def getNeededConfigs(all_sensors_configs, all_groups_configs, missing_data, cur_
 	return configs
  
 
+def getSensorTimings(sensor_missing_df, timings, home_id, sid, config, current_config_id, now, default_timing):
+	if len(sensor_missing_df) > 0:
+		# we get a local timestamp (CET)
+		start_ts = sensor_missing_df.iloc[0]["start_ts"]
+		end_ts = sensor_missing_df.iloc[0]["end_ts"].tz_localize("CET").tz_convert("UTC")
+	
+		# if 'start_ts' is older (in the past) than the current start_ts
+		if isEarlier(start_ts, timings[home_id]["start_ts"]):
+			timings[home_id]["start_ts"] = start_ts
+
+		if timings[home_id]["end_ts"] is None:
+			timings[home_id]["end_ts"] = end_ts
+
+		timings[home_id]["sensors"][sid] = start_ts.tz_localize("CET").tz_convert("UTC")
+	
+	else:  # if no missing data for this sensor, we take all data from its first timestamp
+		if config.getConfigID() == current_config_id:  # only if current config
+			# TODO : change to tmpo first_timestamp()
+			initial_ts = setInitSeconds(getTiming(FROM_FIRST_TS, now))  # TEMPORARY
+			timings[home_id]["start_ts"] = initial_ts
+			timings[home_id]["sensors"][sid] = initial_ts
+		else:
+			timings[home_id]["sensors"][sid] = default_timing
+		
+
 def getTimings(cassandra_session, tmpo_session, config, current_config_id, table_name, default_timing, now):
 	""" 
 	For each home, get the start timing for the query based on the missing data table
@@ -144,30 +169,15 @@ def getTimings(cassandra_session, tmpo_session, config, current_config_id, table
 	ids = config.getIds()
 	for home_id, sensors_ids in ids.items():
 		# start_ts = earliest timestamp among all sensors of this home
-		timings[home_id] = {"start_ts": now, "end_ts": None}
+		timings[home_id] = {"start_ts": now, "end_ts": None, "sensors": {}}
 		
 		for sid in sensors_ids:
 			# TODO : use missing_data containing all rows of the table = only 1 select query
 			where_clause = "sensor_id = '{}' and config_id = '{}.000000+0000'".format(sid, str(config.getConfigID()))
 			sensor_missing_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, "*", where_clause, "ALLOW FILTERING", "")
 			
-			if len(sensor_missing_df) > 0:
-				# we get a local timestamp (CET)
-				start_ts = sensor_missing_df.iloc[0]["start_ts"]
-				end_ts = sensor_missing_df.iloc[0]["end_ts"].tz_localize("CET").tz_convert("UTC")
+			getSensorTimings(sensor_missing_df, timings, home_id, sid, config, current_config_id, now, default_timing)
 			
-				# if 'start_ts' is older (in the past) than the current start_ts
-				if isEarlier(start_ts, timings[home_id]["start_ts"]):
-					timings[home_id]["start_ts"] = start_ts
-
-				if timings[home_id]["end_ts"] is None:
-					timings[home_id]["end_ts"] = end_ts
-			
-			else:  # if no missing data for this sensor, we take all data from its first timestamp
-				if config.getConfigID() == current_config_id:  # only if current config
-					# TODO : change to tmpo first_timestamp()
-					timings[home_id]["start_ts"] = setInitSeconds(getTiming(FROM_FIRST_TS, now))  # TEMPORARY
-		
 		if timings[home_id]["start_ts"] == now:  # if no missing data for this home
 			timings[home_id]["start_ts"] = default_timing  # UTC tz
 		timings[home_id]["start_ts"] = timings[home_id]["start_ts"].tz_localize("CET").tz_convert("UTC")
@@ -196,9 +206,7 @@ def generateHomes(tmpo_session, config, since, since_timing, to_timing, homes_mi
 			since_timing = homes_missing[hid]["start_ts"]
 			# to_timing = now if homes_missing[hid]["end_ts"] is None else homes_missing[hid]["end_ts"]
 			to_timing = homes_missing[hid]["end_ts"]
-			print("{} > {} ({})".format(since_timing, to_timing, round(pd.Timedelta(to_timing - since_timing).seconds / 3600.0, 2)))
-			# print(hid, since_timing)
-			# print(hid, to_timing)
+			print("{} > {} ({})".format(since_timing, to_timing, round(pd.Timedelta(to_timing - since_timing).seconds / 60.0, 2)), end=" | ")
 
 		for sid, row in home_sensors.iterrows():
 			sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
@@ -491,6 +499,7 @@ def main():
 
 	for config in configs:
 		config_id = config.getConfigID()
+		print("           CONFIG {} : ".format(str(config_id)))
 		config_timers[config_id] = [time.time()]
 
 		print("Number of Homes : ", config.getNbHomes())
@@ -539,6 +548,8 @@ def main():
 		print("==================================================")
 		cp.savePowerDataToCassandra(cassandra_session, grouped_homes, config, TBL_GROUPS_POWER)
 		config_timers[config_id].append(time.time())
+
+		print("---------------------------------------------------------------")
 	
 	# =========================================================
 	
