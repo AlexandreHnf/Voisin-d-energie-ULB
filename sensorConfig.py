@@ -1,8 +1,8 @@
 import pandas as pd
 
 class Configuration:
-    def __init__(self, sconfig_id, sconfig_df, gconfig_df):
-        self.sconfig_id = sconfig_id
+    def __init__(self, config_id, sconfig_df, gconfig_df):
+        self.config_id = config_id
         self.sconfig_df = sconfig_df
         self.gconfig_df = gconfig_df
 
@@ -12,7 +12,7 @@ class Configuration:
         return len(self.ids)
 
     def getConfigID(self):
-        return self.sconfig_id
+        return self.config_id
 
     def getFirstSensorId(self):
         """ 

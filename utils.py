@@ -50,10 +50,10 @@ def getCurrentSensorsConfigCassandra(cassandra_session, table_name):
 	dates = list(by_date_df.groups.keys())
 	current_config_id = dates[-1]   # last config registered
 
-	print("SENSORS CONFIGS ")
-	for config_id, sensors_config in by_date_df:
-		print(config_id)
-		print(sensors_config.head(5))
+	# print("SENSORS CONFIGS ")
+	# for config_id, sensors_config in by_date_df:
+	# 	print(config_id)
+	# 	print(sensors_config.head(5))
 
 	return current_config_id, by_date_df
 
@@ -116,10 +116,10 @@ def getGroupsConfigsCassandra(cassandra_session, table_name):
 	dates = list(by_date_df.groups.keys())
 	current_config_id = dates[-1]   # last config registered
 
-	print("GROUPS CONFIGS ")
-	for config_id, groups_config in by_date_df:
-		print(config_id)
-		print(groups_config.head(5))
+	# print("GROUPS CONFIGS ")
+	# for config_id, groups_config in by_date_df:
+	# 	print(config_id)
+	# 	print(groups_config.head(5))
 	
 	return current_config_id, by_date_df
 

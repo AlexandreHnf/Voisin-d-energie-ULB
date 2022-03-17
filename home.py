@@ -137,7 +137,8 @@ class Home:
         filled_df = filled_df.drop(['fill'], axis=1) # remove the filler col
 
         incomplete_raw_df = filled_df[filled_df.isna().any(axis=1)]  # with CET timezones
-        print("nb nan: ", filled_df.isna().sum().sum()) # count nb of nan in the entire df
+        nb_tot_nan = filled_df.isna().sum().sum()  # count nb of nan in the entire df
+        print("nb nan row : {}, nb tot nan: {}".format(len(incomplete_raw_df), nb_tot_nan))
 
         incomplete_raw_df.index = pd.DatetimeIndex(incomplete_raw_df.index, name="time")
         # convert all timestamps to local timezone (CET)
