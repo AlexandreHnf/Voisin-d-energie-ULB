@@ -7,6 +7,7 @@ Script to fetch Fluksometer data using the tmpo protocol and
 """
 
 from turtle import home
+
 from home import *
 from gui import *
 from constants import *
@@ -132,7 +133,7 @@ def getNeededConfigs(all_sensors_configs, all_groups_configs, missing_data, cur_
 	return configs
  
 
-def getSensorTimings(sensor_missing_df, timings, home_id, sid, config, current_config_id, now, default_timing):
+def getSensorTimings(missing_data, timings, home_id, sid, config, current_config_id, now, default_timing):
 	"""
 	For each sensor, we get start timing and the end timing, forming the interval of time
 	we have to query to tmpo
@@ -145,15 +146,15 @@ def getSensorTimings(sensor_missing_df, timings, home_id, sid, config, current_c
 	return a starting timestamp with CET timezone or None if no starting timestamp
 	"""
 	sensor_start_ts = None
-	if len(sensor_missing_df) > 0: # if there is missing data for this sensor
-		start_ts = sensor_missing_df.iloc[0]["start_ts"]  # CET timezone
-		end_ts = sensor_missing_df.iloc[0]["end_ts"].tz_localize("CET").tz_convert("UTC")
+	if missing_data.index.contains(sid): # if there is missing data for this sensor
+		start_ts = missing_data.loc[sid]["start_ts"]  # CET timezone
+		end_ts = missing_data.loc[sid]["end_ts"]      # CET timezone
 
 		sensor_start_ts = start_ts # sensor start timing = missing data first timestamp
 
 		if timings[home_id]["end_ts"] is None:
 			# end timing is the same for each sensor of this home, so take the first one
-			timings[home_id]["end_ts"] = end_ts  
+			timings[home_id]["end_ts"] = end_ts.tz_localize("CET").tz_convert("UTC")  
 	
 	else:  # if no missing data for this sensor
 		if config.getConfigID() == current_config_id:  # if current config
@@ -168,7 +169,7 @@ def getSensorTimings(sensor_missing_df, timings, home_id, sid, config, current_c
 	return sensor_start_ts
 		
 
-def getTimings(cassandra_session, tmpo_session, config, current_config_id, table_name, default_timing, now):
+def getTimings(cassandra_session, tmpo_session, config, current_config_id, missing_data, table_name, default_timing, now):
 	""" 
 	For each home, get the start timing for the query based on the missing data table
 	(containing for each sensor the first timestamp with missing data from the previous query)
@@ -185,11 +186,7 @@ def getTimings(cassandra_session, tmpo_session, config, current_config_id, table
 		timings[home_id] = {"start_ts": now, "end_ts": None, "sensors": {}}
 		
 		for sid in sensors_ids:
-			# TODO : use missing_data containing all rows of the table = only 1 select query
-			where_clause = "sensor_id = '{}' and config_id = '{}.000000+0000'".format(sid, str(config.getConfigID()))
-			sensor_missing_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, "*", where_clause, "ALLOW FILTERING", "")
-			
-			sensor_start_ts = getSensorTimings(sensor_missing_df, timings, home_id, sid, config, current_config_id, now, default_timing)
+			sensor_start_ts = getSensorTimings(missing_data, timings, home_id, sid, config, current_config_id, now, default_timing)
 			timings[home_id]["sensors"][sid] = sensor_start_ts
 			# if 'start_ts' is older (in the past) than the current start_ts
 			if sensor_start_ts is not None and isEarlier(sensor_start_ts, timings[home_id]["start_ts"]):
@@ -530,7 +527,10 @@ def main():
 		# testSession(sensors_config)
 
 		# STEP 1 : get start and end timings for all homes for the query
-		timings = getTimings(cassandra_session, tmpo_session, config, current_config_id, TBL_RAW_MISSING, default_timing, now_local)
+		missing = pd.DataFrame([])
+		if config_id in missing_data.groups.keys():  # if missing table contains this config id
+			missing = missing_data.get_group(config_id).set_index("sensor_id")
+		timings = getTimings(cassandra_session, tmpo_session, config, current_config_id, missing, TBL_RAW_MISSING, default_timing, now_local)
 		config_timers[config_id].append(time.time())
 
 		# =========================================================
