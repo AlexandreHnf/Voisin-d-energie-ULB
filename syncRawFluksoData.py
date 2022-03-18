@@ -187,13 +187,15 @@ def getTimings(cassandra_session, tmpo_session, config, current_config_id, missi
 		
 		for sid in sensors_ids:
 			sensor_start_ts = getSensorTimings(missing_data, timings, home_id, sid, config, current_config_id, now, default_timing)
-			timings[home_id]["sensors"][sid] = sensor_start_ts
+	
 			# if 'start_ts' is older (in the past) than the current start_ts
 			if sensor_start_ts is not None and isEarlier(sensor_start_ts, timings[home_id]["start_ts"]):
 				timings[home_id]["start_ts"] = sensor_start_ts
 
-		# if timings[home_id]["start_ts"] == now:  # if no missing data for this home
-		# 	timings[home_id]["start_ts"] = default_timing  # CET tz
+			if sensor_start_ts is not None and str(sensor_start_ts.tz) == "None":
+				sensor_start_ts = sensor_start_ts.tz_localize("CET")
+			timings[home_id]["sensors"][sid] = sensor_start_ts  # CET
+
 		# convert to UTC timezone for the tmpo query
 		timings[home_id]["start_ts"] = timings[home_id]["start_ts"].tz_localize("CET").tz_convert("UTC")
 
@@ -350,7 +352,7 @@ def saveMissingData(cassandra_session, config, to_timing, homes, table_name):
 	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
 
 
-def saveRawToCassandra(cassandra_session, homes, config, table_name):
+def saveRawToCassandra(cassandra_session, homes, config, table_name, timings):
 	"""
 	Save raw flukso flukso data to Cassandra table
 	Save per sensor : 1 row = 1 sensor + 1 timestamp + 1 power value
@@ -371,17 +373,19 @@ def saveRawToCassandra(cassandra_session, homes, config, table_name):
 		for date, date_rows in by_day_df:  # loop through each group (each date group)
 
 			for sid in date_rows:  # loop through each column, 1 column = 1 sensor
-				if sid == "date": continue
+				if sid == "date" or timings[hid]["sensors"][sid] is None : continue
 				insert_queries = ""
 				for i, timestamp in enumerate(date_rows[sid].index):
-					ts = str(timestamp)[:19] + "Z"
-					power = date_rows[sid][i]
-					values = [sid, date, ts, insertion_time, config_id, power]
-					insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
+					# if the timestamp > the sensor's defined start timing
+					if isEarlier(timings[hid]["sensors"][sid], timestamp):
+						ts = str(timestamp)[:19] + "Z"
+						power = date_rows[sid][i]
+						values = [sid, date, ts, insertion_time, config_id, power]
+						insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
 
-					if (i+1) % INSERTS_PER_BATCH == 0:
-						ptc.batch_insert(cassandra_session, insert_queries)
-						insert_queries = ""
+						if (i+1) % INSERTS_PER_BATCH == 0:
+							ptc.batch_insert(cassandra_session, insert_queries)
+							insert_queries = ""
 				
 				ptc.batch_insert(cassandra_session, insert_queries) 
 
@@ -550,7 +554,7 @@ def main():
 		
 		# STEP 3 : save raw flukso data in cassandra
 		print("==================================================")
-		saveRawToCassandra(cassandra_session, homes, config, TBL_RAW)
+		saveRawToCassandra(cassandra_session, homes, config, TBL_RAW, timings)
 		config_timers[config_id].append(time.time())
 
 		# STEP 4 : save missing raw data in cassandra
