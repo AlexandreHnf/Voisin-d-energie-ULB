@@ -212,6 +212,7 @@ def main():
 	# test raw data retrieval
 	since = "s2022-03-02-16-18-08"
 	# since = "3min"
+	# TODO : refactor getRawData + getConsumptionProductionDF + getGroupsConfigCassandra with configs
 	homes_rawdata = getRawData(cassandra_session, since, ids, TBL_RAW) 
 
 	
