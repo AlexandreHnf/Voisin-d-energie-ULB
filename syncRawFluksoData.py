@@ -187,7 +187,7 @@ def getSensorTimings(tmpo_session, missing_data, timings, home_id, sid, config, 
 	return sensor_start_ts
 
 
-def getTimings(cassandra_session, tmpo_session, config, current_config_id, missing_data, table_name, default_timing,
+def getTimings(tmpo_session, config, current_config_id, missing_data, table_name, default_timing,
 			   now):
 	"""
 	For each home, get the start timing for the query based on the missing data table
@@ -554,7 +554,7 @@ def main():
 		missing = pd.DataFrame([])
 		if config_id in missing_data.groups.keys():  # if missing table contains this config id
 			missing = missing_data.get_group(config_id).set_index("sensor_id")
-		timings = getTimings(cassandra_session, tmpo_session, config, current_config_id, missing, TBL_RAW_MISSING,
+		timings = getTimings(tmpo_session, config, current_config_id, missing, TBL_RAW_MISSING,
 							 default_timing, now_local)
 		config_timers[config_id].append(time.time())
 

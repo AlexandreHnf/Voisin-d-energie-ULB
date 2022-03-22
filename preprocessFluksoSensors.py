@@ -83,6 +83,8 @@ def getCompactSensorDF():
 
     compact_df.sort_values(by=["home_ID"])
 
+    # saveToCsv(compact_df, COMPACT_SENSOR_FILE)
+
     return compact_df
 
 
@@ -347,7 +349,6 @@ def main():
 
     # > get the useful flukso sensors data in a compact csv
     compact_df = getCompactSensorDF()
-    # saveToCsv(compact_df, COMPACT_SENSOR_FILE)
     # > correct phase signs
     compact_df = correctPhaseSigns(compact_df)
     print("nb sensors : ", len(compact_df))
