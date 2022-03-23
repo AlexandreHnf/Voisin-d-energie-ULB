@@ -50,6 +50,7 @@ def getCompactSensorDF():
     columns : home_id, phase, flukso_id, sensor_id, token, net, con, pro
     """
     # 'Sensors' sheet
+    print("Config file : ", FLUKSO_TECHNICAL_FILE)
     sensors_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Sensors")
     compact_df = pd.DataFrame(columns=["home_ID",
                                        "phase",
