@@ -45,25 +45,21 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 # ====================================================================================
 
 
-def getLastRegisteredTimestamp(cassandra_session, table_name, config):
+def getLastRegisteredTimestamp(cassandra_session, table_name, sensor_id):
 	"""
 	get the last registered timestamp of the raw table
 	- None if no timestamp in the table
 
-	We assume that if there is data in raw table, each sensor has the same last timestmap
+	We assume that if there is data in raw table, each sensor can have different last timestmaps
 	registered. 
 	"""
-	print("Getting last timestamp...")
-
-	# we assume the sensor_id is present in the table
-	sid = config.getFirstSensorId()  # we take the first sensor available
-	# print("sid for the last ts : ", sid)
+	# print("Getting last timestamp...")
 
 	dates = ["'" + d + "'" for d in getLastXDates()]
 	ts_df = None
 	for date in dates:
-		where_clause = "sensor_id = '{}' AND day = {} AND config_id = '{}.000000+0000' ORDER BY ts DESC".format(
-			sid, date, str(config.getConfigID()))
+		where_clause = "sensor_id = '{}' AND day = {} ORDER BY ts DESC".format(
+			sensor_id, date)
 		ts_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name,
 								["ts"], where_clause, "ALLOW FILTERING", "LIMIT 1")
 		if len(ts_df) > 0:
@@ -72,26 +68,21 @@ def getLastRegisteredTimestamp(cassandra_session, table_name, config):
 	return ts_df
 
 
-def getDefaultTiming(mode, start_timing, cassandra_session, config):
+def getDefaultTiming(cassandra_session, sensor_id):
 	"""
-	If automatic mode : we find the last registered timestamp in raw table
-	If manual mode : the default timing is the specified start_timing
+	We find the last registered timestamp in raw table
 
 	if last_timestamp comes from raw table, it is a tz-naive Timestamp with CET timezone
 
-	return None if in automatic mode, and no last registered timestamp in raw table (it 
+	return None if no last registered timestamp in raw table (it 
 	will be defined later by 'getTimings' function based on the configuration)
 	"""
-	if mode == "automatic":
-		# get last registered timestamp in raw table
-		last_timestamp = getLastRegisteredTimestamp(cassandra_session, TBL_RAW, config)
-		if not last_timestamp.empty:  # != None
-			return last_timestamp.iloc[0]['ts']
-		else:  # if no registered timestamp in raw table yet
-			return None
-
-	elif mode == "manual":
-		return start_timing
+	# get last registered timestamp in raw table
+	last_timestamp = getLastRegisteredTimestamp(cassandra_session, TBL_RAW, sensor_id)
+	if not last_timestamp.empty:  # != None
+		return last_timestamp.iloc[0]['ts']
+	else:  # if no registered timestamp in raw table yet
+		return None
 
 
 # ====================================================================================
@@ -150,7 +141,7 @@ def getInitialTimestamp(tmpo_session, sid, now):
 	return initial_ts
 
 
-def getSensorTimings(tmpo_session, missing_data, timings, home_id, sid, config, current_config_id, now, default_timing):
+def getSensorTimings(tmpo_session, cassandra_session, missing_data, timings, home_id, sid, config, current_config_id, now):
 	"""
 	For each sensor, we get start timing and the end timing, forming the interval of time
 	we have to query to tmpo
@@ -174,6 +165,7 @@ def getSensorTimings(tmpo_session, missing_data, timings, home_id, sid, config, 
 			timings[home_id]["end_ts"] = end_ts.tz_localize("CET").tz_convert("UTC")
 
 	else:  # if no missing data for this sensor
+		default_timing = getDefaultTiming(cassandra_session, sid)
 		if config.getConfigID() == current_config_id:  # if current config
 			if default_timing is None:  # if no raw data registered for this sensor yet
 				# we take all data from its first timestamp
@@ -187,8 +179,7 @@ def getSensorTimings(tmpo_session, missing_data, timings, home_id, sid, config, 
 	return sensor_start_ts
 
 
-def getTimings(tmpo_session, config, current_config_id, missing_data, table_name, default_timing,
-			   now):
+def getTimings(tmpo_session, cassandra_session, config, current_config_id, missing_data, table_name, now):
 	"""
 	For each home, get the start timing for the query based on the missing data table
 	(containing for each sensor the first timestamp with missing data from the previous query)
@@ -205,8 +196,8 @@ def getTimings(tmpo_session, config, current_config_id, missing_data, table_name
 		timings[home_id] = {"start_ts": now, "end_ts": None, "sensors": {}}
 
 		for sid in sensors_ids:
-			sensor_start_ts = getSensorTimings(tmpo_session, missing_data, timings, home_id, sid, config, current_config_id, now,
-											   default_timing)
+			sensor_start_ts = getSensorTimings(tmpo_session, cassandra_session, missing_data, timings, 
+												home_id, sid, config, current_config_id, now)
 
 			# if 'start_ts' is older (in the past) than the current start_ts
 			if sensor_start_ts is not None and isEarlier(sensor_start_ts, timings[home_id]["start_ts"]):
@@ -437,14 +428,13 @@ def saveFluksoDataToCsv(homes):
 # ====================================================================================
 
 
-def showProcessingTimes(configs, begin, setup_time, last_ts_time, config_timers):
+def showProcessingTimes(configs, begin, setup_time, config_timers):
 	"""
 	Display processing time for each step of 1 query
 	- TODO : replace all this by a Timer class
 	"""
 	print("================= Timings ===================")
 	print("> Setup time : {}.".format(getTimeSpent(begin, setup_time)))
-	print("> Last ts : {}.".format(getTimeSpent(setup_time, last_ts_time)))
 
 	for i, config in enumerate(configs):
 		config_id = config.getConfigID()
@@ -530,11 +520,6 @@ def main():
 
 	# =========================================================
 
-	# STEP 0 : get last registered timestamp in raw table (using current config)
-	default_timing = getDefaultTiming(mode, start_timing, cassandra_session, configs[-1])
-	print("default timing : ", default_timing)
-	last_ts_time = time.time()
-
 	config_timers = {}
 
 	for config in configs:
@@ -554,8 +539,8 @@ def main():
 		missing = pd.DataFrame([])
 		if config_id in missing_data.groups.keys():  # if missing table contains this config id
 			missing = missing_data.get_group(config_id).set_index("sensor_id")
-		timings = getTimings(tmpo_session, config, current_config_id, missing, TBL_RAW_MISSING,
-							 default_timing, now_local)
+		timings = getTimings(tmpo_session, cassandra_session, config, current_config_id, missing, 
+							TBL_RAW_MISSING, now_local)
 		config_timers[config_id].append(time.time())
 
 		# =========================================================
@@ -597,7 +582,7 @@ def main():
 
 	# =========================================================
 
-	showProcessingTimes(configs, begin, setup_time, last_ts_time, config_timers)
+	showProcessingTimes(configs, begin, setup_time, config_timers)
 
 
 if __name__ == "__main__":
