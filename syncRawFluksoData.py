@@ -134,7 +134,7 @@ def getInitialTimestamp(tmpo_session, sid, now):
 	initial_ts = tmpo_session.first_timestamp(sid)
 
 	if initial_ts is None:
-		initial_ts = setInitSeconds(getTiming(FROM_FIRST_TS, now))  # TEMPORARY
+		initial_ts = setInitSeconds(getTiming(FROM_FIRST_TS, now))  # TODO: TEMPORARY
 
 	print("{} first ts = {}".format(sid, initial_ts))
 
@@ -149,9 +149,11 @@ def getSensorTimings(tmpo_session, cassandra_session, missing_data, timings, hom
 	of the sensor if no missing data registered, or simply the default timing (the last
 	registered timestamp in raw data table)
 
-	if no missing data, and not the current config : we simply do not put timings for the sensor = None
+	if no missing data, and not the current config : 
+		we simply do not put timings for the sensor = None
 
-	return a starting timestamp with CET timezone or None if no starting timestamp
+	return a starting timestamp with CET timezone 
+		or None if no starting timestamp and end timestamp
 	"""
 	sensor_start_ts = None
 	if missing_data.index.contains(sid):  # if there is missing data for this sensor
@@ -165,7 +167,7 @@ def getSensorTimings(tmpo_session, cassandra_session, missing_data, timings, hom
 			timings[home_id]["end_ts"] = end_ts.tz_localize("CET").tz_convert("UTC")
 
 	else:  # if no missing data for this sensor
-		default_timing = getDefaultTiming(cassandra_session, sid)
+		default_timing = getDefaultTiming(cassandra_session, sid)  # None or tz-naive CET
 		if config.getConfigID() == current_config_id:  # if current config
 			if default_timing is None:  # if no raw data registered for this sensor yet
 				# we take all data from its first timestamp
@@ -175,6 +177,7 @@ def getSensorTimings(tmpo_session, cassandra_session, missing_data, timings, hom
 				sensor_start_ts = initial_ts
 			else:
 				sensor_start_ts = default_timing
+		# if not the current config, then no data to recover from this sensor : no timings
 
 	return sensor_start_ts
 
@@ -195,7 +198,7 @@ def getTimings(tmpo_session, cassandra_session, config, current_config_id, missi
 		# start_ts = earliest timestamp among all sensors of this home
 		timings[home_id] = {"start_ts": now, "end_ts": None, "sensors": {}}
 
-		for sid in sensors_ids:
+		for sid in sensors_ids:  # for each sensor of this home
 			sensor_start_ts = getSensorTimings(tmpo_session, cassandra_session, missing_data, timings, 
 												home_id, sid, config, current_config_id, now)
 
@@ -204,13 +207,16 @@ def getTimings(tmpo_session, cassandra_session, config, current_config_id, missi
 				timings[home_id]["start_ts"] = sensor_start_ts
 
 			if sensor_start_ts is not None and str(sensor_start_ts.tz) == "None":
-				sensor_start_ts = sensor_start_ts.tz_localize("CET")
+				sensor_start_ts = sensor_start_ts.tz_localize("CET") # ensures a CET timezone
 			timings[home_id]["sensors"][sid] = sensor_start_ts  # CET
 
 		# convert to UTC timezone for the tmpo query
 		timings[home_id]["start_ts"] = timings[home_id]["start_ts"].tz_localize("CET").tz_convert("UTC")
 
-		if timings[home_id]["end_ts"] is None or config.getConfigID() == current_config_id:
+		if timings[home_id]["start_ts"] is now:  # no data to recover from this home 
+			timings[home_id]["start_ts"] = None
+		
+		if timings[home_id]["end_ts"] is None and config.getConfigID() == current_config_id:
 			timings[home_id]["end_ts"] = setInitSeconds(now).tz_localize("CET").tz_convert("UTC")
 
 	return timings
@@ -219,7 +225,7 @@ def getTimings(tmpo_session, cassandra_session, config, current_config_id, missi
 # ====================================================================================
 
 
-def generateHomes(tmpo_session, config, since, since_timing, to_timing, homes_missing, mode, now):
+def generateHomes(tmpo_session, config, since, since_timing, to_timing, timings, mode, now):
 	"""
 	Given a configuration (sensors information, homes..), generate home objects
 	1 home = combination of sensors (Sensor objects).
@@ -231,18 +237,20 @@ def generateHomes(tmpo_session, config, since, since_timing, to_timing, homes_mi
 
 	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
 		print("> {} | ".format(hid), end="")
-		sensors = []  # list of Sensor objects
-		if mode == "automatic":
-			since_timing = homes_missing[hid]["start_ts"]
-			# to_timing = now if homes_missing[hid]["end_ts"] is None else homes_missing[hid]["end_ts"]
-			to_timing = homes_missing[hid]["end_ts"]
-			print("{} > {} ({})".format(since_timing, to_timing,
-										round(pd.Timedelta(to_timing - since_timing).seconds / 60.0, 2)), end=" | ")
+		if timings[hid]["start_ts"] is not None:  # if home has a start timestamp
+			sensors = []  # list of Sensor objects
+			if mode == "automatic":
+				since_timing = timings[hid]["start_ts"]
+				to_timing = timings[hid]["end_ts"]
+				print("{} > {} ({})".format(since_timing, to_timing,
+											round(pd.Timedelta(to_timing - since_timing).seconds / 60.0, 2)), end=" | ")
 
-		for sid, row in home_sensors.iterrows():
-			sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
-		home = Home(home_sensors, since, since_timing, to_timing, hid, sensors)
-		homes[hid] = home
+			for sid, row in home_sensors.iterrows():
+				sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
+			home = Home(home_sensors, since, since_timing, to_timing, hid, sensors)
+			homes[hid] = home
+		else:
+			print("None (no data to recover)")
 
 	return homes
 
@@ -534,6 +542,7 @@ def sync(mode, since, to):
 			missing = missing_data.get_group(config_id).set_index("sensor_id")
 		timings = getTimings(tmpo_session, cassandra_session, config, current_config_id, missing, 
 							TBL_RAW_MISSING, now_local)
+		# print(timings)
 		config_timers[config_id].append(time.time())
 
 		# =========================================================
@@ -542,7 +551,9 @@ def sync(mode, since, to):
 		print("==================================================")
 		print("Generating homes data and getting Flukso data...")
 		homes = generateHomes(tmpo_session, config, since, start_timing, to_timing, timings, mode, now)
-		grouped_homes = generateGroupedHomes(homes, config)
+		
+		# TODO : groups not correct : if no missing data for a house, not taken into account : instead, use computePower
+		# grouped_homes = generateGroupedHomes(homes, config)
 		config_timers[config_id].append(time.time())
 
 		# print("==================================================")
@@ -568,7 +579,7 @@ def sync(mode, since, to):
 
 		# STEP 6 : save groups of power flukso data in cassandra
 		print("==================================================")
-		cp.savePowerDataToCassandra(cassandra_session, grouped_homes, config, TBL_GROUPS_POWER)
+		# cp.savePowerDataToCassandra(cassandra_session, grouped_homes, config, TBL_GROUPS_POWER)
 		config_timers[config_id].append(time.time())
 
 		print("---------------------------------------------------------------")
