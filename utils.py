@@ -251,6 +251,6 @@ def energy2power(energy_df):
 
 def getTimeSpent(time_begin, time_end):
 	""" 
-	Get the time spent in seconds between 2 timings (time.time())
+	Get the time spent in seconds between 2 timings (1 timing = time.time())
 	"""
 	return timedelta(seconds=time_end - time_begin)

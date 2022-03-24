@@ -483,16 +483,9 @@ def processArguments():
 	return argparser
 
 
-def main():
+def sync(mode, since, to):
 	begin = time.time()
-
-	# > arguments
-	argparser = processArguments()
-	args = argparser.parse_args()
-	mode = args.mode
-	since = args.since
-	to = args.to
-
+	
 	# > timings
 	now = pd.Timestamp.now(tz="UTC").replace(microsecond=0)  # remove microseconds for simplicity
 	now_local = pd.Timestamp.now().replace(microsecond=0)  # default tz = CET, unaware timestamp
@@ -524,7 +517,7 @@ def main():
 
 	for config in configs:
 		config_id = config.getConfigID()
-		print("           CONFIG {} : ".format(str(config_id)))
+		print("                [CONFIG {}] : ".format(str(config_id)))
 		config_timers[config_id] = [time.time()]
 
 		print("Number of Homes : ", config.getNbHomes())
@@ -582,7 +575,19 @@ def main():
 
 	# =========================================================
 
-	showProcessingTimes(configs, begin, setup_time, config_timers)
+	showProcessingTimes(configs, begin, setup_time, config_timers) 
+
+
+def main():
+
+	# > arguments
+	argparser = processArguments()
+	args = argparser.parse_args()
+	mode = args.mode
+	since = args.since
+	to = args.to
+
+	sync(mode, since, to)
 
 
 if __name__ == "__main__":
