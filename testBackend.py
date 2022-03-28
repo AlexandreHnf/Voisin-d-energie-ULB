@@ -8,7 +8,7 @@ def main():
     interval = nb_min * 60  # sec
 
     i = 0
-    max_it = 2
+    max_it = 3
     while True:
 
         beg = time.time()

@@ -17,8 +17,6 @@ const port = 5000;                  //Save the port number where your server wil
 const server = require('http').createServer(app);  //  express = request handler functions passed to http Server instances
 
 // ===================== GLOBAL VARIABLES =========================== 
-let ids = JSON.parse(fs.readFileSync('../sensors/ids.json', 'utf8'));
-let grp_ids = JSON.parse(fs.readFileSync('../sensors/grp_ids.json', 'utf8'));
 // Connection to localhost cassandra database1
 const client = new cassandra.Client({
   contactPoints: ['ce97f9db-6e4a-4a2c-bd7a-2c97e31e3150', '127.0.0.1'],
@@ -138,15 +136,6 @@ router.post('/date', (request, response) => {
 });
 
 
-function sendIdsToClient(socket) {
-  console.log("sending init data to client (ids)")
-  socket.emit("init", {
-    "ids": ids,
-    "grp_ids": grp_ids
-  });
-}
-
-
 async function main() {
   let today = new Date().toISOString().slice(0, 10);  // format (YYYY MM DD)
   console.log(today);
@@ -163,7 +152,6 @@ async function main() {
 //Function that handles a new connection from a user and start listening for its queries
 function onUserConnected(socket) {
   console.log('-> New user connected');
-  sendIdsToClient(socket);
   socket.on('disconnect', () => {
     console.log('-> User disconnected');
   });
