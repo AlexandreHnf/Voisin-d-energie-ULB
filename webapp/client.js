@@ -4,15 +4,15 @@ const HOME_ID = sessionStorage.getItem("username")
 var timing_button = document.getElementById("buttonShow");
 
 let charts_raw = {today: {}, day: {}};
-let charts_stats = {today : {}, day: {}};
+let charts_powers = {today : {}, day: {}};
 let charts_groups = {today: {}, day: {}};
 
 let charts_raw_today = {};  // list of ChartJS object for today's data (updated throughout the day)
-let charts_stats_today = {};
-let charts_grp_stats_today = {};
+let charts_powers_today = {};
+let charts_grp_powers_today = {};
 let charts_raw_day = {}; // list of ChartJS object for data of a specific day
-let charts_stats_day = {};
-let charts_grp_stats_day = {};
+let charts_powers_day = {};
+let charts_grp_powers_day = {};
 
 let COLORS = ["#34ace0", "#e55039", "#474787", "#fed330", "#32ff7e", "#0fb9b1", "#fa8231", "#a5b1c2",
               "#4b7bec", "#a55eea", "#fad390", "#b71540", "#e58e26", "#38ada9", "#0a3d62"];
@@ -38,13 +38,13 @@ function changeTimeUnit() {
   console.log(unit);
   for (const id in IDS) {
     charts_raw_day[id].options.scales.x.time.unit = unit;
-    charts_stats_day[id].options.scales.x.time.unit = unit;
+    charts_powers_day[id].options.scales.x.time.unit = unit;
     charts_raw_day[id].update();
-    charts_stats_day.update();
+    charts_powers_day.update();
   }
   for (const gid in ALL_GRP_IDS) {
-    charts_grp_stats_day[id].options.scales.x.time.unit = unit;
-    charts_grp_stats_day[id].update();
+    charts_grp_powers_day[id].options.scales.x.time.unit = unit;
+    charts_grp_powers_day[id].update();
   }
   
 }
@@ -58,7 +58,7 @@ function processDateQuery() {
 	})
 	// document.getElementById("date_msg").innerHTML = "=> Flukso data - " + date;
 	sendDateQuery("raw", date.toString());
-  sendDateQuery("stats", date.toString());
+  sendDateQuery("powers", date.toString());
   sendDateQuery("groups", date.toString());
 }
 
@@ -85,10 +85,10 @@ async function sendDateQuery(data_type, date) {
 
     if (data_type === "raw") {
       createChartRaw(alldata);
-    } else if (data_type === "stats") {
-      createChartStats(alldata);
+    } else if (data_type === "powers") {
+      createChartpowers(alldata);
     } else if (data_type === "groups") {
-      createChartGrpStats(alldata);
+      createChartGrppowers(alldata);
     }
   }	
   
@@ -143,7 +143,7 @@ function createChartDatasetRaw(hid) {
   return datasets;
 }
 
-function createChartDatasetStats() {
+function createChartDatasetpowers() {
   datasets = [
     {
       label: 'P_cons',
@@ -226,8 +226,8 @@ function initCharts(charts, col_id, data_type, ids) {
     // create empty charts with labels
     if (data_type === "raw") {
       datasets = createChartDatasetRaw(id);
-    } else if (data_type === "stats" || data_type === "groups") {
-      datasets = createChartDatasetStats();
+    } else if (data_type === "powers" || data_type === "groups") {
+      datasets = createChartDatasetpowers();
     }
 
     // console.log(`chartCanvas${col_id}_${id}`);
@@ -288,16 +288,16 @@ function createChartRaw(raw_data) {
 }
 
 
-function createChartStats(stats_data) {
-  initCharts(charts_stats_day, 1, "stats", IDS);
+function createChartpowers(powers_data) {
+  initCharts(charts_powers_day, 1, "powers", IDS);
 
   data = []
-  for (let i = 0; i < stats_data.rows.length; i++) {
-    let row = stats_data.rows[i];
+  for (let i = 0; i < powers_data.rows.length; i++) {
+    let row = powers_data.rows[i];
     let ts = row.ts.slice(0, -5);
-    charts_stats_day[row.home_id].data.datasets[0].data.push({x: ts, p_cons: row["p_cons"]});
-    charts_stats_day[row.home_id].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
-    charts_stats_day[row.home_id].data.datasets[2].data.push({x: ts, p_tot: row["p_tot"]});
+    charts_powers_day[row.home_id].data.datasets[0].data.push({x: ts, p_cons: row["p_cons"]});
+    charts_powers_day[row.home_id].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
+    charts_powers_day[row.home_id].data.datasets[2].data.push({x: ts, p_tot: row["p_tot"]});
 
 		let prelevement = 0;
 		let injection = 0;
@@ -306,25 +306,25 @@ function createChartStats(stats_data) {
 		} else if (row["p_tot"] < 0) {
 			injection = row["p_tot"];
 		}
-		charts_stats_day[row.home_id].data.datasets[3].data.push({x: ts, pre: prelevement});
-		charts_stats_day[row.home_id].data.datasets[4].data.push({x: ts, inj: injection});
+		charts_powers_day[row.home_id].data.datasets[3].data.push({x: ts, pre: prelevement});
+		charts_powers_day[row.home_id].data.datasets[4].data.push({x: ts, inj: injection});
 
-    charts_stats_day[row.home_id].update();
+    charts_powers_day[row.home_id].update();
   }
 
-  console.log(charts_stats_day['CDB003'].data.datasets);
+  console.log(charts_powers_day['CDB003'].data.datasets);
 }
 
-function createChartGrpStats(grp_stats_data) {
-  initCharts(charts_grp_stats_day, 2, "groups", ALL_GRP_IDS);
+function createChartGrppowers(grp_powers_data) {
+  initCharts(charts_grp_powers_day, 2, "groups", ALL_GRP_IDS);
 
-  for (let i = 0; i < grp_stats_data.rows.length; i++) {
-    let row = grp_stats_data.rows[i];
+  for (let i = 0; i < grp_powers_data.rows.length; i++) {
+    let row = grp_powers_data.rows[i];
     let ts = row.ts.slice(0, -5);
-    // charts_grp_stats_day[row.home_id].data.labels.push(row.ts);
-    charts_grp_stats_day[row.home_id].data.datasets[0].data.push({x: ts, p_cons: row["p_cons"]});
-    charts_grp_stats_day[row.home_id].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
-    charts_grp_stats_day[row.home_id].data.datasets[2].data.push({x: ts, p_tot: row["p_tot"]});
+    // charts_grp_powers_day[row.home_id].data.labels.push(row.ts);
+    charts_grp_powers_day[row.home_id].data.datasets[0].data.push({x: ts, p_cons: row["p_cons"]});
+    charts_grp_powers_day[row.home_id].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
+    charts_grp_powers_day[row.home_id].data.datasets[2].data.push({x: ts, p_tot: row["p_tot"]});
 
 		let prelevement = 0;
 		let injection = 0;
@@ -333,10 +333,10 @@ function createChartGrpStats(grp_stats_data) {
 		} else if (row["p_tot"] < 0) {
 			injection = row["p_tot"];
 		}
-		charts_grp_stats_day[row.home_id].data.datasets[3].data.push({x: ts, pre: prelevement});
-		charts_grp_stats_day[row.home_id].data.datasets[4].data.push({x: ts, inj: injection});
+		charts_grp_powers_day[row.home_id].data.datasets[3].data.push({x: ts, pre: prelevement});
+		charts_grp_powers_day[row.home_id].data.datasets[4].data.push({x: ts, inj: injection});
 
-    charts_grp_stats_day[row.home_id].update();
+    charts_grp_powers_day[row.home_id].update();
   }
 }
 
@@ -345,19 +345,19 @@ function createPage() {
     charts_raw_day[hid] = null;
     charts_raw_today[hid] = null;
 
-    charts_stats_day[hid] = null;
-    charts_stats_today[hid] = null;
+    charts_powers_day[hid] = null;
+    charts_powers_today[hid] = null;
   }
 
   for (const gid in ALL_GRP_IDS) {
-    charts_grp_stats_day[gid] = null;
-    charts_grp_stats_today[gid] = null;
+    charts_grp_powers_day[gid] = null;
+    charts_grp_powers_today[gid] = null;
   }
 
   console.log("creating charts...")
-  // stats data
-  createChartCanvas(1, "stats_data_charts", IDS);
-  initCharts(charts_stats_day, 1, "stats", IDS);
+  // powers data
+  createChartCanvas(1, "powers_data_charts", IDS);
+  initCharts(charts_powers_day, 1, "powers", IDS);
 
   // raw data
   createChartCanvas(0, "raw_data_charts", IDS);
@@ -366,7 +366,7 @@ function createPage() {
   // groups data
   createChartCanvas(2, "groups_data_charts", ALL_GRP_IDS);
   createNotationsGroups();
-  initCharts(charts_grp_stats_day, 2, "groups", ALL_GRP_IDS);
+  initCharts(charts_grp_powers_day, 2, "groups", ALL_GRP_IDS);
   
 }
 
