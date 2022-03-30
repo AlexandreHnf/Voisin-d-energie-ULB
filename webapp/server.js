@@ -108,8 +108,8 @@ app.get('/client.html', (req, res) => {        //get requests to the root ("/") 
                                                       //the .sendFile method needs the absolute path to the file, see: https://expressjs.com/en/4x/api.html#res.sendFile 
 });
 
-app.get('/client.js', function(req, res) {
-  res.sendFile('/client.js', {root: __dirname});
+app.get('/client2.js', function(req, res) {
+  res.sendFile('/client2.js', {root: __dirname});
 });
 
 // ===========================

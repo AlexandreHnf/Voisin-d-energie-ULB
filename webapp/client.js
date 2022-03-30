@@ -361,41 +361,43 @@ function createPage() {
 
   // raw data
   createChartCanvas(0, "raw_data_charts", IDS);
-  initCharts(charts_raw_day, 0, "raw", IDS);
+  // initCharts(charts_raw_day, 0, "raw", IDS);
 
   // groups data
   createChartCanvas(2, "groups_data_charts", ALL_GRP_IDS);
-  createNotationsGroups();
-  initCharts(charts_grp_powers_day, 2, "groups", ALL_GRP_IDS);
+  // createNotationsGroups();
+  // initCharts(charts_grp_powers_day, 2, "groups", ALL_GRP_IDS);
   
 }
 
-function initIds(ids, grp_ids) {
-  ALL_IDS = ids;
-  ALL_GRP_IDS = grp_ids;
+// function initIds(ids, grp_ids) {
+//   ALL_IDS = ids;
+//   ALL_GRP_IDS = grp_ids;
 
-  if (HOME_ID === "flukso_admin") {
-    IDS = ids;
-    GRP_IDS = grp_ids;
-  } else {
-    IDS[HOME_ID] = ids[HOME_ID];
-  }
-}
+//   if (HOME_ID === "flukso_admin") {
+//     IDS = ids;
+//     GRP_IDS = grp_ids;
+//   } else {
+//     IDS[HOME_ID] = ids[HOME_ID];
+//   }
+// }
 
 function main() {
 
   document.getElementById("profil_badge").innerText = HOME_ID;
-  socket.once("init", (data) => {
-    console.log(data.ids);
-    console.log(data.grp_ids);
-    initIds(data.ids, data.grp_ids);
+  // socket.once("init", (data) => {
+  //   console.log(data.ids);
+  //   console.log(data.grp_ids);
+  //   initIds(data.ids, data.grp_ids);
 
-    console.log("IDS -> " + HOME_ID);
-    console.log(IDS);
-    console.log(GRP_IDS);
-    // create html charts canvas
-    createPage();
-  });
+  //   console.log("IDS -> " + HOME_ID);
+  //   console.log(IDS);
+  //   console.log(GRP_IDS);
+  //   // create html charts canvas
+  //   createPage();
+  // });
+
+  createPage();
 
   socket.on('connect_error', function () {
       console.log('Connection Failed. Server down !');
