@@ -184,17 +184,17 @@ function initCharts(chart, col_id) {
   /* 
   init each chart with empty dataset, but proper labels from the home
   */
-  console.log(chart);
-  if (chart !== null) { // first destroy previous charts if any
+  console.log(charts_powers[day]);
+  if (charts_powers[day] !== null) { // first destroy previous charts if any
     console.log("destroying previous charts...");
-    chart.destroy();
+    charts_powers[day].destroy();
   }
 
   // create empty charts with labels
   createChartDatasetpowers();
 
   console.log(`chartCanvas${col_id}_${HOME_ID}`);
-  chart = new Chart(document.getElementById(`chartCanvas${col_id}_${HOME_ID}`).getContext('2d'), {
+  charts_powers[day] = new Chart(document.getElementById(`chartCanvas${col_id}_${HOME_ID}`).getContext('2d'), {
     type: 'line',
     data: {
       datasets: datasets
