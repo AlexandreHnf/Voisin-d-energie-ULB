@@ -34,7 +34,7 @@ function changeTimeUnit() {
 
 function processDateQuery() {
 	/* 
-	
+	Get a date input, send query to server
 	*/
 	var date = document.getElementById("day").value;
 	console.log("date: "+ date);
@@ -44,7 +44,7 @@ function processDateQuery() {
 	})
 	// document.getElementById("date_msg").innerHTML = "=> Flukso data - " + date;
 	// sendDateQuery("raw", date.toString());
-  sendDateQuery("powers", date.toString());
+  sendDateQuery("power", date.toString());
   // sendDateQuery("groups", date.toString());
 }
 
@@ -74,7 +74,7 @@ async function sendDateQuery(data_type, date) {
 
     if (data_type === "raw") {
       createChartRaw(alldata);
-    } else if (data_type === "powers") {
+    } else if (data_type === "power") {
       createChartpowers(alldata);
     } else if (data_type === "groups") {
       createChartGrppowers(alldata);
@@ -184,15 +184,16 @@ function initCharts(chart, col_id) {
   /* 
   init each chart with empty dataset, but proper labels from the home
   */
-  if (chart != null) { // first destroy previous charts if any
-    // console.log("destroying previous charts...");
+  console.log(chart);
+  if (chart !== null) { // first destroy previous charts if any
+    console.log("destroying previous charts...");
     chart.destroy();
   }
 
   // create empty charts with labels
   createChartDatasetpowers();
 
-  // console.log(`chartCanvas${col_id}_${HOME_ID}`);
+  console.log(`chartCanvas${col_id}_${HOME_ID}`);
   chart = new Chart(document.getElementById(`chartCanvas${col_id}_${HOME_ID}`).getContext('2d'), {
     type: 'line',
     data: {

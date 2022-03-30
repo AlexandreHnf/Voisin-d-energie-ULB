@@ -23,7 +23,7 @@ const client = new cassandra.Client({
   localDataCenter: 'datacenter1'
 });
 
-const TABLES = {'raw': 'raw_data', 'stats': 'stats', 'groups': 'groups_stats'};
+const TABLES = {'raw': 'raw', 'power': 'power', 'groups': 'groups_power'};
 
 /*
 // Connection to a remote cassandra cluster
