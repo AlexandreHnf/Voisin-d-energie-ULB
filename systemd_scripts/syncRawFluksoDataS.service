@@ -6,7 +6,7 @@ After=multi-user.target
 [Service]
 Type=oneshot
 Restart=always
-ExecStart=/usr/bin/python3 /home/AlexandreHnf/syncRawFluksoData.py --mode automatic
+ExecStart=/usr/bin/python3 "/home/alexandre_hnf/Desktop/Voisin d'énergie/Voisins d'énergie/repository/Voisin-d-energie-ULB/systemd_scripts/random_sleeps.py"
 
 [Install]
 WantedBy=syncRawFluksoDataS.timer
