@@ -1,4 +1,4 @@
-NODE : 
+NODE (frontend) : 
     sudo apt install nodejs
     sudo apt install nodejs npm
     npm install express
@@ -7,7 +7,7 @@ NODE :
     npm install --save body-parser
     npm install fs
     
-PYTHON : 
+PYTHON (backend) : 
     sudo apt install python3
     sudo apt install python3-numpy
     sudo apt install python3-pandas
@@ -26,6 +26,3 @@ CASSANDRA :
     sudo apt-get install cassandra
     sudo pip install cqlsh
 
-OTHER (not useful for the vms):
-    matplotlib
-    PyQt5

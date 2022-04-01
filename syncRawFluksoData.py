@@ -6,8 +6,6 @@ Script to fetch Fluksometer data using the tmpo protocol and
 - save the raw data in Cassandra database
 """
 
-from turtle import home
-
 from home import *
 from gui import *
 from constants import *

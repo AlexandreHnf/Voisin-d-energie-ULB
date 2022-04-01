@@ -1,6 +1,7 @@
 from cassandra.cluster import Cluster
 from matplotlib.pyplot import table
 import pandas as pd
+from constants import * 
 
 
 def getRightFormat(values):
@@ -152,10 +153,16 @@ def selectQuery(session, keyspace, table, columns, where_clause, allow_filtering
 
 # ==========================================================================
 
+def getCredential(self, host):
+    credential = {'username': CASSANDRA_SERV_USERNAME, 'password': CASSANDRA_SERV_PASSWORD}
+    return credential
+
 
 def connectToCluster(keyspace):
     # create the cluster : connects to localhost (127.0.0.1:9042) by default
     cluster = Cluster()
+	# nodes = [SERVER_BACKEND_IP]
+	# cluster = Cluster(nodes, auth_provider=getCredential)
 
     # connect to the keyspace or create one if it doesn't exist
     session = cluster.connect(keyspace)
