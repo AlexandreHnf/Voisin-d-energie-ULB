@@ -34,6 +34,13 @@ LAST_TS_DAYS =                          2  # days
 SINCE_INIT = "5min"
 
 
+SERVER_FRONTEND_IP = 					'iridia-vde-frontend.hpda.ulb.ac.be'
+SERVER_BACKEND_IP = 					'iridia-vde-db.hpda.ulb.ac.be'
+
+# cassandra authentication
+CASSANDRA_SERV_USERNAME = 				'cassandra'
+CASSANDRA_SERV_PASSWORD = 				'5H54G5Sb/Pe0kT54uoj+cfiYDgLiLOGZ'
+
 # cassandra keyspaces
 CASSANDRA_KEYSPACE =                    "flukso" 
 
