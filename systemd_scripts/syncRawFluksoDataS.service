@@ -1,0 +1,12 @@
+ 
+[Unit]
+Description=Backend service - sync raw data
+After=multi-user.target
+
+[Service]
+Type=oneshot
+Restart=always
+ExecStart=/usr/bin/python3 /home/AlexandreHnf/syncRawFluksoData.py --mode automatic
+
+[Install]
+WantedBy=syncRawFluksoDataS.timer
