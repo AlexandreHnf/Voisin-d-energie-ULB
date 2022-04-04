@@ -4,8 +4,8 @@
 Description=Backend service - sync raw data - timer
 
 [Timer]
-OnBootSec=1min
-OnUnitActiveSec=1min
+OnBootSec=5sec
+OnUnitActiveSec=3sec
 
 [Install]
 WantedBy=timers.target
