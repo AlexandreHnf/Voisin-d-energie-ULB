@@ -1,6 +1,9 @@
 import time 
 import random 
 import pandas as pd
+from cassandra.cluster import Cluster
+
+
 
 print("before sleep.. - ", pd.Timestamp.now())
 

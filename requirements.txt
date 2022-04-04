@@ -13,7 +13,7 @@ PYTHON (backend) :
     sudo apt install python3-pandas
     
     sudo pip3 install tmpo
-    sudo pip install cassandra-driver
+    sudo -H pip3 install cassandra-driver
 
 CASSANDRA : 
     echo "deb http://www.apache.org/dist/cassandra/debian 40x main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
