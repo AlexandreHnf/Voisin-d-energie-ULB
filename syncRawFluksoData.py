@@ -39,6 +39,13 @@ mpl.rc('figure', max_open_warning=0)
 warnings.simplefilter('ignore', urllib3.exceptions.SecurityWarning)
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
+import logging
+
+# Create and configure logger
+logging.basicConfig(level = logging.INFO,
+					format = "{asctime} {levelname:<8} {message}", style='{',
+					filename = "logs/backend_logs.log",
+					filemode = 'w')
 
 # ====================================================================================
 
@@ -490,6 +497,7 @@ def processArguments():
 
 
 def sync(mode, since, to):
+	logging.info("This is a info msg in syncRawFluksoData.py")
 	begin = time.time()
 	
 	# > timings

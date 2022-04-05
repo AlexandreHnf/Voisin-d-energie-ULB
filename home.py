@@ -8,7 +8,8 @@ import pandas as pd
 import numpy as np
 import copy
 import tmpo
-        
+import logging
+
 
 class Home:
 
@@ -25,6 +26,7 @@ class Home:
         self.raw_df = self.createFluksoRawDF()
         self.incomplete_raw_df = self.findIncompleteRawDf()
         self.cons_prod_df = self.getConsumptionProductionDF()
+        logging.info("This is a info msg in home.py : " + self.home_id)
 
     def getRawDF(self):
         return self.raw_df
