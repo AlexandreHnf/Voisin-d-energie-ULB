@@ -7,7 +7,6 @@ Script to fetch Fluksometer data using the tmpo protocol and
 """
 
 from home import *
-from gui import *
 from constants import *
 import pyToCassandra as ptc
 from sensorConfig import Configuration
@@ -56,9 +55,9 @@ def getLastRegisteredTimestamp(cassandra_session, table_name, sensor_id):
 	- None if no timestamp in the table
 
 	We assume that if there is data in raw table, each sensor can have different last timestmaps
-	registered. 
+	registered depending on the last queries. 
 	"""
-	# print("Getting last timestamp...")
+	# logging.info("Getting last timestamp...")
 
 	dates = ["'" + d + "'" for d in getLastXDates()]
 	ts_df = None
@@ -141,7 +140,7 @@ def getInitialTimestamp(tmpo_session, sid, now):
 	if initial_ts is None:
 		initial_ts = setInitSeconds(getTiming(FROM_FIRST_TS, now))  # TODO: TEMPORARY
 
-	print("{} first ts = {}".format(sid, initial_ts))
+	logging.info("{} first ts = {}".format(sid, initial_ts))
 
 	return initial_ts
 
@@ -237,25 +236,25 @@ def generateHomes(tmpo_session, config, since, since_timing, to_timing, timings,
 	For each home, query tmpo to get data given a predefined time interval, then
 	compute power raw data, production, consumption, total  
 	"""
-	print("======================= HOMES =======================")
+	logging.info("======================= HOMES =======================")
 	homes = {}
 
 	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
-		print("> {} | ".format(hid), end="")
+		logging.info("> {} | ".format(hid))
 		if timings[hid]["start_ts"] is not None:  # if home has a start timestamp
 			sensors = []  # list of Sensor objects
 			if mode == "automatic":
 				since_timing = timings[hid]["start_ts"]
 				to_timing = timings[hid]["end_ts"]
-				print("{} > {} ({})".format(since_timing, to_timing,
-											round(pd.Timedelta(to_timing - since_timing).seconds / 60.0, 2)), end=" | ")
+				logging.info("{} > {} ({})".format(since_timing, to_timing,
+											round(pd.Timedelta(to_timing - since_timing).seconds / 60.0, 2)))
 
 			for sid, row in home_sensors.iterrows():
 				sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
 			home = Home(home_sensors, since, since_timing, to_timing, hid, sensors)
 			homes[hid] = home
 		else:
-			print("None (no data to recover)")
+			logging.info("None (no data to recover)")
 
 	return homes
 
@@ -265,20 +264,19 @@ def generateGroupedHomes(homes, config):
 	We receive a configuration object and create a set of grouped Home objects
 	Each grouped home = sum of different homes  
 	"""
-	print("======================= GROUPS =======================")
+	logging.info("======================= GROUPS =======================")
 	grouped_homes = {}
 
 	for gid, group in config.getGroupsConfig().groupby("group_id"):
-		print("> {} : ".format(gid))
+		logging.info("> {} : ".format(gid))
 		home_ids = list(group["homes"][group.index[0]])
-		print("Home ids : ", home_ids)
+		logging.info("Home ids : " + home_ids)
 		home = copy.copy(homes[home_ids[0]])
 		for j in range(1, len(home_ids)):
-			print(homes[home_ids[j]].getHomeID(), end=" ")
+			logging.info(homes[home_ids[j]].getHomeID())
 			home.appendFluksoData(homes[home_ids[j]].getRawDF(), homes[home_ids[j]].getHomeID())
 			home.addConsProd(homes[home_ids[j]].getConsProdDF())
 		home.setHomeID("group_" + gid)
-		print()
 
 		grouped_homes["group" + gid] = home
 
@@ -291,13 +289,13 @@ def testSession(sensors_config, path=""):
 
 	for sid, row in sensors_config.iterrows():
 		try:
-			print("{}, {}".format(sid, row["sensor_token"]))
+			logging.info("{}, {}".format(sid, row["sensor_token"]))
 			tmpo_session = tmpo.Session(path)
 			tmpo_session.add(sid, row["sensor_token"])
 			tmpo_session.sync()
-			print("=> OK")
+			logging.info("=> OK")
 		except:
-			print("=> NOT OK")
+			logging.info("=> NOT OK")
 			continue
 
 
@@ -307,15 +305,15 @@ def getTmpoSession(config, path=""):
 	"""
 	if not path:
 		path = getProgDir()
-	# print(path)
+	# logging.info(path)
 
 	tmpo_session = tmpo.Session(path)
 	for sid, row in config.getSensorsConfig().iterrows():
-		# print(sid, row["sensor_token"])
+		# logging.info(sid, row["sensor_token"])
 		tmpo_session.add(sid, row["sensor_token"])
 
 	tmpo_session.sync()
-	print("> tmpo synchronization OK")
+	logging.info("> tmpo synchronization OK")
 
 	return tmpo_session
 
@@ -329,7 +327,7 @@ def getFluksoData(sensor_file, path=""):
 		path = getProgDir()
 
 	sensors = read_sensor_info(path, sensor_file)
-	# print(sensors.head(5))
+	# logging.info(sensors.head(5))
 	tmpo_session = tmpo.Session(path)
 	for hid, hn, sid, tk, n, c, p in sensors.values:
 		tmpo_session.add(sid, tk)
@@ -346,7 +344,7 @@ def saveMissingData(cassandra_session, config, to_timing, homes, table_name):
 	"""
 	For each home, save the first timestamp with no data (nan values) for each sensors
 	"""
-	print("saving in Cassandra...   => table : {}".format(table_name))
+	logging.info("saving in Cassandra...   => table : {}".format(table_name))
 
 	ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, table_name)  # truncate existing rows
 
@@ -355,7 +353,7 @@ def saveMissingData(cassandra_session, config, to_timing, homes, table_name):
 
 	col_names = ["sensor_id", "config_id", "start_ts", "end_ts"]
 	for hid, home in homes.items():
-		print(hid, end=" ")
+		logging.info(hid)
 		inc_power_df = home.getIncompletePowerDF()
 		if len(inc_power_df) > 0:
 			sensors_ids = inc_power_df.columns
@@ -369,12 +367,12 @@ def saveMissingData(cassandra_session, config, to_timing, homes, table_name):
 							start_ts = str(timestamp)[:19] + "Z"
 							if np.isnan(inc_power_df[sid][i]):
 								values = [sid, config_id, start_ts, end_ts]
-								# print("{} | start : {}, end = {}", config_id, start_ts, end_ts)
+								# logging.info("{} | start : {}, end = {}", config_id, start_ts, end_ts)
 								ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 								# as soon as we find the first ts with null value, we go to next sensor
 								break
 
-	print("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
+	logging.info("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
 
 
 def saveRawToCassandra(cassandra_session, homes, config, table_name, timings):
@@ -383,12 +381,12 @@ def saveRawToCassandra(cassandra_session, homes, config, table_name, timings):
 	Save per sensor : 1 row = 1 sensor + 1 timestamp + 1 power value
 		home_df : timestamp, sensor_id1, sensor_id2, sensor_id3 ... sensor_idN
 	"""
-	print("saving in Cassandra...   => table : {}".format(table_name))
+	logging.info("saving in Cassandra...   => table : {}".format(table_name))
 
 	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
 	config_id = str(config.getConfigID())[:19] + "Z"
 	for hid, home in homes.items():
-		print(hid)
+		logging.info(hid)
 		power_df = home.getRawDF()
 		power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1)  # add date column
 		by_day_df = power_df.groupby("date")  # group by date
@@ -413,14 +411,14 @@ def saveRawToCassandra(cassandra_session, homes, config, table_name, timings):
 
 				ptc.batch_insert(cassandra_session, insert_queries)
 
-	print("> Successfully Saved raw data in Cassandra : table {}".format(table_name))
+	logging.info("> Successfully Saved raw data in Cassandra : table {}".format(table_name))
 
 
 # ====================================================================================
 
 
 def saveFluksoDataToCsv(homes):
-	print("saving flukso data in csv...")
+	logging.info("saving flukso data in csv...")
 	for home in homes:
 		# filepath = "output/fluksoData/{}.csv".format(home.getHomeID())
 		power_df = home.getRawDF()
@@ -435,7 +433,7 @@ def saveFluksoDataToCsv(homes):
 
 		combined_df.to_csv(filepath)
 
-	print("Successfully Saved flukso data in csv")
+	logging.info("Successfully Saved flukso data in csv")
 
 
 # ====================================================================================
@@ -446,21 +444,21 @@ def showProcessingTimes(configs, begin, setup_time, config_timers):
 	Display processing time for each step of 1 query
 	- TODO : replace all this by a Timer class
 	"""
-	print("================= Timings ===================")
-	print("> Setup time : {}.".format(getTimeSpent(begin, setup_time)))
+	logging.info("================= Timings ===================")
+	logging.info("> Setup time : {}.".format(getTimeSpent(begin, setup_time)))
 
 	for i, config in enumerate(configs):
 		config_id = config.getConfigID()
-		print("> Config {} : {}".format(i + 1, str(config_id)))
+		logging.info("> Config {} : {}".format(i + 1, str(config_id)))
 		t = config_timers[config_id]
-		print("  > Timings : {}.".format(getTimeSpent(t[0], t[1])))
-		print("  > Generate homes : {}.".format(getTimeSpent(t[1], t[2])))
-		print("  > save raw : {}.".format(getTimeSpent(t[2], t[3])))
-		print("  > Save missing : {}.".format(getTimeSpent(t[3], t[4])))
-		print("  > Save power : {}.".format(getTimeSpent(t[4], t[5])))
-		print("  > Save groups power : {}.".format(getTimeSpent(t[5], t[6])))
+		logging.info("  > Timings : {}.".format(getTimeSpent(t[0], t[1])))
+		logging.info("  > Generate homes : {}.".format(getTimeSpent(t[1], t[2])))
+		logging.info("  > save raw : {}.".format(getTimeSpent(t[2], t[3])))
+		logging.info("  > Save missing : {}.".format(getTimeSpent(t[3], t[4])))
+		logging.info("  > Save power : {}.".format(getTimeSpent(t[4], t[5])))
+		logging.info("  > Save groups power : {}.".format(getTimeSpent(t[5], t[6])))
 
-	print("> Total Processing time : {}.".format(getTimeSpent(begin, time.time())))
+	logging.info("> Total Processing time : {}.".format(getTimeSpent(begin, time.time())))
 
 
 def processArguments():
@@ -497,7 +495,6 @@ def processArguments():
 
 
 def sync(mode, since, to):
-	logging.info("This is a info msg in syncRawFluksoData.py")
 	begin = time.time()
 	
 	# > timings
@@ -517,11 +514,11 @@ def sync(mode, since, to):
 	missing_data = getMissingRaw(cassandra_session, TBL_RAW_MISSING)
 	configs = getNeededConfigs(all_sensors_configs, all_groups_configs, missing_data, current_config_id)
 
-	print("Mode : {}".format(mode))
-	print("start timing : {} (CET) => {} (UTC)".format(since, start_timing))
-	print("to timing    : {} (CET) => {} (UTC)".format(to, to_timing))
-	print("now (CET) : ", now_local)
-	print("Number of configs : ", len(configs))
+	logging.info("Mode : {}".format(mode))
+	logging.info("start timing : {} (CET) => {} (UTC)".format(since, start_timing))
+	logging.info("to timing    : {} (CET) => {} (UTC)".format(to, to_timing))
+	logging.info("now (CET) : " + str(now_local))
+	logging.info("Number of configs : " + str(len(configs)))
 
 	setup_time = time.time()
 
@@ -531,13 +528,13 @@ def sync(mode, since, to):
 
 	for config in configs:
 		config_id = config.getConfigID()
-		print("                [CONFIG {}] : ".format(str(config_id)))
+		logging.info("                [CONFIG {}] : ".format(str(config_id)))
 		config_timers[config_id] = [time.time()]
 
-		print("Number of Homes : ", config.getNbHomes())
-		print("Number of Fluksos : ", len(set(config.getSensorsConfig().flukso_id)))
-		print("Number of Fluksos sensors : ", len(config.getSensorsConfig()))
-		print("Number of groups : ", len(config.getGroupsConfig()))
+		logging.info("Number of Homes : " + str(config.getNbHomes()))
+		logging.info("Number of Fluksos : " + str(len(set(config.getSensorsConfig().flukso_id))))
+		logging.info("Number of Fluksos sensors : " + str(len(config.getSensorsConfig())))
+		logging.info("Number of groups : " + str(len(config.getGroupsConfig())))
 
 		tmpo_session = getTmpoSession(config)
 		# testSession(sensors_config)
@@ -548,47 +545,47 @@ def sync(mode, since, to):
 			missing = missing_data.get_group(config_id).set_index("sensor_id")
 		timings = getTimings(tmpo_session, cassandra_session, config, current_config_id, missing, 
 							TBL_RAW_MISSING, now_local)
-		# print(timings)
+		# logging.info(timings)
 		config_timers[config_id].append(time.time())
 
 		# =========================================================
 
 		# STEP 2 : generate homes and grouped homes
-		print("==================================================")
-		print("Generating homes data and getting Flukso data...")
+		logging.info("==================================================")
+		logging.info("Generating homes data and getting Flukso data...")
 		homes = generateHomes(tmpo_session, config, since, start_timing, to_timing, timings, mode, now)
 		
 		# TODO : groups not correct : if no missing data for a house, not taken into account : instead, use computePower
 		# grouped_homes = generateGroupedHomes(homes, config)
 		config_timers[config_id].append(time.time())
 
-		# print("==================================================")
+		# logging.info("==================================================")
 		# saveFluksoDataToCsv(homes.values())
 		# saveFluksoDataToCsv(grouped_homes.values())
 
 		# =========================================================
 
 		# STEP 3 : save raw flukso data in cassandra
-		print("==================================================")
+		logging.info("==================================================")
 		saveRawToCassandra(cassandra_session, homes, config, TBL_RAW, timings)
 		config_timers[config_id].append(time.time())
 
 		# STEP 4 : save missing raw data in cassandra
-		print("==================================================")
+		logging.info("==================================================")
 		saveMissingData(cassandra_session, config, now, homes, TBL_RAW_MISSING)
 		config_timers[config_id].append(time.time())
 
 		# STEP 5 : save power flukso data in cassandra
-		print("==================================================")
+		logging.info("==================================================")
 		cp.savePowerDataToCassandra(cassandra_session, homes, config, TBL_POWER)
 		config_timers[config_id].append(time.time())
 
 		# STEP 6 : save groups of power flukso data in cassandra
-		print("==================================================")
+		logging.info("==================================================")
 		# cp.savePowerDataToCassandra(cassandra_session, grouped_homes, config, TBL_GROUPS_POWER)
 		config_timers[config_id].append(time.time())
 
-		print("---------------------------------------------------------------")
+		logging.info("---------------------------------------------------------------")
 
 	# =========================================================
 

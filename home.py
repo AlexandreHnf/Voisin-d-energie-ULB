@@ -26,7 +26,6 @@ class Home:
         self.raw_df = self.createFluksoRawDF()
         self.incomplete_raw_df = self.findIncompleteRawDf()
         self.cons_prod_df = self.getConsumptionProductionDF()
-        logging.info("This is a info msg in home.py : " + self.home_id)
 
     def getRawDF(self):
         return self.raw_df
@@ -120,7 +119,7 @@ class Home:
         energy_df = pd.concat(data_dfs, axis=1)  # combined series
         del data_dfs
 
-        # print(energy_df)
+        # logging.info(energy_df)
 
         return energy_df
 
@@ -140,15 +139,15 @@ class Home:
 
         incomplete_raw_df = filled_df[filled_df.isna().any(axis=1)]  # with CET timezones
         nb_tot_nan = filled_df.isna().sum().sum()  # count nb of nan in the entire df
-        print("len NaN : {}, tot NaN: {}".format(len(incomplete_raw_df), nb_tot_nan))
+        logging.info("len NaN : {}, tot NaN: {}".format(len(incomplete_raw_df), nb_tot_nan))
 
         incomplete_raw_df.index = pd.DatetimeIndex(incomplete_raw_df.index, name="time")
         # convert all timestamps to local timezone (CET)
         local_timestamps = getLocalTimestampsIndex(incomplete_raw_df)
         incomplete_raw_df.index = [tps for tps in local_timestamps]
         
-        if self.home_id == "ECHASC":
-            print("incomplete_raw_df", incomplete_raw_df.head(30))
+        # if self.home_id == "ECHASC":
+        #     logging.info("incomplete_raw_df" + incomplete_raw_df.head(30))
 
         return incomplete_raw_df
         
@@ -171,10 +170,10 @@ class Home:
         # convert all timestamps to local timezone (CET)
         local_timestamps = getLocalTimestampsIndex(raw_df)
         raw_df.index = [tps for tps in local_timestamps]
-        print("len: ", len(raw_df.index), end=" | ")
+        logging.info("len: " + str(len(raw_df.index)))
 
-        if self.home_id == "ECHASC":
-            print("raw_df", raw_df.head(30))
+        # if self.home_id == "ECHASC":
+        #     logging.info("raw_df" + raw_df.head(30))
 
         raw_df.fillna(0, inplace=True)
         
@@ -219,7 +218,7 @@ class Home:
 
 
     def appendFluksoData(self, raw_df, home_id):
-        # print(len(self.raw_df), len(raw_df))
+        # logging.info(len(self.raw_df), len(raw_df))
 
         if not self.home_id in self.raw_df.columns[0]:
             self.raw_df = self.raw_df.rename(self.getColNamesWithID(self.raw_df, self.home_id), axis=1)

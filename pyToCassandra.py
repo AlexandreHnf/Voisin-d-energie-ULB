@@ -2,6 +2,7 @@ from cassandra.cluster import Cluster
 from matplotlib.pyplot import table
 import pandas as pd
 from constants import * 
+import logging
 
 
 def getRightFormat(values):
@@ -50,7 +51,7 @@ def insert(session, keyspace, table, columns, values):
     """
     query = "INSERT INTO {}.{} ({}) VALUES ({});" \
                     .format(keyspace, table, ",".join(columns), ",".join(getRightFormat(values)))
-    # print("===> insert query :", query)
+    # logging.info("===> insert query :" + query)
     session.execute(query)
 
 
@@ -113,9 +114,9 @@ def createTable(session, keyspace, table_name, columns, primary_keys, clustering
                     getClusteringKeyStr(clustering_keys),
                     getOrdering(ordering))
 
-    print("===>  create table query : ", query)
+    logging.info("===>  create table query : " + query)
     session.execute(query) 
-    print("successfully created table " + table_name)
+    logging.info("successfully created table " + table_name)
 
 
 def pandas_factory(colnames, rows):
@@ -145,7 +146,7 @@ def selectQuery(session, keyspace, table, columns, where_clause, allow_filtering
         ",".join(columns), keyspace, table, where, where_clause, limit, allow_filtering
     )
 
-    # print("===> select query : ", query)
+    # logging.info("===> select query : " + query)
     rows = selectResToDf(session, query)
 
     return rows
@@ -196,7 +197,7 @@ def main():
 
     testFruitStock(session)
 
-    print("Insertion done.")
+    logging.info("Insertion done.")
 
 
 if __name__ == "__main__":

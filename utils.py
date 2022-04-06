@@ -4,6 +4,7 @@ import os
 import math
 from constants import *
 from datetime import date, timedelta, datetime
+import logging
 
 import pyToCassandra as ptc
 
@@ -49,11 +50,6 @@ def getCurrentSensorsConfigCassandra(cassandra_session, table_name):
 	by_date_df = all_configs_df.groupby("insertion_time")
 	dates = list(by_date_df.groups.keys())
 	current_config_id = dates[-1]   # last config registered
-
-	# print("SENSORS CONFIGS ")
-	# for config_id, sensors_config in by_date_df:
-	# 	print(config_id)
-	# 	print(sensors_config.head(5))
 
 	return current_config_id, by_date_df
 
@@ -115,11 +111,6 @@ def getGroupsConfigsCassandra(cassandra_session, table_name):
 	by_date_df = all_configs_df.groupby("insertion_time")
 	dates = list(by_date_df.groups.keys())
 	current_config_id = dates[-1]   # last config registered
-
-	# print("GROUPS CONFIGS ")
-	# for config_id, groups_config in by_date_df:
-	# 	print(config_id)
-	# 	print(groups_config.head(5))
 	
 	return current_config_id, by_date_df
 
@@ -151,12 +142,12 @@ def getTiming(t, now):
 								  hour=int(e[3]), minute=int(e[4]), second=int(e[5]), 
 								  tz="CET").tz_convert("UTC")
 		else:  # since x min, x hours, x days...
-			# print("time delta : ", pd.Timedelta(t))
+			# logging.info("time delta : " + pd.Timedelta(t))
 			timing = now - pd.Timedelta(t)
 	else:
 		timing = now  # now
 
-	# print("timing : ", timing)
+	# logging.info("timing : " + timing)
 	return timing
 
 
@@ -224,11 +215,11 @@ def isEarlier(ts1, ts2):
 def getSpecificSerie(value, since_timing, to_timing):
 
 	period = (to_timing - since_timing).total_seconds() / FREQ[0]
-	# print("s : {}, t : {}, to : {}, period : {}".format(self.since_timing, self.to_timing, to, period))
+	# logging.info("s : {}, t : {}, to : {}, period : {}".format(self.since_timing, self.to_timing, to, period))
 	values = pd.date_range(since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
-	# print("datetime range : ", values)
+	# logging.info("datetime range : " + values)
 	values_series = pd.Series(int(period) * [value], values)
-	# print(since_timing, values_series.index[0])
+	# logging.info(since_timing, values_series.index[0])
 
 	return values_series
 
@@ -237,7 +228,7 @@ def energy2power(energy_df):
 	"""
 	from cumulative energy to power (Watt)
 	"""
-	# print(energy_df.head(10))
+	# logging.info(energy_df.head(10))
 	power_df = energy_df.diff() * 1000
 	# power_df.drop(first_ts, inplace=True)  # drop first row because no data after conversion
 	# replace all negative values by 0, power can't be negative

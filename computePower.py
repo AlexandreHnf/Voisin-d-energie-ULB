@@ -3,6 +3,7 @@ from turtle import home
 from constants import *
 import pyToCassandra as ptc
 from utils import *
+import logging
 
 import copy
 import os
@@ -21,12 +22,12 @@ def savePowerDataToCassandra(cassandra_session, homes, config, table_name):
 	- homes : Home objects 
 		=> contains cons_prod_df : timestamp, P_cons, P_prod, P_tot
 	"""
-	print("saving in Cassandra...   => table : {}".format(table_name))
+	logging.info("saving in Cassandra...   => table : {}".format(table_name))
 
 	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
 	config_id = str(config.getConfigID())[:19] + "Z"
 	for hid, home in homes.items():
-		print(hid, end=" ")
+		logging.info(hid)
 		cons_prod_df = home.getConsProdDF()
 		cons_prod_df['date'] = cons_prod_df.apply(lambda row: str(row.name.date()), axis=1) # add date column
 		by_day_df = cons_prod_df.groupby("date")  # group by date
@@ -50,7 +51,7 @@ def savePowerDataToCassandra(cassandra_session, homes, config, table_name):
 		
 			ptc.batch_insert(cassandra_session, insert_queries)
 	
-	print("Successfully saved power data in cassandra : table {}".format(table_name))
+	logging.info("Successfully saved power data in cassandra : table {}".format(table_name))
 
 
 # ====================================================================================
@@ -67,10 +68,10 @@ def getRawData(session, since, ids, table_name):
 	now = pd.Timestamp.now(tz="CET")
 	timing = setInitSeconds(getTiming(since, now))
 
-	print("timing date : ", str(timing.date()))
-	print("now date : ", str(now.date()))
+	logging.info("timing date : " + str(timing.date()))
+	logging.info("now date : " + str(now.date()))
 	dates = ["'" + d + "'" for d in getDatesBetween(timing, now)]
-	print(dates)
+	logging.info(dates)
 	dates = ",".join(dates)
 	timing_format = "'" + str(timing)[:19] + ".000000+0000" + "'"
 
@@ -107,7 +108,7 @@ def getConsumptionProductionDF(sensors_config, homes_rawdata, ids):
 			sensor_df = homes_rawdata[hid][sid]
 			p = home_sensors.loc[sid]["pro"]
 			n = home_sensors.loc[sid]["net"]
-			# print("{} : p: {}, n: {}".format(sid, p, n))
+			# logging.info("{} : p: {}, n: {}".format(sid, p, n))
 
 			cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * sensor_df["power"]
 			cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * sensor_df["power"]
@@ -115,7 +116,7 @@ def getConsumptionProductionDF(sensors_config, homes_rawdata, ids):
 		cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
 
 		cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
-		# print(cons_prod_df.head(5))
+		# logging.info(cons_prod_df.head(5))
 		homes_stats[hid] = cons_prod_df
 
 	return homes_stats
@@ -137,18 +138,18 @@ def getGroupsPowers(home_powers, groups):
 	groups format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
 	"""
 	groups_powers = {}
-	# print(groups)
+	# logging.info(groups)
 	for i, group in enumerate(groups):
-		# print(home_stats[group[0]].head(2))
+		# logging.info(home_stats[group[0]].head(2))
 		cons_prod_df = concentrateConsProdDf(copy.copy(home_powers[group[0]]))
 		for j in range(1, len(group)):
-			# print(home_stats[group[j]].head(2))
+			# logging.info(home_stats[group[j]].head(2))
 
 			cons_prod_df = cons_prod_df.add(concentrateConsProdDf(home_powers[group[j]]), fill_value=0)
 		
 		groups_powers["group" + str(i + 1)] = cons_prod_df
 
-		# print(cons_prod_df.head(10))
+		# logging.info(cons_prod_df.head(10))
 
 	return groups_powers
 
@@ -160,21 +161,21 @@ def saveStatsToCassandra(session, homes_powers, table_name):
 	- homes_powers : {hid: cons_prod_df}
 	- cons_prod_df : home_id, day, ts, p_cons, p_prod, p_tot
 	"""
-	print("saving in Cassandra : flukso.{} table...".format(table_name))
+	logging.info("saving in Cassandra : flukso.{} table...".format(table_name))
 
 	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
 	for hid, cons_prod_df in homes_powers.items():
-		print(hid)
+		logging.info(hid)
 		
 		col_names = list(cons_prod_df.columns)
 		for _, row in cons_prod_df.iterrows():
 			values = list(row)
 			values[2] = str(values[2]) + "Z"  # timestamp (ts)
 			values.append(insertion_time)
-			print(values)
+			logging.info(values)
 			ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 
-	print("Successfully saved powers in Cassandra")
+	logging.info("Successfully saved powers in Cassandra")
 
 
 def saveGroupsStatsToCassandra(session, groups_powers, table_name):
@@ -184,21 +185,21 @@ def saveGroupsStatsToCassandra(session, groups_powers, table_name):
 	- groups_powers : {groupI: cons_prod_df}
 	- cons_prod_df : index = [day, ts], cols = [P_cons P_prod P_tot]
 	"""
-	print("saving in Cassandra : flukso.{} table...".format(table_name))
+	logging.info("saving in Cassandra : flukso.{} table...".format(table_name))
 
 	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
 	for gid, cons_prod_df in groups_powers.items():
-		print(gid)
+		logging.info(gid)
 		
 		col_names = ["home_id", "day", "ts", "P_cons", "P_prod", "P_tot"]
 		for date, row in cons_prod_df.iterrows():
 			values = [gid] + list(date) + list(row)  # date : ("date", "ts")
 			values[2] = str(values[2]) + "Z"  # timestamp (ts)
 			values.append(insertion_time)
-			print(values)
+			logging.info(values)
 			ptc.insert(session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 
-	print("Successfully saved groups powers in Cassandra")
+	logging.info("Successfully saved groups powers in Cassandra")
 
 # ====================================================================================
 
@@ -216,7 +217,7 @@ def main():
 	homes_rawdata = getRawData(cassandra_session, since, ids, TBL_RAW) 
 
 	
-	print("==============================================")
+	logging.info("==============================================")
 
 	# powers computations (p_cons, p_prod, p_tot)
 	homes_powers = getConsumptionProductionDF(sensors_config, homes_rawdata, ids)
