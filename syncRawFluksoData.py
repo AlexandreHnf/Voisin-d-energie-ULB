@@ -24,15 +24,10 @@ import numpy as np
 import tmpo
 import time
 from datetime import timedelta
-import matplotlib.pyplot as plt
 
 # Hide warnings :
-import matplotlib as mpl
 import urllib3
 import warnings
-
-# max open warning
-mpl.rc('figure', max_open_warning=0)
 
 # security warning & Future warning
 warnings.simplefilter('ignore', urllib3.exceptions.SecurityWarning)
@@ -40,11 +35,14 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import logging
 
+logging.getLogger("tmpo").setLevel(logging.ERROR)
+
 # Create and configure logger
 logging.basicConfig(level = logging.INFO,
-					format = "{asctime} {levelname:<8} {message}", style='{',
-					filename = "logs/backend_logs.log",
-					filemode = 'w')
+					format = "{asctime} {levelname:<8} {message}", style='{'
+					# filename = "/home/alexandre_hnf/Desktop/Vde/repository/Voisin-d-energie-ULB/logs/backend_logs.log",
+					# filemode = 'w'
+					)
 
 # ====================================================================================
 
@@ -495,6 +493,7 @@ def processArguments():
 
 
 def sync(mode, since, to):
+	logging.info("This is a info msg in syncRawFluksoData.py")
 	begin = time.time()
 	
 	# > timings

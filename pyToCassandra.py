@@ -1,5 +1,4 @@
 from cassandra.cluster import Cluster
-from matplotlib.pyplot import table
 import pandas as pd
 from constants import * 
 import logging
