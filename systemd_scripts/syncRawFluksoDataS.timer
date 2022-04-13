@@ -1,11 +1,10 @@
- 
 
 [Unit]
-Description=Backend service - sync raw data - timer
+Description=Backend service - timer - test
 
 [Timer]
 OnBootSec=1min
-OnUnitActiveSec=1min
+OnUnitActiveSec=5min
 
 [Install]
 WantedBy=timers.target
