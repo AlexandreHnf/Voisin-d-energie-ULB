@@ -385,7 +385,7 @@ def saveRawToCassandra(cassandra_session, homes, config, table_name, timings):
 	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
 	config_id = str(config.getConfigID())[:19] + "Z"
 	for hid, home in homes.items():
-		print(hid)
+		# print(hid)
 		power_df = home.getRawDF()
 		power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1)  # add date column
 		by_day_df = power_df.groupby("date")  # group by date
