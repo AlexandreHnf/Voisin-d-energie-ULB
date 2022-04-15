@@ -350,8 +350,7 @@ def main():
 
     # > get the useful flukso sensors data in a compact csv
     compact_df = getCompactSensorDF()
-    # > correct phase signs
-    compact_df = correctPhaseSigns(compact_df)
+    compact_df = correctPhaseSigns(compact_df) # > correct phase signs
     print("nb sensors : ", len(compact_df))
 
     now = pd.Timestamp.now()

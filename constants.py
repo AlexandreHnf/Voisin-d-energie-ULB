@@ -3,11 +3,11 @@ Constants
 """
 
 # files paths
-FLUKSO_TECHNICAL_FILE =                 "sensors/FluksoConfigurations/FluksoTechnical.xlsx"
+FLUKSO_TECHNICAL_FILE =                 "flukso_config/FluksoTechnical.xlsx"
 # FLUKSO_TECHNICAL_FILE =                 "sensors/FluksoConfigurations/FluksoTechnical_config1.xlsx"
 UPDATED_FLUKSO_TECHNICAL_FILE =         "sensors/updated_sensors.csv"
 COMPACT_SENSOR_FILE =                   "sensors/sensors_technical.csv"
-PHASE_TO_MODIF_FILE =                   "sensors/phases_to_modify.txt"
+PHASE_TO_MODIF_FILE =                   "flukso_config/phases_to_modify.txt"
 # SENSOR_FILE =                           "sensors/sensors.csv"
 UPDATED_SENSORS_FILE =                  "sensors/updated_sensors.csv"
 
@@ -30,8 +30,8 @@ LIMIT_TIMING_RAW =                      2  # days
 LAST_TS_DAYS =                          2  # days
 
 # "since" default value for the earliest timestamp of a flukso
-# normally since = 0, but for testing, we put since = 5min 
-SINCE_INIT = "5min"
+# normally since = 0, but for testing, we put since = 4min
+FROM_FIRST_TS =                         "4min"  # TEMPORARY
 
 
 SERVER_FRONTEND_IP = 					'iridia-vde-frontend.hpda.ulb.ac.be'
@@ -54,5 +54,3 @@ TBL_GROUPS_POWER =                      "groups_power"
 
 
 INSERTS_PER_BATCH =                     11000
-
-FROM_FIRST_TS =                         "4min"  # TEMPORARY
