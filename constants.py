@@ -38,8 +38,8 @@ SERVER_FRONTEND_IP = 					'iridia-vde-frontend.hpda.ulb.ac.be'
 SERVER_BACKEND_IP = 					'iridia-vde-db.hpda.ulb.ac.be'
 
 # cassandra authentication
-CASSANDRA_SERV_USERNAME = 				'cassandra'
-CASSANDRA_SERV_PASSWORD = 				''
+CASSANDRA_AUTH_MODE = 					'local'
+CASSANDRA_CREDENTIALS_FILE = 			'cassandra_serv_credentials.json'
 
 # cassandra keyspaces
 CASSANDRA_KEYSPACE =                    "flukso" 

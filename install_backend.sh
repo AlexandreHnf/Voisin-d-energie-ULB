@@ -16,7 +16,7 @@ mv /opt/vde/Voisin-d-energie-ULB/sensors/* /opt/vde/
 
 
 # create python virtual environment
-/home/aheneffe/.local/bin/virtualenv venv
+python3 -m venv /opt/vde/venv venv
 source /opt/vde/venv/bin/activate
 pip install -r /opt/vde/Voisin-d-energie-ULB/systemd_scripts/requirements_backend.txt
 

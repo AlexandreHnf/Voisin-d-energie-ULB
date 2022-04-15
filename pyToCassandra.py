@@ -1,64 +1,70 @@
 from cassandra.cluster import Cluster
+from cassandra.auth import PlainTextAuthProvider
 import pandas as pd
 from constants import * 
+import json
 
 
 def getRightFormat(values):
-    res = []
-    for v in values:
-        if type(v) == str:
-            res.append("'" + v + "'")
-        elif type(v) == list:
-            # => ['v1', 'v2', 'v3', ... ]
-            l = "["
-            for vv in v:
-                l += "'" + vv + "',"
-            res.append(l[:-1] + "]")
-        else:
-            res.append(str(v))
-    
-    return res
+	""" 
+	Get the right string format given a list of values 
+	used by 'insert'
+	"""
+	res = []
+	for v in values:
+		if type(v) == str:
+			res.append("'" + v + "'")
+		elif type(v) == list:
+			# => ['v1', 'v2', 'v3', ... ]
+			l = "["
+			for vv in v:
+				l += "'" + vv + "',"
+			res.append(l[:-1] + "]")
+		else:
+			res.append(str(v))
+	
+	return res
 
 
 def createKeyspace(session, keyspace_name, replication_class, replication_factor):
-    """ 
-    Create a new keyspace in the Cassandra database
-    """
-    # to create a new keyspace : 
-    keyspace_query = "CREATE KEYSPACE {} WITH REPLICATION = \
-                    {'class' : {}, 'replication_factor': {}};"\
-                    .format(keyspace_name, replication_class, replication_factor)
+	""" 
+	Create a new keyspace in the Cassandra database
+	"""
+	# to create a new keyspace : 
+	keyspace_query = "CREATE KEYSPACE {} WITH REPLICATION = \
+					{'class' : {}, 'replication_factor': {}};"\
+					.format(keyspace_name, replication_class, replication_factor)
 
-    session.execute(keyspace_query)
+	session.execute(keyspace_query)
 
-    # use the keyspace
-    # session.execute("USE {}".format(keyspace_name))
+	# use the keyspace
+	# session.execute("USE {}".format(keyspace_name))
 
 
 def deleteRows(session, keyspace, table_name):
-    """ 
-    delete all rows of a table
-    """
-    query = "TRUNCATE {}.{}".format(keyspace, table_name)
-    session.execute(query)
+	""" 
+	delete all rows of a table
+	"""
+	query = "TRUNCATE {}.{}".format(keyspace, table_name)
+	session.execute(query)
 
 
 def insert(session, keyspace, table, columns, values):
-    """ 
-    Insert a new row in the table
-    """
-    query = "INSERT INTO {}.{} ({}) VALUES ({});" \
-                    .format(keyspace, table, ",".join(columns), ",".join(getRightFormat(values)))
-    # print("===> insert query :", query)
-    session.execute(query)
+	""" 
+	Insert a new row in the table
+	"""
+	query = "INSERT INTO {}.{} ({}) VALUES ({});" \
+					.format(keyspace, table, ",".join(columns), ",".join(getRightFormat(values)))
+	# print("===> insert query :", query)
+	session.execute(query)
 
 
 def getInsertQuery(keyspace, table, columns, values):
-    """ 
-    Get the prepared statement for an insert query
-    """
-    return "INSERT INTO {}.{} ({}) VALUES ({});" \
-                    .format(keyspace, table, ",".join(columns), ",".join(getRightFormat(values)))
+	""" 
+	Get the prepared statement for an insert query
+	"""
+	return "INSERT INTO {}.{} ({}) VALUES ({});" \
+					.format(keyspace, table, ",".join(columns), ",".join(getRightFormat(values)))
 
 
 def batch_insert(session, inserts):
@@ -75,128 +81,129 @@ def batch_insert(session, inserts):
 
 
 def getCompoundKeyStr(primary_keys):
-    return "(" + "".join(primary_keys) + ")"
+	""" 
+	right string format for compound key
+	"""
+	return "(" + "".join(primary_keys) + ")"
 
 
 def getClusteringKeyStr(clustering_keys):
-    if len(clustering_keys) == 0:
-        return ""
-    else:
-        return "," + ",".join(clustering_keys)
+	""" 
+	right string format for clustering key
+	"""
+	if len(clustering_keys) == 0:
+		return ""
+	else:
+		return "," + ",".join(clustering_keys)
 
 
 def getOrdering(ordering):
-    """ 
-    ordering format : {"column_name": "ASC", "column_name2": "DESC"}
-    """
-    res = ""
-    if len(ordering) > 0:
-        res += "WITH CLUSTERING ORDER BY ("
-        for col_name, ordering_type in ordering.items():
-            res += col_name + " " + ordering_type + ","
-        res = res[:-1] + ")"  # replace last "," by ")"
+	""" 
+	ordering format : {"column_name": "ASC", "column_name2": "DESC"}
+	"""
+	res = ""
+	if len(ordering) > 0:
+		res += "WITH CLUSTERING ORDER BY ("
+		for col_name, ordering_type in ordering.items():
+			res += col_name + " " + ordering_type + ","
+		res = res[:-1] + ")"  # replace last "," by ")"
 
-    return res
+	return res
 
 
 def createTable(session, keyspace, table_name, columns, primary_keys, clustering_keys, ordering):
-    """ 
-    Create a new table in the database 
-    columns = [column name type, ...]
-    """
-    # create a new table : 
-    query = "CREATE TABLE IF NOT EXISTS {}.{} \
-                    ({}, PRIMARY KEY ({}{})) {};" \
-                    .format(keyspace, table_name, ",".join(columns), 
-                    getCompoundKeyStr(primary_keys),
-                    getClusteringKeyStr(clustering_keys),
-                    getOrdering(ordering))
+	""" 
+	Create a new table in the database 
+	columns = [column name type, ...]
+	"""
+	# create a new table : 
+	query = "CREATE TABLE IF NOT EXISTS {}.{} \
+					({}, PRIMARY KEY ({}{})) {};" \
+					.format(keyspace, table_name, ",".join(columns), 
+					getCompoundKeyStr(primary_keys),
+					getClusteringKeyStr(clustering_keys),
+					getOrdering(ordering))
 
-    print("===>  create table query : ", query)
-    session.execute(query) 
-    print("successfully created table " + table_name)
+	print("===>  create table query : ", query)
+	session.execute(query) 
+	print("successfully created table " + table_name)
 
 
 def pandas_factory(colnames, rows):
-    return pd.DataFrame(rows, columns=colnames)
+	""" 
+	used by 'selectResToDf'
+	"""
+	return pd.DataFrame(rows, columns=colnames)
 
 def selectResToDf(session, query):
+	""" 
+	process a select query and returns a pandas DataFrame
+	with the result of the query 
+	"""
 
-    session.row_factory = pandas_factory
-    session.default_fetch_size = None
+	session.row_factory = pandas_factory
+	session.default_fetch_size = None
 
-    rslt = session.execute(query, timeout=None)
-    df = rslt._current_rows
-    return df
+	rslt = session.execute(query, timeout=None)
+	df = rslt._current_rows
+	return df
 
 
 def selectQuery(session, keyspace, table, columns, where_clause, allow_filtering, limit):
-    """ 
-    columns = * or a list of columns
-    SELECT <> FROM <> WHERE <> ... ALLOW FILTERING
-    """
+	""" 
+	columns = * or a list of columns
+	SELECT <> FROM <> WHERE <> ... ALLOW FILTERING
+	"""
 
-    where = ""
-    if len(where_clause) > 0:
-        where = "WHERE"
-    
-    query = "SELECT {} FROM {}.{} {} {} {} {};".format(
-        ",".join(columns), keyspace, table, where, where_clause, limit, allow_filtering
-    )
+	where = ""
+	if len(where_clause) > 0:
+		where = "WHERE"
+	
+	query = "SELECT {} FROM {}.{} {} {} {} {};".format(
+		",".join(columns), keyspace, table, where, where_clause, limit, allow_filtering
+	)
 
-    # print("===> select query : ", query)
-    rows = selectResToDf(session, query)
+	# print("===> select query : ", query)
+	rows = selectResToDf(session, query)
 
-    return rows
+	return rows
 
 
 # ==========================================================================
 
-def getCredential(self, host):
-    credential = {'username': CASSANDRA_SERV_USERNAME, 'password': CASSANDRA_SERV_PASSWORD}
-    return credential
-
 
 def connectToCluster(keyspace):
-    # create the cluster : connects to localhost (127.0.0.1:9042) by default
-    cluster = Cluster()
-	# nodes = [SERVER_BACKEND_IP]
-	# cluster = Cluster(nodes, auth_provider=getCredential)
+	""" 
+	connect to Cassandra Cluster
+	- either locally : simple, ip = 127.0.0.1:9042, by default
+	- or with username and password : using AuthProvider
+	"""
+	if CASSANDRA_AUTH_MODE == "local":
+		# create the cluster : connects to localhost (127.0.0.1:9042) by default
+		cluster = Cluster()
+	
+	elif CASSANDRA_AUTH_MODE == "server":
+		with open(CASSANDRA_CREDENTIALS_FILE) as json_file:
+			cred = json.load(json_file)
+			auth_provider = PlainTextAuthProvider(
+				username=cred["username"], 
+				password=cred["password"]
+			)
+			cluster = Cluster([SERVER_BACKEND_IP], port=9042, auth_provider=auth_provider)
 
-    # connect to the keyspace or create one if it doesn't exist
-    session = cluster.connect(keyspace)
-
-    return session
-
-
-def testFruitStock(session):
-    # create a new table : 
-    createTable(session, "test", "fruit_stock", 
-                ["item_id TEXT", "name TEXT", "price_p_item DECIMAl"], 
-                ["item_id"], ["name"],
-                {"name": "DESC"})
-    # session.execute("CREATE TABLE IF NOT EXISTS test.fruit_stock \
-    #                 (item_id TEXT, name TEXT, price_p_item DECIMAL, PRIMARY KEY (item_id));")
-
-    # insert new row
-    insert(session, "test", "fruit_stock", ["item_id", "name", "price_p_item"], ["a0", "apples", 0.50])
-    insert(session, "test", "fruit_stock", ["item_id", "name", "price_p_item"], ["b1", "bananas", 0.40])
-    insert(session, "test", "fruit_stock", ["item_id", "name", "price_p_item"], ["c3", "oranges", 0.35])
-    insert(session, "test", "fruit_stock", ["item_id", "name", "price_p_item"], ["d4", "pineapples", 2.5])
-    insert(session, "test", "fruit_stock", ["item_id", "name", "price_p_item"], ["e5", "grapes", 0.44])
-    # session.execute("INSERT INTO test.fruit_stock (item_id, name, price_p_item) \
-    #                 VALUES ('a0','apples',0.50);")
+	# connect to the keyspace or create one if it doesn't exist
+	session = cluster.connect(keyspace)
+	
+	return session
 
 
 def main():
-    session = connectToCluster("test")
+	session = connectToCluster("test")
 
-    # createKeyspace(session, "test", "SimpleStrategy", "1")
+	# createKeyspace(session, "test", "SimpleStrategy", "1")
 
-    testFruitStock(session)
-
-    print("Insertion done.")
+	print("Insertion done.")
 
 
 if __name__ == "__main__":
-    main()
+	main()
