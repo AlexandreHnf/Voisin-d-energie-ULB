@@ -1,10 +1,9 @@
 import pandas as pd
 
 class Configuration:
-    def __init__(self, config_id, sconfig_df, gconfig_df):
+    def __init__(self, config_id, sconfig_df):
         self.config_id = config_id
         self.sconfig_df = sconfig_df
-        self.gconfig_df = gconfig_df
 
         self.ids = self.getHomeSensors()
 
@@ -27,13 +26,6 @@ class Configuration:
         - home_id, phase, fluksid, sensor_id, sensor_token, net, con, pro
         """
         return self.sconfig_df
-
-    def getGroupsConfig(self):
-        """ 
-        get a dataframe with columns : 
-        - group_id, homes (list of home ids)
-        """
-        return self.gconfig_df
 
     def getHomeSensors(self):
         """ 

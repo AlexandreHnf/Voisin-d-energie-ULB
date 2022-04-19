@@ -104,14 +104,14 @@ def getMissingRaw(cassandra_session, table_name):
 	return by_config_df
 
 
-def getNeededConfigs(all_sensors_configs, all_groups_configs, missing_data, cur_sconfig):
+def getNeededConfigs(all_sensors_configs, missing_data, cur_sconfig):
 	"""
 	From the missing data table, deduce the configurations to use
 	Return a list of Configuration objects
-	all_sensors_configs and all_groups_configs : a groupby object : 
+	all_sensors_configs : a groupby object : 
 		keys = config ids (insertion dates), values = dataframe
 
-	return : list of Configuration objects, each object = 1 sensors config + 1 groups config
+	return : list of Configuration objects, each object = 1 sensors config
 	"""
 	configs = []
 	needed_configs = list(missing_data.groups.keys())
@@ -119,8 +119,7 @@ def getNeededConfigs(all_sensors_configs, all_groups_configs, missing_data, cur_
 		needed_configs.append(cur_sconfig)
 
 	for config_id in needed_configs:
-		config = Configuration(config_id, all_sensors_configs.get_group(config_id).set_index("sensor_id"),
-							   all_groups_configs.get_group(config_id))
+		config = Configuration(config_id, all_sensors_configs.get_group(config_id).set_index("sensor_id"))
 		configs.append(config)
 
 	return configs
@@ -256,30 +255,6 @@ def generateHomes(tmpo_session, config, since, since_timing, to_timing, timings,
 
 	return homes
 
-
-def generateGroupedHomes(homes, config):
-	"""
-	We receive a configuration object and create a set of grouped Home objects
-	Each grouped home = sum of different homes  
-	"""
-	print("======================= GROUPS =======================")
-	grouped_homes = {}
-
-	for gid, group in config.getGroupsConfig().groupby("group_id"):
-		print("> {} : ".format(gid))
-		home_ids = list(group["homes"][group.index[0]])
-		print("Home ids : ", home_ids)
-		home = copy.copy(homes[home_ids[0]])
-		for j in range(1, len(home_ids)):
-			print(homes[home_ids[j]].getHomeID(), end=" ")
-			home.appendFluksoData(homes[home_ids[j]].getRawDF(), homes[home_ids[j]].getHomeID())
-			home.addConsProd(homes[home_ids[j]].getConsProdDF())
-		home.setHomeID("group_" + gid)
-		print()
-
-		grouped_homes["group" + gid] = home
-
-	return grouped_homes
 
 
 def testSession(sensors_config, path=""):
@@ -456,7 +431,6 @@ def showProcessingTimes(configs, begin, setup_time, config_timers):
 		print("  > save raw : {}.".format(getTimeSpent(t[2], t[3])))
 		print("  > Save missing : {}.".format(getTimeSpent(t[3], t[4])))
 		print("  > Save power : {}.".format(getTimeSpent(t[4], t[5])))
-		print("  > Save groups power : {}.".format(getTimeSpent(t[5], t[6])))
 
 	print("> Total Processing time : {}.".format(getTimeSpent(begin, time.time())))
 
@@ -509,10 +483,9 @@ def sync(mode, since, to):
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	current_config_id, all_sensors_configs = getCurrentSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
-	current_gconfig_id, all_groups_configs = getGroupsConfigsCassandra(cassandra_session, TBL_GROUPS_CONFIG)
 
 	missing_data = getMissingRaw(cassandra_session, TBL_RAW_MISSING)
-	configs = getNeededConfigs(all_sensors_configs, all_groups_configs, missing_data, current_config_id)
+	configs = getNeededConfigs(all_sensors_configs, missing_data, current_config_id)
 
 	print("Mode : {}".format(mode))
 	print("start timing : {} (CET) => {} (UTC)".format(since, start_timing))
@@ -534,7 +507,6 @@ def sync(mode, since, to):
 		print("Number of Homes : ", config.getNbHomes())
 		print("Number of Fluksos : ", len(set(config.getSensorsConfig().flukso_id)))
 		print("Number of Fluksos sensors : ", len(config.getSensorsConfig()))
-		print("Number of groups : ", len(config.getGroupsConfig()))
 
 		tmpo_session = getTmpoSession(config)
 		# testSession(sensors_config)
@@ -550,13 +522,11 @@ def sync(mode, since, to):
 
 		# =========================================================
 
-		# STEP 2 : generate homes and grouped homes
+		# STEP 2 : generate homes
 		print("==================================================")
 		print("Generating homes data and getting Flukso data...")
 		homes = generateHomes(tmpo_session, config, since, start_timing, to_timing, timings, mode, now)
 		
-		# TODO : groups not correct : if no missing data for a house, not taken into account : instead, use computePower
-		# grouped_homes = generateGroupedHomes(homes, config)
 		config_timers[config_id].append(time.time())
 
 		# print("==================================================")
@@ -578,11 +548,6 @@ def sync(mode, since, to):
 		# STEP 5 : save power flukso data in cassandra
 		print("==================================================")
 		cp.savePowerDataToCassandra(cassandra_session, homes, config, TBL_POWER)
-		config_timers[config_id].append(time.time())
-
-		# STEP 6 : save groups of power flukso data in cassandra
-		print("==================================================")
-		# cp.savePowerDataToCassandra(cassandra_session, grouped_homes, config, TBL_GROUPS_POWER)
 		config_timers[config_id].append(time.time())
 
 		print("---------------------------------------------------------------")
