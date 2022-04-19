@@ -2,6 +2,7 @@
 Constants
 """
 
+# =========================== FILE PATHS ====================================
 # files paths
 FLUKSO_TECHNICAL_FILE =                 "flukso_config/FluksoTechnical.xlsx"
 # FLUKSO_TECHNICAL_FILE =                 "sensors/FluksoConfigurations/FluksoTechnical_config1.xlsx"
@@ -18,8 +19,9 @@ GROUPS_FILE =                           "sensors/grouped_homes_sensors.txt"
 IDS_FILE =                              "sensors/ids.json"
 GIDS_FILE =                             "sensors/grp_ids.json"
 
+TMPO_FILE = 							""
 
-
+# ========================== COMPUTATIONS =====================================
 # sample frequency
 FREQ =                                  [8, "S"]  # 8 sec.
 
@@ -33,10 +35,11 @@ LAST_TS_DAYS =                          2  # days
 # normally since = 0, but for testing, we put since = 4min
 FROM_FIRST_TS =                         "4min"  # TEMPORARY
 
+# nb lines to insert per batch insert when inserting in cassandra table
+INSERTS_PER_BATCH =                     11000
 
-SERVER_FRONTEND_IP = 					'iridia-vde-frontend.hpda.ulb.ac.be'
-SERVER_BACKEND_IP = 					'iridia-vde-db.hpda.ulb.ac.be'
 
+# =========================== CONSTANTS =======================================
 # cassandra authentication
 CASSANDRA_AUTH_MODE = 					'local'
 CASSANDRA_CREDENTIALS_FILE = 			'cassandra_serv_credentials.json'
@@ -53,4 +56,6 @@ TBL_POWER =                             "power"
 TBL_GROUPS_POWER =                      "groups_power"
 
 
-INSERTS_PER_BATCH =                     11000
+# ============================= SERVER ======================================
+SERVER_FRONTEND_IP = 					'iridia-vde-frontend.hpda.ulb.ac.be'
+SERVER_BACKEND_IP = 					'iridia-vde-db.hpda.ulb.ac.be'

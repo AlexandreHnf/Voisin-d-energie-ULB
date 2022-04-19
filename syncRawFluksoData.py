@@ -298,10 +298,11 @@ def testSession(sensors_config, path=""):
 			continue
 
 
-def getTmpoSession(config, path=""):
+def getTmpoSession(config):
 	"""
 	Get tmpo (via api) session with all the sensors in it
 	"""
+	path = TMPO_FILE
 	if not path:
 		path = getProgDir()
 	# print(path)
