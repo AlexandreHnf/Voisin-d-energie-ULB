@@ -356,21 +356,21 @@ def main():
     now = pd.Timestamp.now()
 
     # > create config tables
-    # createTableSensorConfig(cassandra_session, "sensors_config")
+    createTableSensorConfig(cassandra_session, "sensors_config")
     # createTableGroupsConfig(cassandra_session, "groups_config")
     # : /!\ run both at the same time to have consistent ids
     writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config", now)
-    writeGroupsConfigCassandra(cassandra_session, "groups_config", now)
+    # writeGroupsConfigCassandra(cassandra_session, "groups_config", now)
 
     # > setup the groups of flukso in a txt file
     # writeGroupsFromFluksoIDs()
     # writeGroupsFromInstallationsIds()
 
     # > create cassandra tables 
-    # createRawFluksoTable(cassandra_session, "raw")
-    # createPowerTable(cassandra_session, "power")
+    createRawFluksoTable(cassandra_session, "raw")
+    createPowerTable(cassandra_session, "power")
     # createPowerTable(cassandra_session, "groups_power")
-    # createRawMissingTable(cassandra_session, "raw_missing")
+    createRawMissingTable(cassandra_session, "raw_missing")
 
     # > save home ids to json
     # saveHomeIds(compact_df)
