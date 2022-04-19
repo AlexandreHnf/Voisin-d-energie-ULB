@@ -21,6 +21,8 @@ GIDS_FILE =                             "sensors/grp_ids.json"
 
 TMPO_FILE = 							""
 
+LOG_FILE = 								"/home/alexandre_hnf/Desktop/Vde/repository/Voisin-d-energie-ULB/logs/backend_logs.log"
+
 # ========================== COMPUTATIONS =====================================
 # sample frequency
 FREQ =                                  [8, "S"]  # 8 sec.

@@ -40,7 +40,7 @@ logging.getLogger("tmpo").setLevel(logging.ERROR)
 # Create and configure logger
 logging.basicConfig(level = logging.INFO,
 					format = "{asctime} {levelname:<8} {message}", style='{'
-					# filename = "/home/alexandre_hnf/Desktop/Vde/repository/Voisin-d-energie-ULB/logs/backend_logs.log",
+					# filename = LOG_FILE,
 					# filemode = 'w'
 					)
 
@@ -305,7 +305,7 @@ def getTmpoSession(config):
 	path = TMPO_FILE
 	if not path:
 		path = getProgDir()
-	# print(path)
+	print("tmpo path : " + path)
 
 	tmpo_session = tmpo.Session(path)
 	for sid, row in config.getSensorsConfig().iterrows():
