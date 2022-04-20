@@ -16,14 +16,11 @@ from sensor import *
 
 import argparse
 import os
-import sys
 
-import copy
 import pandas as pd
 import numpy as np
 import tmpo
 import time
-from datetime import timedelta
 
 # Hide warnings :
 import urllib3

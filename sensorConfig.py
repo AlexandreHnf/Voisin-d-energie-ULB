@@ -1,4 +1,3 @@
-import pandas as pd
 
 class Configuration:
     def __init__(self, config_id, sconfig_df):
