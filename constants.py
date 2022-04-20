@@ -35,6 +35,7 @@ LAST_TS_DAYS =                          2  # days
 
 # "since" default value for the earliest timestamp of a flukso
 # normally since = 0, but for testing, we put since = 4min
+FROM_FIRST_TS_STATUS = 					"server"
 FROM_FIRST_TS =                         "4min"  # TEMPORARY
 
 # nb lines to insert per batch insert when inserting in cassandra table

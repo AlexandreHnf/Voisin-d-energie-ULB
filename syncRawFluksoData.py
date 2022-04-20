@@ -129,12 +129,15 @@ def getInitialTimestamp(tmpo_session, sid, now):
 
 	return a timestamp with UTC timezone
 	"""
-	initial_ts = tmpo_session.first_timestamp(sid)
+	initial_ts = setInitSeconds(getTiming(FROM_FIRST_TS, now))
 
-	if initial_ts is None:
-		initial_ts = setInitSeconds(getTiming(FROM_FIRST_TS, now))  # TODO: TEMPORARY
+	if FROM_FIRST_TS_STATUS == "server":
+		initial_ts_tmpo = tmpo_session.first_timestamp(sid)
 
-	print("{} first ts = {}".format(sid, initial_ts))
+		if initial_ts_tmpo is not None:
+			initial_ts = initial_ts_tmpo.tz_localize(None)
+
+	print("{} first ts = {} : {}".format(sid, initial_ts, initial_ts.tz))
 
 	return initial_ts
 
@@ -170,8 +173,8 @@ def getSensorTimings(tmpo_session, cassandra_session, missing_data, timings, hom
 			if default_timing is None:  # if no raw data registered for this sensor yet
 				# we take all data from its first timestamp
 				# TODO : change to tmpo first_timestamp()
-				# initial_ts = getInitialTimestamp(tmpo_session, sid, now)
-				initial_ts = setInitSeconds(getTiming(FROM_FIRST_TS, now))  # TEMPORARY
+				initial_ts = getInitialTimestamp(tmpo_session, sid, now)
+				# initial_ts = setInitSeconds(getTiming(FROM_FIRST_TS, now))  # TEMPORARY
 				sensor_start_ts = initial_ts
 			else:
 				sensor_start_ts = default_timing

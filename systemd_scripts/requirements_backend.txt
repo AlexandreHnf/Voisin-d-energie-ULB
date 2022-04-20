@@ -13,3 +13,4 @@ requests-futures==1.0.0
 tmpo==0.2.10
 pandas==0.25.3
 numpy==1.17.4
+xlrd==1.1.0
