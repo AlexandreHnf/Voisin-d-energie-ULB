@@ -7,6 +7,7 @@ from datetime import date, timedelta, datetime
 
 import pyToCassandra as ptc
 
+import logging
 
 def getProgDir():
 	import __main__
