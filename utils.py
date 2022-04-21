@@ -205,7 +205,7 @@ def getLocalTimestampsIndex(df):
     # NAIVE
     if df.index.tzinfo is None or df.index.tzinfo.utcoffset(df.index) is None:
         # first convert to aware timestamp, then local
-        return df.index.tz_localize("CET").tz_convert("CET")
+        return df.index.tz_localize("CET", ambiguous='NaT').tz_convert("CET")
     else: # if already aware timestamp
         return df.index.tz_convert("CET")
 
