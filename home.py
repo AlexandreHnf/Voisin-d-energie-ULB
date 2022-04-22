@@ -135,7 +135,7 @@ class Home:
 
 		incomplete_raw_df = filled_df[filled_df.isna().any(axis=1)]  # with CET timezones
 		nb_tot_nan = filled_df.isna().sum().sum()  # count nb of nan in the entire df
-		logging.info("len NaN : {}, tot NaN: {}".format(len(incomplete_raw_df), nb_tot_nan))
+		logging.debug("len NaN : {}, tot NaN: {}".format(len(incomplete_raw_df), nb_tot_nan))
 
 		incomplete_raw_df.index = pd.DatetimeIndex(incomplete_raw_df.index, name="time")
 		# convert all timestamps to local timezone (CET)
@@ -169,7 +169,7 @@ class Home:
 
 		# raw_df.index = [tps.ceil(freq="U", ambiguous='NaT') for tps in local_timestamps]
 		raw_df.index = [tps for tps in local_timestamps]
-		logging.info("len: " + str(len(raw_df.index)))
+		logging.debug("len: " + str(len(raw_df.index)))
 
 		# if self.home_id == "ECHASC":
 		# 	print("raw_df", raw_df.head(30))

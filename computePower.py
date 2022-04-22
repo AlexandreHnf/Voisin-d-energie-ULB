@@ -5,6 +5,7 @@ from utils import *
 import copy
 import pandas as pd
 
+import logging
 
 # ====================================================================================
 # called by syncRawFluksoData.py just after writing raw data to cassandra
@@ -16,12 +17,12 @@ def savePowerDataToCassandra(cassandra_session, homes, config, table_name):
 	- homes : Home objects 
 		=> contains cons_prod_df : timestamp, P_cons, P_prod, P_tot
 	"""
-	print("saving in Cassandra...   => table : {}".format(table_name))
+	logging.info("saving in Cassandra...   => table : {}".format(table_name))
 
 	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
 	config_id = str(config.getConfigID())[:19] + "Z"
 	for hid, home in homes.items():
-		print(hid, end=" ")
+		# logging.debug(hid)
 		cons_prod_df = home.getConsProdDF()
 		cons_prod_df['date'] = cons_prod_df.apply(lambda row: str(row.name.date()), axis=1) # add date column
 		by_day_df = cons_prod_df.groupby("date")  # group by date
@@ -45,7 +46,7 @@ def savePowerDataToCassandra(cassandra_session, homes, config, table_name):
 		
 			ptc.batch_insert(cassandra_session, insert_queries)
 	
-	print("Successfully saved power data in cassandra : table {}".format(table_name))
+	logging.info("Successfully saved power data in cassandra : table {}".format(table_name))
 
 
 # ====================================================================================

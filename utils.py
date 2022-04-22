@@ -245,3 +245,25 @@ def getTimeSpent(time_begin, time_end):
 	Get the time spent in seconds between 2 timings (1 timing = time.time())
 	"""
 	return timedelta(seconds=time_end - time_begin)
+
+
+def setupLogLevel():
+	""" 
+	set logging level based on a constant
+	levels : 
+	- CRITICAL
+	- ERROR
+	- WARNING
+	- INFO
+	- DEBUG
+	"""
+	if LOG_LEVEL == "CRITICAL":
+		return logging.CRITICAL
+	elif LOG_LEVEL == "ERROR":
+		return logging.ERROR
+	elif LOG_LEVEL == "WARNING":
+		return logging.WARNING
+	elif LOG_LEVEL == "INFO":
+		return logging.INFO
+	elif LOG_LEVEL == "DEBUG":
+		return logging.DEBUG

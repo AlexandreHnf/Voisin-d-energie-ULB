@@ -37,7 +37,7 @@ logging.getLogger("requests").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 # Create and configure logger
-logging.basicConfig(level = logging.INFO,
+logging.basicConfig(level = setupLogLevel(),
 					format = "{asctime} {levelname:<8} {message}", style='{'
 					# filename = LOG_FILE,
 					# filemode = 'w'
@@ -139,7 +139,7 @@ def getInitialTimestamp(tmpo_session, sid, now):
 		if initial_ts_tmpo is not None:
 			initial_ts = initial_ts_tmpo.tz_localize(None)
 
-	# logging.info("{} first ts = {} : {}".format(sid, initial_ts, initial_ts.tz))
+	# logging.debug("{} first ts = {} : {}".format(sid, initial_ts, initial_ts.tz))
 
 	return initial_ts
 
@@ -243,13 +243,13 @@ def generateHomes(tmpo_session, config, since, since_timing, to_timing, timings,
 
 	try:
 		for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
-			logging.info("> {} | ".format(hid))
+			logging.debug("> {} | ".format(hid))
 			if timings[hid]["start_ts"] is not None:  # if home has a start timestamp
 				sensors = []  # list of Sensor objects
 				if mode == "automatic":
 					since_timing = timings[hid]["start_ts"]
 					to_timing = timings[hid]["end_ts"]
-					logging.info("{} > {} ({})".format(since_timing, to_timing,
+					logging.debug("{} > {} ({})".format(since_timing, to_timing,
 												round(pd.Timedelta(to_timing - since_timing).seconds / 60.0, 2)))
 
 				for sid, row in home_sensors.iterrows():
@@ -257,7 +257,7 @@ def generateHomes(tmpo_session, config, since, since_timing, to_timing, timings,
 				home = Home(home_sensors, since, since_timing, to_timing, hid, sensors)
 				homes[hid] = home
 			else:
-				logging.info("None (no data to recover)")
+				logging.debug("None (no data to recover)")
 	except:
 		logging.critial("Exception occured in 'generateHomes' : ", exc_info=True)
 
@@ -276,11 +276,11 @@ def testSession(sensors_config):
 
 	for sid, row in sensors_config.getSensorsConfig().iterrows():
 		try:
-			logging.info("{}, {}".format(sid, row["sensor_token"]))
+			logging.debug("{}, {}".format(sid, row["sensor_token"]))
 			tmpo_session = tmpo.Session(path)
 			tmpo_session.add(sid, row["sensor_token"])
 			tmpo_session.sync()
-			logging.info("=> OK")
+			logging.debug("=> OK")
 		except:
 			logging.warning("=> NOT OK")
 			continue
@@ -297,16 +297,16 @@ def getTmpoSession(config):
 
 	tmpo_session = tmpo.Session(path)
 	for sid, row in config.getSensorsConfig().iterrows():
-		# logging.info("{}, {}".format(sid, row["sensor_token"]))
+		# logging.debug("{}, {}".format(sid, row["sensor_token"]))
 		tmpo_session.add(sid, row["sensor_token"])
 
 	logging.info("> tmpo synchronization...")
 	try: 
 		tmpo_session.sync()
 	except Exception as e:
-		logging.critical("Exception occured in tmpo sync: ", exc_info=True)
+		logging.warning("Exception occured in tmpo sync: ", exc_info=True)
 		# testSession(config)
-	logging.info("> tmpo synchronization OK")
+	logging.debug("> tmpo synchronization OK")
 
 	return tmpo_session
 
