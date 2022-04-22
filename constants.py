@@ -23,6 +23,7 @@ TMPO_FILE = 							""
 
 LOG_FILE = 								"/home/alexandre_hnf/Desktop/Vde/repository/Voisin-d-energie-ULB/logs/backend_logs.log"
 
+
 # ========================== COMPUTATIONS =====================================
 # sample frequency
 FREQ =                                  [8, "S"]  # 8 sec.
@@ -42,7 +43,7 @@ FROM_FIRST_TS =                         "4min"  # TEMPORARY
 INSERTS_PER_BATCH =                     11000
 
 
-# =========================== CONSTANTS =======================================
+# =========================== CASSANDRA =======================================
 # cassandra authentication
 CASSANDRA_AUTH_MODE = 					'local'
 CASSANDRA_CREDENTIALS_FILE = 			'cassandra_serv_credentials.json'

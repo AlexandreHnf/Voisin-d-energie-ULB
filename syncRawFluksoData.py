@@ -53,8 +53,8 @@ def getLastRegisteredTimestamp(cassandra_session, table_name, sensor_id):
 
 	We assume that if there is data in raw table, each sensor can have different last timestmaps
 	registered. 
+	Assume the raw table is created
 	"""
-	# logging.info("Getting last timestamp...")
 
 	dates = ["'" + d + "'" for d in getLastXDates()]
 	ts_df = None
@@ -196,31 +196,34 @@ def getTimings(tmpo_session, cassandra_session, config, current_config_id, missi
 	'now' : no tz, but CET by default
 	"""
 	timings = {}
-	ids = config.getIds()
-	for home_id, sensors_ids in ids.items():
-		# start_ts = earliest timestamp among all sensors of this home
-		timings[home_id] = {"start_ts": now, "end_ts": None, "sensors": {}}
+	try: 
+		ids = config.getIds()
+		for home_id, sensors_ids in ids.items():
+			# start_ts = earliest timestamp among all sensors of this home
+			timings[home_id] = {"start_ts": now, "end_ts": None, "sensors": {}}
 
-		for sid in sensors_ids:  # for each sensor of this home
-			sensor_start_ts = getSensorTimings(tmpo_session, cassandra_session, missing_data, timings, 
-												home_id, sid, config, current_config_id, now)
+			for sid in sensors_ids:  # for each sensor of this home
+				sensor_start_ts = getSensorTimings(tmpo_session, cassandra_session, missing_data, timings, 
+													home_id, sid, config, current_config_id, now)
 
-			# if 'start_ts' is older (in the past) than the current start_ts
-			if sensor_start_ts is not None and isEarlier(sensor_start_ts, timings[home_id]["start_ts"]):
-				timings[home_id]["start_ts"] = sensor_start_ts
+				# if 'start_ts' is older (in the past) than the current start_ts
+				if sensor_start_ts is not None and isEarlier(sensor_start_ts, timings[home_id]["start_ts"]):
+					timings[home_id]["start_ts"] = sensor_start_ts
 
-			if sensor_start_ts is not None and str(sensor_start_ts.tz) == "None":
-				sensor_start_ts = sensor_start_ts.tz_localize("CET") # ensures a CET timezone
-			timings[home_id]["sensors"][sid] = sensor_start_ts  # CET
+				if sensor_start_ts is not None and str(sensor_start_ts.tz) == "None":
+					sensor_start_ts = sensor_start_ts.tz_localize("CET") # ensures a CET timezone
+				timings[home_id]["sensors"][sid] = sensor_start_ts  # CET
 
-		# convert to UTC timezone for the tmpo query
-		timings[home_id]["start_ts"] = timings[home_id]["start_ts"].tz_localize("CET").tz_convert("UTC")
+			# convert to UTC timezone for the tmpo query
+			timings[home_id]["start_ts"] = timings[home_id]["start_ts"].tz_localize("CET").tz_convert("UTC")
 
-		if timings[home_id]["start_ts"] is now:  # no data to recover from this home 
-			timings[home_id]["start_ts"] = None
-		
-		if timings[home_id]["end_ts"] is None and config.getConfigID() == current_config_id:
-			timings[home_id]["end_ts"] = setInitSeconds(now).tz_localize("CET").tz_convert("UTC")
+			if timings[home_id]["start_ts"] is now:  # no data to recover from this home 
+				timings[home_id]["start_ts"] = None
+			
+			if timings[home_id]["end_ts"] is None and config.getConfigID() == current_config_id:
+				timings[home_id]["end_ts"] = setInitSeconds(now).tz_localize("CET").tz_convert("UTC")
+	except:
+		logging.critial("Exception occured in 'getTimings' : ", exc_info=True)
 
 	return timings
 
@@ -238,33 +241,40 @@ def generateHomes(tmpo_session, config, since, since_timing, to_timing, timings,
 	logging.info("======================= HOMES =======================")
 	homes = {}
 
-	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
-		logging.info("> {} | ".format(hid))
-		if timings[hid]["start_ts"] is not None:  # if home has a start timestamp
-			sensors = []  # list of Sensor objects
-			if mode == "automatic":
-				since_timing = timings[hid]["start_ts"]
-				to_timing = timings[hid]["end_ts"]
-				logging.info("{} > {} ({})".format(since_timing, to_timing,
-											round(pd.Timedelta(to_timing - since_timing).seconds / 60.0, 2)))
+	try:
+		for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
+			logging.info("> {} | ".format(hid))
+			if timings[hid]["start_ts"] is not None:  # if home has a start timestamp
+				sensors = []  # list of Sensor objects
+				if mode == "automatic":
+					since_timing = timings[hid]["start_ts"]
+					to_timing = timings[hid]["end_ts"]
+					logging.info("{} > {} ({})".format(since_timing, to_timing,
+												round(pd.Timedelta(to_timing - since_timing).seconds / 60.0, 2)))
 
-			for sid, row in home_sensors.iterrows():
-				sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
-			home = Home(home_sensors, since, since_timing, to_timing, hid, sensors)
-			homes[hid] = home
-		else:
-			logging.info("None (no data to recover)")
+				for sid, row in home_sensors.iterrows():
+					sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
+				home = Home(home_sensors, since, since_timing, to_timing, hid, sensors)
+				homes[hid] = home
+			else:
+				logging.info("None (no data to recover)")
+	except:
+		logging.critial("Exception occured in 'generateHomes' : ", exc_info=True)
 
 	return homes
 
 
 
 def testSession(sensors_config):
+	""" 
+	test each sensor and see if tmpo accepts or refuses the sensor when
+	syncing
+	"""
 	path = TMPO_FILE
 	if not path:
 		path = getProgDir()
 
-	for sid, row in sensors_config.iterrows():
+	for sid, row in sensors_config.getSensorsConfig().iterrows():
 		try:
 			logging.info("{}, {}".format(sid, row["sensor_token"]))
 			tmpo_session = tmpo.Session(path)
@@ -272,7 +282,7 @@ def testSession(sensors_config):
 			tmpo_session.sync()
 			logging.info("=> OK")
 		except:
-			logging.info("=> NOT OK")
+			logging.warning("=> NOT OK")
 			continue
 
 
@@ -291,7 +301,11 @@ def getTmpoSession(config):
 		tmpo_session.add(sid, row["sensor_token"])
 
 	logging.info("> tmpo synchronization...")
-	tmpo_session.sync()
+	try: 
+		tmpo_session.sync()
+	except Exception as e:
+		logging.critical("Exception occured in tmpo sync: ", exc_info=True)
+		# testSession(config)
 	logging.info("> tmpo synchronization OK")
 
 	return tmpo_session
@@ -325,33 +339,37 @@ def saveMissingData(cassandra_session, config, to_timing, homes, table_name):
 	"""
 	logging.info("saving in Cassandra...   => table : {}".format(table_name))
 
-	ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, table_name)  # truncate existing rows
+	try: 
+		ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, table_name)  # truncate existing rows
 
-	to_timing = convertTimezone(to_timing, "CET")
-	config_id = str(config.getConfigID())[:19] + "Z"
+		to_timing = convertTimezone(to_timing, "CET")
+		config_id = str(config.getConfigID())[:19] + "Z"
 
-	col_names = ["sensor_id", "config_id", "start_ts", "end_ts"]
-	for hid, home in homes.items():
-		# logging.info(hid)
-		inc_power_df = home.getIncompletePowerDF()
-		if len(inc_power_df) > 0:
-			sensors_ids = inc_power_df.columns
-			for sid in sensors_ids:
-				end_ts = str(inc_power_df.index[-1])[:19] + "Z"
-				if inc_power_df[sid].isnull().values.any():  # if the column contains null
-					for i, timestamp in enumerate(inc_power_df.index):
-						# if valid timestamp
-						if (to_timing - timestamp).days < LIMIT_TIMING_RAW:  # X days from now max
-							# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
-							start_ts = str(timestamp)[:19] + "Z"
-							if np.isnan(inc_power_df[sid][i]):
-								values = [sid, config_id, start_ts, end_ts]
-								# print("{} | start : {}, end = {}", config_id, start_ts, end_ts)
-								ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
-								# as soon as we find the first ts with null value, we go to next sensor
-								break
+		col_names = ["sensor_id", "config_id", "start_ts", "end_ts"]
+		for hid, home in homes.items():
+			# logging.info(hid)
+			inc_power_df = home.getIncompletePowerDF()
+			if len(inc_power_df) > 0:
+				sensors_ids = inc_power_df.columns
+				for sid in sensors_ids:
+					end_ts = str(inc_power_df.index[-1])[:19] + "Z"
+					if inc_power_df[sid].isnull().values.any():  # if the column contains null
+						for i, timestamp in enumerate(inc_power_df.index):
+							# if valid timestamp
+							if (to_timing - timestamp).days < LIMIT_TIMING_RAW:  # X days from now max
+								# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
+								start_ts = str(timestamp)[:19] + "Z"
+								if np.isnan(inc_power_df[sid][i]):
+									values = [sid, config_id, start_ts, end_ts]
+									# print("{} | start : {}, end = {}", config_id, start_ts, end_ts)
+									ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
+									# as soon as we find the first ts with null value, we go to next sensor
+									break
 
-	logging.info("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
+		logging.info("Successfully Saved raw missing data in Cassandra : table {}".format(table_name))
+	
+	except:
+		logging.critial("Exception occured in 'saveMissingData' : ", exc_info=True)
 
 
 def saveRawToCassandra(cassandra_session, homes, config, table_name, timings):
@@ -362,41 +380,48 @@ def saveRawToCassandra(cassandra_session, homes, config, table_name, timings):
 	"""
 	logging.info("saving in Cassandra...   => table : {}".format(table_name))
 
-	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
-	config_id = str(config.getConfigID())[:19] + "Z"
-	for hid, home in homes.items():
-		# logging.info(hid)
-		power_df = home.getRawDF()
-		power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1)  # add date column
-		by_day_df = power_df.groupby("date")  # group by date
+	try: 
+		insertion_time = str(pd.Timestamp.now())[:19] + "Z"
+		config_id = str(config.getConfigID())[:19] + "Z"
+		for hid, home in homes.items():
+			# logging.info(hid)
+			power_df = home.getRawDF()
+			power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1)  # add date column
+			by_day_df = power_df.groupby("date")  # group by date
 
-		col_names = ["sensor_id", "day", "ts", "insertion_time", "config_id", "power"]
-		for date, date_rows in by_day_df:  # loop through each group (each date group)
+			col_names = ["sensor_id", "day", "ts", "insertion_time", "config_id", "power"]
+			for date, date_rows in by_day_df:  # loop through each group (each date group)
 
-			for sid in date_rows:  # loop through each column, 1 column = 1 sensor
-				if sid == "date" or timings[hid]["sensors"][sid] is None: continue
-				insert_queries = ""
-				for i, timestamp in enumerate(date_rows[sid].index):
-					# if the timestamp > the sensor's defined start timing
-					if isEarlier(timings[hid]["sensors"][sid], timestamp):
-						ts = str(timestamp)[:19] + "Z"
-						power = date_rows[sid][i]
-						values = [sid, date, ts, insertion_time, config_id, power]
-						insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
+				for sid in date_rows:  # loop through each column, 1 column = 1 sensor
+					if sid == "date" or timings[hid]["sensors"][sid] is None: continue
+					insert_queries = ""
+					for i, timestamp in enumerate(date_rows[sid].index):
+						# if the timestamp > the sensor's defined start timing
+						if isEarlier(timings[hid]["sensors"][sid], timestamp):
+							ts = str(timestamp)[:19] + "Z"
+							power = date_rows[sid][i]
+							values = [sid, date, ts, insertion_time, config_id, power]
+							insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
 
-						if (i + 1) % INSERTS_PER_BATCH == 0:
-							ptc.batch_insert(cassandra_session, insert_queries)
-							insert_queries = ""
+							if (i + 1) % INSERTS_PER_BATCH == 0:
+								ptc.batch_insert(cassandra_session, insert_queries)
+								insert_queries = ""
 
-				ptc.batch_insert(cassandra_session, insert_queries)
+					ptc.batch_insert(cassandra_session, insert_queries)
 
-	logging.info("> Successfully Saved raw data in Cassandra : table {}".format(table_name))
+		logging.info("> Successfully Saved raw data in Cassandra : table {}".format(table_name))
+
+	except:
+		logging.critial("Exception occured in 'saveRawToCassandra' : ", exc_info=True)
 
 
 # ====================================================================================
 
 
 def saveFluksoDataToCsv(homes):
+	""" 
+	may be obsolete/broken 
+	"""
 	logging.info("saving flukso data in csv...")
 	for home in homes:
 		# filepath = "output/fluksoData/{}.csv".format(home.getHomeID())
@@ -421,7 +446,6 @@ def saveFluksoDataToCsv(homes):
 def showProcessingTimes(configs, begin, setup_time, config_timers):
 	"""
 	Display processing time for each step of 1 query
-	- TODO : replace all this by a Timer class
 	"""
 	logging.info("================= Timings ===================")
 	logging.info("> Setup time : {}.".format(getTimeSpent(begin, setup_time)))

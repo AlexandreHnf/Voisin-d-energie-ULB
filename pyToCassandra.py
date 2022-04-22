@@ -180,21 +180,24 @@ def connectToCluster(keyspace):
 	- either locally : simple, ip = 127.0.0.1:9042, by default
 	- or with username and password : using AuthProvider
 	"""
-	if CASSANDRA_AUTH_MODE == "local":
-		# create the cluster : connects to localhost (127.0.0.1:9042) by default
-		cluster = Cluster()
-	
-	elif CASSANDRA_AUTH_MODE == "server":
-		with open(CASSANDRA_CREDENTIALS_FILE) as json_file:
-			cred = json.load(json_file)
-			auth_provider = PlainTextAuthProvider(
-				username=cred["username"], 
-				password=cred["password"]
-			)
-			cluster = Cluster([SERVER_BACKEND_IP], port=9042, auth_provider=auth_provider)
+	try:
+		if CASSANDRA_AUTH_MODE == "local":
+			# create the cluster : connects to localhost (127.0.0.1:9042) by default
+			cluster = Cluster()
+		
+		elif CASSANDRA_AUTH_MODE == "server":
+			with open(CASSANDRA_CREDENTIALS_FILE) as json_file:
+				cred = json.load(json_file)
+				auth_provider = PlainTextAuthProvider(
+					username=cred["username"], 
+					password=cred["password"]
+				)
+				cluster = Cluster([SERVER_BACKEND_IP], port=9042, auth_provider=auth_provider)
 
-	# connect to the keyspace or create one if it doesn't exist
-	session = cluster.connect(keyspace)
+		# connect to the keyspace or create one if it doesn't exist
+		session = cluster.connect(keyspace)
+	except:
+		logging.critical("Exception occured in 'connectToCluster' cassandra: ", exc_info=True)
 	
 	return session
 
