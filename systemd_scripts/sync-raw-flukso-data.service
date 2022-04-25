@@ -5,6 +5,8 @@ After=multi-user.target
 [Service]
 Type=simple
 Restart=no
+User=vde 
+Group=ipa-iridia-vde
 ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/syncRawFluksoData.py" --mode automatic
 
 [Install]
