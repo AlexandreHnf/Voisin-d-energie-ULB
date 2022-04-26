@@ -1,0 +1,10 @@
+[Service]
+ExecStart=/home/alexandre_hnf/.nvm/versions/node/v14.14.0/bin/node "/home/alexandre_hnf/Desktop/Vde/repository/Voisin-d-energie-ULB/webapp/index.js"
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=node-sample
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
