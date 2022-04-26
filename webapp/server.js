@@ -17,23 +17,31 @@ const port = 5000;                  //Save the port number where your server wil
 const server = require('http').createServer(app);  //  express = request handler functions passed to http Server instances
 
 // ===================== GLOBAL VARIABLES =========================== 
+
+/*
 // Connection to localhost cassandra database1
 const client = new cassandra.Client({
   contactPoints: ['ce97f9db-6e4a-4a2c-bd7a-2c97e31e3150', '127.0.0.1'],
   localDataCenter: 'datacenter1'
 });
-
-const TABLES = {'raw': 'raw', 'power': 'power', 'groups': 'groups_power'};
-
-/*
-// Connection to a remote cassandra cluster
-//Replace Username and Password with your cluster settings
-var authProvider = new cassandra.auth.PlainTextAuthProvider('Username', 'Password');
-//Replace PublicIP with the IP addresses of your clusters
-var contactPoints = ['PublicIP','PublicIP','PublicIP’'];
-var client = new cassandra.Client({contactPoints: contactPoints, authProvider: authProvider, keyspace:'grocery'});
 */
 
+
+// Connection to a remote cassandra cluster
+const cassandra_credentials = JSON.parse(fs.readFileSync('cassandra_serv_credentials.json', 'utf8'));
+var authProvider = new cassandra.auth.PlainTextAuthProvider(
+	cassandra_credentials.username, 
+	cassandra_credentials.password
+);
+var contactPoints = ['iridia-vde-frontend.hpda.ulb.ac.be'];
+var client = new cassandra.Client({
+	contactPoints: contactPoints, 
+	authProvider: authProvider, 
+	keyspace:'flukso'
+});
+
+
+const TABLES = {'raw': 'raw', 'power': 'power', 'groups': 'groups_power'};
 
 // ========================= FUNCTIONS ==================================
 
