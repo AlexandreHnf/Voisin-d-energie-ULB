@@ -18,15 +18,15 @@ const server = require('http').createServer(app);  //  express = request handler
 
 // ===================== GLOBAL VARIABLES =========================== 
 
-/*
+
 // Connection to localhost cassandra database1
 const client = new cassandra.Client({
   contactPoints: ['ce97f9db-6e4a-4a2c-bd7a-2c97e31e3150', '127.0.0.1'],
   localDataCenter: 'datacenter1'
 });
-*/
 
 
+/*
 // Connection to a remote cassandra cluster
 const cassandra_credentials = JSON.parse(fs.readFileSync('cassandra_serv_credentials.json', 'utf8'));
 var authProvider = new cassandra.auth.PlainTextAuthProvider(
@@ -39,6 +39,7 @@ var client = new cassandra.Client({
 	authProvider: authProvider, 
 	keyspace:'flukso'
 });
+*/
 
 
 const TABLES = {'raw': 'raw', 'power': 'power', 'groups': 'groups_power'};
@@ -116,8 +117,8 @@ app.get('/client.html', (req, res) => {        //get requests to the root ("/") 
                                                       //the .sendFile method needs the absolute path to the file, see: https://expressjs.com/en/4x/api.html#res.sendFile 
 });
 
-app.get('/client2.js', function(req, res) {
-  res.sendFile('/client2.js', {root: __dirname});
+app.get('/client.js', function(req, res) {
+  res.sendFile('/client.js', {root: __dirname});
 });
 
 // ===========================
