@@ -1,7 +1,8 @@
-var fs = require('fs')
+var fs = require('fs') // get fs module for creating write streams
 var assert = require('assert');
 // ”cassandra-driver” is in the node_modules folder. Redirect if necessary.
 var cassandra = require('cassandra-driver');
+const { Console } = require("console"); // get the Console class
 
 const http = require("http")
 const io = require("socket.io")
@@ -20,7 +21,7 @@ const server = require('http').createServer(app);  //  express = request handler
 
 var client = null;
 if (process.env.NODE_ENV === 'development') {
-	console.log("In development mode")
+	console.log("Development mode")
 	// Connection to localhost cassandra database1
 	client = new cassandra.Client({
 		contactPoints: ['ce97f9db-6e4a-4a2c-bd7a-2c97e31e3150', '127.0.0.1'],
@@ -28,7 +29,7 @@ if (process.env.NODE_ENV === 'development') {
 	});
 }
 else if (process.env.NODE_ENV === 'production') {
-	console.log("In production mode")
+	console.log("Production mode")
 	// Connection to a remote cassandra cluster
 	const cassandra_credentials = JSON.parse(fs.readFileSync('cassandra_serv_credentials.json', 'utf8'));
 	var authProvider = new cassandra.auth.PlainTextAuthProvider(
@@ -39,6 +40,7 @@ else if (process.env.NODE_ENV === 'production') {
 	client = new cassandra.Client({
 		contactPoints: contactPoints, 
 		authProvider: authProvider, 
+		localDataCenter: 'datacenter1',
 		keyspace:'flukso'
 	});
 }
@@ -46,15 +48,33 @@ else if (process.env.NODE_ENV === 'production') {
 
 const TABLES = {'raw': 'raw', 'power': 'power', 'groups': 'groups_power'};
 
+// ========================= LOGGER =====================================
+
+// make a new logger
+const logger = new Console({
+  stdout: fs.createWriteStream("logs.txt", {flags: 'a'}),
+  stderr: fs.createWriteStream("error_logs.txt", {flags: 'a'}),
+});
+
+// saving to normalStdout.txt file
+logger.log(`${new Date().toISOString()}: Hello. This will be saved in logs.txt file`);
+
+// saving to errStdErr.txt file
+logger.error(`Its an error. This will be saved in error_logs.txt file`);
+
 // ========================= FUNCTIONS ==================================
 
 async function connectCassandra() {
-  client.connect().then(() => console.log("> Connected to Cassandra !"));
+  client.connect().then(() => {
+	console.log("> Connected to Cassandra !")
+	logger.log(`${new Date().toISOString()}: > Connected to Cassandra !`);
+  });
 }
 
 connectCassandra().catch((e) => {
   console.error("There was an error connecting to the Cassandra database.");
-  // console.error(e);
+  console.error(e);
+  logger.error(`${new Date().toISOString()}: There was an error connecting to the Cassandra database`);
 });
 
 
@@ -62,6 +82,7 @@ connectCassandra().catch((e) => {
 main().catch((e) => {
   console.error("An error occured when launching the server:");
   console.error(e);
+  logger.log(`${new Date().toISOString()}: An error occured when launching the server`);
 });
 
 
@@ -86,7 +107,7 @@ function queryFluksoData(data_type, date, home_id, response) {
     where_homeid = `home_id = '${home_id}' and`;
   }
   var query = `SELECT * FROM flukso.${TABLES[data_type]} WHERE ${where_homeid} day = ? ALLOW FILTERING;`
-  console.log(query);
+
   var data = execute(query, [date], (err, result) => {
 	  assert.ifError(err);
     // console.log(result.rows[0]);
@@ -135,13 +156,12 @@ app.get('/chart.utils.js', function(req, res) {
 });
 
 router.post('/date', (request, response) => {
-	// client request flukso data of a specific day
-	console.log("> date request");
-	const date = request.body.date;
-	console.log("date: " + date);
-  const data_type = request.body.data_type;  // raw or stats
-  console.log("data type : " + data_type);
+  // client request flukso data of a specific day
+  const date = request.body.date;
+  const data_type = request.body.data_type;  // raw or power
   const home_id = request.body.home_id;
+  console.log(`> date request from ${home_id} | date : ${date}, type : ${data_type}`);
+  logger.log(`${new Date().toISOString()}: > date request from ${home_id} | date : ${date}, type : ${data_type}`);
   queryFluksoData(data_type, date, home_id, response);
   
 });
@@ -149,12 +169,12 @@ router.post('/date', (request, response) => {
 
 async function main() {
   let today = new Date().toISOString().slice(0, 10);  // format (YYYY MM DD)
-//   console.log(today);
+  //console.log(today);
   //Authorize clients only after updating the server's data
   server.listen(port, () => {
     console.log(`> Server listening on port ${port}`);
+	logger.log(`${new Date().toISOString()}: > Server listening on port ${port}`);
   });
-  // console.log(ids);
 //   console.log(new Date().toLocaleTimeString());
   io(server).on("connection", onUserConnected);
 }
@@ -163,7 +183,9 @@ async function main() {
 //Function that handles a new connection from a user and start listening for its queries
 function onUserConnected(socket) {
   console.log('-> New user connected');
+  logger.log(`${new Date().toISOString()}: -> New user connected`);
   socket.on('disconnect', () => {
     console.log('-> User disconnected');
+	logger.log(`${new Date().toISOString()}: -> User disconnected`);
   });
 }

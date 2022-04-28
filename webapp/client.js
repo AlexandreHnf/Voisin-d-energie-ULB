@@ -1,4 +1,5 @@
 const socket = io('http://localhost:5000');
+// const socket = io("http://iridia-vde-frontend.hpda.ulb.ac.be:5000/");
 const HOME_ID = sessionStorage.getItem("username")
 
 var timing_button = document.getElementById("buttonShow");
@@ -274,7 +275,6 @@ function createPage() {
 
 
 function main() {
-  console.log("> client2.js")
   document.getElementById("profil_badge").innerText = HOME_ID;
 
   createPage();
