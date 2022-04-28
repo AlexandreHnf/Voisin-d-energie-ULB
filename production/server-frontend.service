@@ -1,5 +1,5 @@
 [Service]
-ExecStart=/home/alexandre_hnf/.nvm/versions/node/v14.14.0/bin/node "/home/alexandre_hnf/Desktop/Vde/repository/Voisin-d-energie-ULB/webapp/index.js"
+ExecStart=/home/alexandre_hnf/.nvm/versions/node/v14.14.0/bin/node "/home/alexandre_hnf/Desktop/Vde/repository/Voisin-d-energie-ULB/webapp/server.js"
 Restart=always
 StandardOutput=syslog
 StandardError=syslog

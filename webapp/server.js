@@ -18,28 +18,30 @@ const server = require('http').createServer(app);  //  express = request handler
 
 // ===================== GLOBAL VARIABLES =========================== 
 
-
-// Connection to localhost cassandra database1
-const client = new cassandra.Client({
-  contactPoints: ['ce97f9db-6e4a-4a2c-bd7a-2c97e31e3150', '127.0.0.1'],
-  localDataCenter: 'datacenter1'
-});
-
-
-/*
-// Connection to a remote cassandra cluster
-const cassandra_credentials = JSON.parse(fs.readFileSync('cassandra_serv_credentials.json', 'utf8'));
-var authProvider = new cassandra.auth.PlainTextAuthProvider(
-	cassandra_credentials.username, 
-	cassandra_credentials.password
-);
-var contactPoints = ['iridia-vde-frontend.hpda.ulb.ac.be'];
-var client = new cassandra.Client({
-	contactPoints: contactPoints, 
-	authProvider: authProvider, 
-	keyspace:'flukso'
-});
-*/
+var client = null;
+if (process.env.NODE_ENV === 'development') {
+	console.log("In development mode")
+	// Connection to localhost cassandra database1
+	client = new cassandra.Client({
+		contactPoints: ['ce97f9db-6e4a-4a2c-bd7a-2c97e31e3150', '127.0.0.1'],
+		localDataCenter: 'datacenter1'
+	});
+}
+else if (process.env.NODE_ENV === 'production') {
+	console.log("In production mode")
+	// Connection to a remote cassandra cluster
+	const cassandra_credentials = JSON.parse(fs.readFileSync('cassandra_serv_credentials.json', 'utf8'));
+	var authProvider = new cassandra.auth.PlainTextAuthProvider(
+		cassandra_credentials.username, 
+		cassandra_credentials.password
+	);
+	var contactPoints = ['iridia-vde-frontend.hpda.ulb.ac.be'];
+	client = new cassandra.Client({
+		contactPoints: contactPoints, 
+		authProvider: authProvider, 
+		keyspace:'flukso'
+	});
+}
 
 
 const TABLES = {'raw': 'raw', 'power': 'power', 'groups': 'groups_power'};
@@ -147,13 +149,13 @@ router.post('/date', (request, response) => {
 
 async function main() {
   let today = new Date().toISOString().slice(0, 10);  // format (YYYY MM DD)
-  console.log(today);
+//   console.log(today);
   //Authorize clients only after updating the server's data
   server.listen(port, () => {
-    console.log(`> Server listening on http://localhost:${port}`);
+    console.log(`> Server listening on port ${port}`);
   });
   // console.log(ids);
-  console.log(new Date().toLocaleTimeString());
+//   console.log(new Date().toLocaleTimeString());
   io(server).on("connection", onUserConnected);
 }
 
