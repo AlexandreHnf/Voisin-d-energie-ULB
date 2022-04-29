@@ -1,5 +1,9 @@
+[Unit]
+Description=frontend systemd service - production
+After=multi-user.target
+
 [Service]
-ExecStart=/home/alexandre_hnf/.nvm/versions/node/v14.14.0/bin/node "/home/alexandre_hnf/Desktop/Vde/repository/Voisin-d-energie-ULB/webapp/server.js"
+ExecStart=/usr/bin/node "/opt/vde/webapp/server.js"
 Restart=always
 StandardOutput=syslog
 StandardError=syslog
