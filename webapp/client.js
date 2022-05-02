@@ -1,4 +1,4 @@
-const socket = io('http://localhost:5000');
+const socket = io('http://localhost');
 // const socket = io("http://iridia-vde-frontend.hpda.ulb.ac.be:5000/");
 const HOME_ID = sessionStorage.getItem("username")
 

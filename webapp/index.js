@@ -1,3 +1,7 @@
+let test = crypto.createHmac('sha256', "key").update("json").digest("base64");
+console.log(test)
+
+
 var login_button = document.getElementById("submit");
 
 function validateLoginForm() {
@@ -7,9 +11,9 @@ function validateLoginForm() {
 	if (username == "flukso_admin" && password == "789") {
 		text = "OK admin";
 	} else if (username != "flukso_admin" && password == "123") {
-		text = "OK user";
+		text = "OK";
 	} else {
-		text = "Invalid inputs";
+		text = "Invalid inputs : Wrong username or wrong password. Try again.";
 		ok = false;
 	}
 	if (ok) {

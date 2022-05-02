@@ -36,11 +36,14 @@ logging.getLogger("tmpo").setLevel(logging.ERROR)
 logging.getLogger("requests").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 
+logging_handlers = [logging.FileHandler(LOG_FILE)]
+if LOG_VERBOSE:
+	logging_handlers.append(logging.StreamHandler())
+
 # Create and configure logger
 logging.basicConfig(level = setupLogLevel(),
-					format = "{asctime} {levelname:<8} {message}", style='{'
-					# filename = LOG_FILE,
-					# filemode = 'w'
+					format = "{asctime} {levelname:<8} {message}", style='{',
+					handlers=logging_handlers
 					)
 
 # ====================================================================================
@@ -174,9 +177,7 @@ def getSensorTimings(tmpo_session, cassandra_session, missing_data, timings, hom
 		if config.getConfigID() == current_config_id:  # if current config
 			if default_timing is None:  # if no raw data registered for this sensor yet
 				# we take all data from its first timestamp
-				# TODO : change to tmpo first_timestamp()
 				initial_ts = getInitialTimestamp(tmpo_session, sid, now)
-				# initial_ts = setInitSeconds(getTiming(FROM_FIRST_TS, now))  # TEMPORARY
 				sensor_start_ts = initial_ts
 			else:
 				sensor_start_ts = default_timing
@@ -220,7 +221,7 @@ def getTimings(tmpo_session, cassandra_session, config, current_config_id, missi
 			if timings[home_id]["start_ts"] is now:  # no data to recover from this home 
 				timings[home_id]["start_ts"] = None
 			
-			if timings[home_id]["end_ts"] is None and config.getConfigID() == current_config_id:
+			if config.getConfigID() == current_config_id:
 				timings[home_id]["end_ts"] = setInitSeconds(now).tz_localize("CET").tz_convert("UTC")
 	except:
 		logging.critial("Exception occured in 'getTimings' : ", exc_info=True)
@@ -497,6 +498,8 @@ def processArguments():
 
 
 def sync(mode, since, to):
+	logging.info("======================================================================")
+	logging.info("======================================================================")
 	begin = time.time()
 	
 	# > timings

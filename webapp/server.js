@@ -19,6 +19,7 @@ const server = require('http').createServer(app);  //  express = request handler
 
 // ===================== GLOBAL VARIABLES =========================== 
 
+
 var client = null;
 if (process.env.NODE_ENV === 'development') {
 	console.log("Development mode")
