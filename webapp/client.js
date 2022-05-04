@@ -1,4 +1,4 @@
-const socket = io('http://localhost');
+const socket = io('http://localhost:5000');
 // const socket = io("http://iridia-vde-frontend.hpda.ulb.ac.be:5000/");
 const HOME_ID = sessionStorage.getItem("username")
 
@@ -194,7 +194,7 @@ function initCharts(chart, col_id) {
   // create empty charts with labels
   createChartDatasetpowers();
 
-  console.log(`chartCanvas${col_id}_${HOME_ID}`);
+//   console.log(`chartCanvas${col_id}_${HOME_ID}`);
   charts_powers[day] = new Chart(document.getElementById(`chartCanvas${col_id}_${HOME_ID}`).getContext('2d'), {
     type: 'line',
     data: {
@@ -241,7 +241,8 @@ function createChartpowers(powers_data) {
   data = []
   for (let i = 0; i < powers_data.rows.length; i++) {
     let row = powers_data.rows[i];
-    let ts = row.ts.slice(0, -5);
+    // let ts = row.ts.slice(0, -5);
+	let ts = row.ts;
     charts_powers[day].data.datasets[0].data.push({x: ts, p_cons: row["p_cons"]});
     charts_powers[day].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
     charts_powers[day].data.datasets[2].data.push({x: ts, p_tot: row["p_tot"]});
@@ -256,8 +257,8 @@ function createChartpowers(powers_data) {
 		charts_powers[day].data.datasets[3].data.push({x: ts, pre: prelevement});
 		charts_powers[day].data.datasets[4].data.push({x: ts, inj: injection});
 
-    charts_powers[day].update();
   }
+  charts_powers[day].update();
 
   console.log(charts_powers[day].data.datasets);
 }

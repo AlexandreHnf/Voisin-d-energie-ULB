@@ -18,6 +18,10 @@ class Home:
 		self.home_id = home_id
 		self.columns_names = self.getColumnsNames()
 
+		self.len_raw = 0
+		self.len_nan = 0
+		self.nb_nan = 0
+
 		self.energy_df = self.getEnergyRawDf()
 		self.raw_df = self.createFluksoRawDF()
 		self.incomplete_raw_df = self.findIncompleteRawDf()
@@ -53,6 +57,18 @@ class Home:
 
 	def getColumnsTotal(self):
 		return self.raw_df.sum(axis=0, numeric_only=True)
+
+	def showQueryInfo(self):
+		""" 
+		show number of rows received in total with the tmpo query
+		+ the number of ligns containing NaN values + the total number of NaN values in the
+		dataframe
+		"""
+		logging.info("- len raw : {}, len NaN : {}, tot NaN: {}".format(
+			self.len_raw,
+			self.len_nan, 
+			self.nb_nan
+		))
 
 	def getFluksoNames(self):
 		"""
@@ -134,8 +150,9 @@ class Home:
 		filled_df = filled_df.drop(['fill'], axis=1) # remove the filler col
 
 		incomplete_raw_df = filled_df[filled_df.isna().any(axis=1)]  # with CET timezones
-		nb_tot_nan = filled_df.isna().sum().sum()  # count nb of nan in the entire df
-		logging.debug("len NaN : {}, tot NaN: {}".format(len(incomplete_raw_df), nb_tot_nan))
+		self.nb_nan = filled_df.isna().sum().sum()  # count nb of nan in the entire df
+		self.len_nan = len(incomplete_raw_df)
+		# logging.debug("len NaN : {}, tot NaN: {}".format(len(incomplete_raw_df), self.nb_nan))
 
 		incomplete_raw_df.index = pd.DatetimeIndex(incomplete_raw_df.index, name="time")
 		# convert all timestamps to local timezone (CET)
@@ -169,7 +186,8 @@ class Home:
 
 		# raw_df.index = [tps.ceil(freq="U", ambiguous='NaT') for tps in local_timestamps]
 		raw_df.index = [tps for tps in local_timestamps]
-		logging.debug("len: " + str(len(raw_df.index)))
+		self.len_raw = len(raw_df.index)
+		# logging.debug("len: " + str(len(raw_df.index)))
 
 		# if self.home_id == "ECHASC":
 		# 	print("raw_df", raw_df.head(30))

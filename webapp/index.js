@@ -1,7 +1,3 @@
-let test = crypto.createHmac('sha256', "key").update("json").digest("base64");
-console.log(test)
-
-
 var login_button = document.getElementById("submit");
 
 function validateLoginForm() {
