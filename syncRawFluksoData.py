@@ -364,8 +364,6 @@ def saveHomeMissingData(cassandra_session, config, to_timing, home, table_name):
 	logging.info("- saving in Cassandra: {} ... ".format(hid, table_name))
 
 	try: 
-		ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, table_name)  # truncate existing rows
-
 		to_timing = convertTimezone(to_timing, "CET")
 		config_id = str(config.getConfigID())[:19] + "Z"
 
@@ -657,6 +655,8 @@ def sync(mode, since, to):
 		logging.info("==================================================")
 		logging.info("Generating homes data, getting Flukso data and save in Cassandra...")
 		logging.info("==================================================")
+
+		ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, TBL_RAW_MISSING)  # truncate existing rows
 
 		# for each home
 		for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
