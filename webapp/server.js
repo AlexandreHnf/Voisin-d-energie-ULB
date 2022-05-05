@@ -57,11 +57,6 @@ const logger = new Console({
   stderr: fs.createWriteStream("error_logs.txt", {flags: 'a'}),
 });
 
-// saving to normalStdout.txt file
-logger.log(`${new Date().toISOString()}: Hello. This will be saved in logs.txt file`);
-
-// saving to errStdErr.txt file
-logger.error(`Its an error. This will be saved in error_logs.txt file`);
 
 // ========================= FUNCTIONS ==================================
 

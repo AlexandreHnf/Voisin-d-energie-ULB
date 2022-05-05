@@ -360,17 +360,13 @@ def main():
 	if task == "create_tables":
 		# > create cassandra tables
 		createTableSensorConfig(cassandra_session, "sensors_config")		# sensors config
-		# createTableGroupsConfig(cassandra_session, "groups_config")		# groups config
 		createRawFluksoTable(cassandra_session, "raw")						# raw
 		createPowerTable(cassandra_session, "power")						# power
-		# createPowerTable(cassandra_session, "groups_power")				# groups_power
 		createRawMissingTable(cassandra_session, "raw_missing")				# raw_missing
 	
 	elif task == "new_config":
 		# > fill config tables using excel configuration file
-		# : /!\ run both at the same time to have consistent ids
 		writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config", now)
-		# writeGroupsConfigCassandra(cassandra_session, "groups_config", now)
 
 	# ====================================================================================
 	# > setup the groups of flukso in a txt file

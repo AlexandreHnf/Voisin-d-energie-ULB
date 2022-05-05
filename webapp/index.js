@@ -6,7 +6,7 @@ function validateLoginForm() {
 	var ok = true;
 	if (username == "flukso_admin" && password == "789") {
 		text = "OK admin";
-	} else if (username != "flukso_admin" && password == "123") {
+	} else if (username != "flukso_admin" && password == "flukso" + username) {
 		text = "OK";
 	} else {
 		text = "Invalid inputs : Wrong username or wrong password. Try again.";

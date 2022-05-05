@@ -559,11 +559,8 @@ def showProcessingTimes(configs, begin, setup_time, config_timers):
 		config_id = config.getConfigID()
 		logging.info("> Config {} : {}".format(i + 1, str(config_id)))
 		t = config_timers[config_id]
-		logging.info("  > Timings : {}.".format(getTimeSpent(t[0], t[1])))
-		logging.info("  > Generate homes : {}.".format(getTimeSpent(t[1], t[2])))
-		logging.info("  > save raw : {}.".format(getTimeSpent(t[2], t[3])))
-		logging.info("  > Save missing : {}.".format(getTimeSpent(t[3], t[4])))
-		logging.info("  > Save power : {}.".format(getTimeSpent(t[4], t[5])))
+		logging.info("  > Timings : {}.".format(getTimeSpent(t["start"], t["timing"])))
+		logging.info("  > Generate homes + saving in db : {}.".format(getTimeSpent(t["timing"], t["homes"])))
 
 	logging.info("> Total Processing time : {}.".format(getTimeSpent(begin, time.time())))
 
@@ -637,7 +634,7 @@ def sync(mode, since, to):
 	for config in configs:
 		config_id = config.getConfigID()
 		logging.info("                [CONFIG {}] : ".format(str(config_id)))
-		config_timers[config_id] = [time.time()]
+		config_timers[config_id] = {"start": time.time()}
 
 		logging.info("Number of Homes : " + str(config.getNbHomes()))
 		logging.info("Number of Fluksos : " + str(len(set(config.getSensorsConfig().flukso_id))))
@@ -653,7 +650,7 @@ def sync(mode, since, to):
 		timings = getTimings(tmpo_session, cassandra_session, config, current_config_id, missing, 
 							TBL_RAW_MISSING, now_local)
 		# logging.info(timings)
-		config_timers[config_id].append(time.time())
+		config_timers[config_id]["timing"] = time.time()
 
 		# =========================================================
 
@@ -666,21 +663,19 @@ def sync(mode, since, to):
 
 			# STEP 2 : generate home
 			home = generateHome(tmpo_session, hid, home_sensors, since, start_timing, to_timing, timings, mode)
-			config_timers[config_id].append(time.time())
 
 			# STEP 3 : save raw flukso data in cassandra
 			saveHomeRawToCassandra(cassandra_session, home, config, TBL_RAW, timings)
-			config_timers[config_id].append(time.time())
 
 			# STEP 4 : save missing raw data in cassandra
 			saveHomeMissingData(cassandra_session, config, now, home, TBL_RAW_MISSING)
-			config_timers[config_id].append(time.time())
 
 			# STEP 5 : save power flukso data in cassandra
 			cp.saveHomePowerDataToCassandra(cassandra_session, home, config, TBL_POWER)
-			config_timers[config_id].append(time.time())
 
 			logging.info("---------------------------------------------------------------")
+
+		config_timers[config_id]["homes"] = time.time()
 
 	# =========================================================
 
