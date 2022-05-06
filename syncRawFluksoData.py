@@ -361,7 +361,7 @@ def saveHomeMissingData(cassandra_session, config, to_timing, home, table_name):
 	Save the first timestamp with no data (nan values) for each sensors of the home
 	"""
 	hid = home.getHomeID()
-	logging.info("- saving in Cassandra: {} ... ".format(hid, table_name))
+	logging.info("- saving in Cassandra: {} ... ".format(table_name))
 
 	try: 
 		to_timing = convertTimezone(to_timing, "CET")
@@ -439,7 +439,7 @@ def saveHomeRawToCassandra(cassandra_session, home, config, table_name, timings)
 		home_df : timestamp, sensor_id1, sensor_id2, sensor_id3 ... sensor_idN
 	"""
 	hid = home.getHomeID()
-	logging.info("- saving in Cassandra: {} ...".format(hid, table_name))
+	logging.info("- saving in Cassandra: {} ...".format(table_name))
 
 	try: 
 		insertion_time = str(pd.Timestamp.now())[:19] + "Z"

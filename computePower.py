@@ -19,7 +19,7 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config, table_name):
 		=> contains cons_prod_df : timestamp, P_cons, P_prod, P_tot
 	"""
 	hid = home.getHomeID()
-	logging.info("- saving in Cassandra: {} ...".format(hid, table_name))
+	logging.info("- saving in Cassandra: {} ...".format(table_name))
 
 	try: 
 		insertion_time = str(pd.Timestamp.now())[:19] + "Z"

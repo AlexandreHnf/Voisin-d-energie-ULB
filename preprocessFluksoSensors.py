@@ -43,6 +43,39 @@ def getInstallationsIds(flukso_ids, fluksos):
 	return installation_id_col
 
 
+def getCompactSensorDF2():
+	"""
+	read the excel sheet containing the flukso ids, the sensors ids, the tokens
+	and compact them into a simpler usable csv file
+	columns : home_id, phase, flukso_id, sensor_id, token, net, con, pro
+	"""
+	print("Config file : ", FLUKSO_TECHNICAL_FILE)
+	sensors_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Installation_sensors")
+	compact_df = pd.DataFrame(columns=["home_ID",
+									   "phase",
+									   "flukso_id",
+									   "sensor_id",
+									   "token",
+									   "net",
+									   "con",
+									   "pro"])
+
+	compact_df["home_ID"] = sensors_df["InstallationId"]
+	compact_df["phase"] = sensors_df["Function"]
+	compact_df["flukso_id"] = sensors_df["FlmId"]
+	compact_df["sensor_id"] = sensors_df["SensorId"]
+	compact_df["token"] = sensors_df["Token"]
+	compact_df["net"] = sensors_df["Network"]
+	compact_df["con"] = sensors_df["Cons"]
+	compact_df["pro"] = sensors_df["Prod"]
+
+	compact_df.fillna(0, inplace=True)
+
+	compact_df.sort_values(by=["home_ID"])
+
+	return compact_df
+
+
 def getCompactSensorDF():
 	"""
 	read the excel sheet containing the flukso ids, the sensors ids, the tokens
@@ -351,8 +384,8 @@ def main():
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	# > get the useful flukso sensors data in a compact csv
-	compact_df = getCompactSensorDF()
-	compact_df = correctPhaseSigns(compact_df) # > correct phase signs
+	compact_df = getCompactSensorDF2()
+	# compact_df = correctPhaseSigns(compact_df) # > correct phase signs
 	print("nb sensors : ", len(compact_df))
 
 	now = pd.Timestamp.now()
@@ -366,18 +399,9 @@ def main():
 	
 	elif task == "new_config":
 		# > fill config tables using excel configuration file
+		print("new config : ")
 		writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config", now)
 
-	# ====================================================================================
-	# > setup the groups of flukso in a txt file
-	# writeGroupsFromFluksoIDs()
-	# writeGroupsFromInstallationsIds()
-
-	# > save home ids to json
-	# saveHomeIds(compact_df)
-
-	# > save groups ids to json
-	# saveGroupsIds()
 
 if __name__ == "__main__":
 	main()
