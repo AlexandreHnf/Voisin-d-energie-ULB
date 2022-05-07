@@ -493,7 +493,6 @@ def processArguments():
 
 
 def sync(mode, since, to):
-	logging.info("This is a info msg in syncRawFluksoData.py")
 	begin = time.time()
 	
 	# > timings
