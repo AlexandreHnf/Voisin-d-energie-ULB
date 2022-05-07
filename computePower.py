@@ -1,20 +1,58 @@
-from tokenize import group
-from turtle import home
 from constants import *
 import pyToCassandra as ptc
 from utils import *
 import logging
 
 import copy
-import os
-import sys
 import pandas as pd
-from datetime import date, timedelta
 
+import logging
 
 # ====================================================================================
 # called by syncRawFluksoData.py just after writing raw data to cassandra
 # ====================================================================================
+
+
+def saveHomePowerDataToCassandra(cassandra_session, home, config, table_name):
+	""" 
+	save power flukso data to cassandra : P_cons, P_prod, P_tot
+	- home : Home object 
+		=> contains cons_prod_df : timestamp, P_cons, P_prod, P_tot
+	"""
+	hid = home.getHomeID()
+	logging.info("- saving in Cassandra: {} ...".format(hid, table_name))
+
+	try: 
+		insertion_time = str(pd.Timestamp.now())[:19] + "Z"
+		config_id = str(config.getConfigID())[:19] + "Z"
+
+		cons_prod_df = home.getConsProdDF()
+		cons_prod_df['date'] = cons_prod_df.apply(lambda row: str(row.name.date()), axis=1) # add date column
+		by_day_df = cons_prod_df.groupby("date")  # group by date
+
+		col_names = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot", "insertion_time", "config_id"]
+		for date, date_rows in by_day_df:  # loop through each group (each date group)
+
+			insert_queries = ""
+			nb_inserts = 0
+			for timestamp, row in date_rows.iterrows():
+				# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
+				ts = str(timestamp)[:19] + "Z"
+				values = [hid, date, ts] + list(row)[:-1] + [insertion_time, config_id]  # [:-1] to avoid date column
+				insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
+
+				if (nb_inserts+1) % INSERTS_PER_BATCH == 0:
+					ptc.batch_insert(cassandra_session, insert_queries)
+					insert_queries = ""
+
+				nb_inserts+=1
+		
+			ptc.batch_insert(cassandra_session, insert_queries)
+		
+		logging.info("   OK : power data saved.")
+	except:
+		logging.critial("Exception occured in 'saveHomePowerDataToCassandra' : {}".format(hid), exc_info=True)
+
 
 def savePowerDataToCassandra(cassandra_session, homes, config, table_name):
 	""" 
@@ -27,7 +65,7 @@ def savePowerDataToCassandra(cassandra_session, homes, config, table_name):
 	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
 	config_id = str(config.getConfigID())[:19] + "Z"
 	for hid, home in homes.items():
-		logging.info(hid)
+		# logging.debug(hid)
 		cons_prod_df = home.getConsProdDF()
 		cons_prod_df['date'] = cons_prod_df.apply(lambda row: str(row.name.date()), axis=1) # add date column
 		by_day_df = cons_prod_df.groupby("date")  # group by date

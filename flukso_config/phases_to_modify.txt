@@ -1,0 +1,13 @@
+CDB001:Mains
+CDB003:main
+CDB005:main black,main red
+CDB006:PV
+CDB007:Phase L2,PV sur phase L3
+CDB011:Mains phase 1,Mains phase 2,Mains phase 3
+CDB012:Phase L1
+CDB014:Phase L1
+CDB016:Mains phase 1
+CDB017:PV sur phase L1
+CDB018:PV
+ECHASC:PV_Gris,PV_Noir
+ECHBUA:Brun,PV_Brun

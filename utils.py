@@ -8,6 +8,7 @@ import logging
 
 import pyToCassandra as ptc
 
+import logging
 
 def getProgDir():
 	import __main__
@@ -196,7 +197,7 @@ def getLocalTimestampsIndex(df):
     # NAIVE
     if df.index.tzinfo is None or df.index.tzinfo.utcoffset(df.index) is None:
         # first convert to aware timestamp, then local
-        return df.index.tz_localize("CET").tz_convert("CET")
+        return df.index.tz_localize("CET", ambiguous='NaT').tz_convert("CET")
     else: # if already aware timestamp
         return df.index.tz_convert("CET")
 
@@ -245,3 +246,25 @@ def getTimeSpent(time_begin, time_end):
 	Get the time spent in seconds between 2 timings (1 timing = time.time())
 	"""
 	return timedelta(seconds=time_end - time_begin)
+
+
+def setupLogLevel():
+	""" 
+	set logging level based on a constant
+	levels : 
+	- CRITICAL
+	- ERROR
+	- WARNING
+	- INFO
+	- DEBUG
+	"""
+	if LOG_LEVEL == "CRITICAL":
+		return logging.CRITICAL
+	elif LOG_LEVEL == "ERROR":
+		return logging.ERROR
+	elif LOG_LEVEL == "WARNING":
+		return logging.WARNING
+	elif LOG_LEVEL == "INFO":
+		return logging.INFO
+	elif LOG_LEVEL == "DEBUG":
+		return logging.DEBUG

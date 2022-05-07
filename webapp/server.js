@@ -1,7 +1,8 @@
-var fs = require('fs')
+var fs = require('fs') // get fs module for creating write streams
 var assert = require('assert');
 // ”cassandra-driver” is in the node_modules folder. Redirect if necessary.
 var cassandra = require('cassandra-driver');
+const { Console } = require("console"); // get the Console class
 
 const http = require("http")
 const io = require("socket.io")
@@ -17,33 +18,59 @@ const port = 5000;                  //Save the port number where your server wil
 const server = require('http').createServer(app);  //  express = request handler functions passed to http Server instances
 
 // ===================== GLOBAL VARIABLES =========================== 
-// Connection to localhost cassandra database1
-const client = new cassandra.Client({
-  contactPoints: ['ce97f9db-6e4a-4a2c-bd7a-2c97e31e3150', '127.0.0.1'],
-  localDataCenter: 'datacenter1'
-});
+
+
+var client = null;
+if (process.env.NODE_ENV === 'development') {
+	console.log("Development mode")
+	// Connection to localhost cassandra database1
+	client = new cassandra.Client({
+		contactPoints: ['ce97f9db-6e4a-4a2c-bd7a-2c97e31e3150', '127.0.0.1'],
+		localDataCenter: 'datacenter1'
+	});
+}
+else if (process.env.NODE_ENV === 'production') {
+	console.log("Production mode")
+	// Connection to a remote cassandra cluster
+	const cassandra_credentials = JSON.parse(fs.readFileSync('cassandra_serv_credentials.json', 'utf8'));
+	var authProvider = new cassandra.auth.PlainTextAuthProvider(
+		cassandra_credentials.username, 
+		cassandra_credentials.password
+	);
+	var contactPoints = ['iridia-vde-frontend.hpda.ulb.ac.be'];
+	client = new cassandra.Client({
+		contactPoints: contactPoints, 
+		authProvider: authProvider, 
+		localDataCenter: 'datacenter1',
+		keyspace:'flukso'
+	});
+}
+
 
 const TABLES = {'raw': 'raw', 'power': 'power', 'groups': 'groups_power'};
 
-/*
-// Connection to a remote cassandra cluster
-//Replace Username and Password with your cluster settings
-var authProvider = new cassandra.auth.PlainTextAuthProvider('Username', 'Password');
-//Replace PublicIP with the IP addresses of your clusters
-var contactPoints = ['PublicIP','PublicIP','PublicIP’'];
-var client = new cassandra.Client({contactPoints: contactPoints, authProvider: authProvider, keyspace:'grocery'});
-*/
+// ========================= LOGGER =====================================
+
+// make a new logger
+const logger = new Console({
+  stdout: fs.createWriteStream("logs.txt", {flags: 'a'}),
+  stderr: fs.createWriteStream("error_logs.txt", {flags: 'a'}),
+});
 
 
 // ========================= FUNCTIONS ==================================
 
 async function connectCassandra() {
-  client.connect().then(() => console.log("> Connected to Cassandra !"));
+  client.connect().then(() => {
+	console.log("> Connected to Cassandra !")
+	logger.log(`${new Date().toISOString()}: > Connected to Cassandra !`);
+  });
 }
 
 connectCassandra().catch((e) => {
   console.error("There was an error connecting to the Cassandra database.");
-  // console.error(e);
+  console.error(e);
+  logger.error(`${new Date().toISOString()}: There was an error connecting to the Cassandra database`);
 });
 
 
@@ -51,6 +78,7 @@ connectCassandra().catch((e) => {
 main().catch((e) => {
   console.error("An error occured when launching the server:");
   console.error(e);
+  logger.log(`${new Date().toISOString()}: An error occured when launching the server`);
 });
 
 
@@ -75,7 +103,7 @@ function queryFluksoData(data_type, date, home_id, response) {
     where_homeid = `home_id = '${home_id}' and`;
   }
   var query = `SELECT * FROM flukso.${TABLES[data_type]} WHERE ${where_homeid} day = ? ALLOW FILTERING;`
-  console.log(query);
+
   var data = execute(query, [date], (err, result) => {
 	  assert.ifError(err);
     // console.log(result.rows[0]);
@@ -108,8 +136,8 @@ app.get('/client.html', (req, res) => {        //get requests to the root ("/") 
                                                       //the .sendFile method needs the absolute path to the file, see: https://expressjs.com/en/4x/api.html#res.sendFile 
 });
 
-app.get('/client2.js', function(req, res) {
-  res.sendFile('/client2.js', {root: __dirname});
+app.get('/client.js', function(req, res) {
+  res.sendFile('/client.js', {root: __dirname});
 });
 
 // ===========================
@@ -124,13 +152,12 @@ app.get('/chart.utils.js', function(req, res) {
 });
 
 router.post('/date', (request, response) => {
-	// client request flukso data of a specific day
-	console.log("> date request");
-	const date = request.body.date;
-	console.log("date: " + date);
-  const data_type = request.body.data_type;  // raw or stats
-  console.log("data type : " + data_type);
+  // client request flukso data of a specific day
+  const date = request.body.date;
+  const data_type = request.body.data_type;  // raw or power
   const home_id = request.body.home_id;
+  console.log(`> date request from ${home_id} | date : ${date}, type : ${data_type}`);
+  logger.log(`${new Date().toISOString()}: > date request from ${home_id} | date : ${date}, type : ${data_type}`);
   queryFluksoData(data_type, date, home_id, response);
   
 });
@@ -138,13 +165,13 @@ router.post('/date', (request, response) => {
 
 async function main() {
   let today = new Date().toISOString().slice(0, 10);  // format (YYYY MM DD)
-  console.log(today);
+  //console.log(today);
   //Authorize clients only after updating the server's data
   server.listen(port, () => {
-    console.log(`> Server listening on http://localhost:${port}`);
+    console.log(`> Server listening on port ${port}`);
+	logger.log(`${new Date().toISOString()}: > Server listening on port ${port}`);
   });
-  // console.log(ids);
-  console.log(new Date().toLocaleTimeString());
+//   console.log(new Date().toLocaleTimeString());
   io(server).on("connection", onUserConnected);
 }
 
@@ -152,7 +179,9 @@ async function main() {
 //Function that handles a new connection from a user and start listening for its queries
 function onUserConnected(socket) {
   console.log('-> New user connected');
+  logger.log(`${new Date().toISOString()}: -> New user connected`);
   socket.on('disconnect', () => {
     console.log('-> User disconnected');
+	logger.log(`${new Date().toISOString()}: -> User disconnected`);
   });
 }

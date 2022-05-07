@@ -14,3 +14,5 @@ stop service : 			sudo systemctl stop name_of_service
 restart service : 		sudo systemctl restart name_of_service
 
 check status : 			sudo systemctl status name_of_service
+
+check journal :         sudo journalctl -u service-name.service --since "2 hours ago"
