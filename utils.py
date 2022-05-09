@@ -248,6 +248,23 @@ def getTimeSpent(time_begin, time_end):
 	return timedelta(seconds=time_end - time_begin)
 
 
+def getIntermediateTimings(start_ts, end_ts):
+	""" 
+	Given 2 timestamps, generate the intermediate timings
+	- interval duration = 1 day
+	"""
+	intermediate_timings = [start_ts]
+	nb_days = (end_ts - start_ts).days
+	current_ts = start_ts
+	for _ in range(nb_days):
+		current_ts += timedelta(days = 1)
+		intermediate_timings.append(current_ts)
+	if end_ts != current_ts:
+		intermediate_timings.append(end_ts)
+
+	return intermediate_timings
+
+
 def setupLogLevel():
 	""" 
 	set logging level based on a constant
@@ -268,3 +285,13 @@ def setupLogLevel():
 		return logging.INFO
 	elif LOG_LEVEL == "DEBUG":
 		return logging.DEBUG
+
+
+def main():
+	# start_ts = pd.Timestamp('2022-05-01 08:12:00')
+	start_ts = pd.Timestamp('2022-05-07 08:16:00')
+	end_ts = pd.Timestamp('2022-05-08 08:16:00')
+	it = getIntermediateTimings(start_ts, end_ts)
+	print(it)
+
+main()

@@ -9,10 +9,9 @@ import logging
 
 class Home:
 
-	def __init__(self, sensors_info, since, since_timing, to_timing, home_id, sensors):
+	def __init__(self, sensors_info, since_timing, to_timing, home_id, sensors):
 		self.sensors_config = sensors_info
 		self.sensors = sensors
-		self.since = since
 		self.since_timing = since_timing
 		self.to_timing = to_timing
 		self.home_id = home_id
@@ -45,9 +44,6 @@ class Home:
 
 	def getNbFluksoSensors(self):
 		return len(self.raw_df.columns)
-
-	def getSince(self):
-		return self.since
 
 	def getSinceTiming(self):
 		return self.since_timing

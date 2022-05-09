@@ -22,7 +22,7 @@ GIDS_FILE =                             "sensors/grp_ids.json"
 
 TMPO_FILE = 							""
 
-LOG_FILE = 								"/home/alexandre_hnf/Desktop/Vde/repository/Voisin-d-energie-ULB/logs/backend_logs.log"
+LOG_FILE = 								"logs/backend_logs.log"
 
 
 # ========================== COMPUTATIONS =====================================
@@ -38,7 +38,7 @@ LAST_TS_DAYS =                          2  # days
 # "since" default value for the earliest timestamp of a flukso
 # normally since = 0, but for testing, we put since = 4min
 FROM_FIRST_TS_STATUS = 					"local"
-FROM_FIRST_TS =                         "4min"  # TEMPORARY
+FROM_FIRST_TS =                         "2days"  # TEMPORARY
 
 # nb lines to insert per batch insert when inserting in cassandra table
 INSERTS_PER_BATCH =                     11000
