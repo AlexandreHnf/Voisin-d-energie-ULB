@@ -294,4 +294,5 @@ def main():
 	it = getIntermediateTimings(start_ts, end_ts)
 	print(it)
 
-main()
+if __name__ == '__main__':
+	main()

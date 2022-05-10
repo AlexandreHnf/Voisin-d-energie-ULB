@@ -13,14 +13,14 @@ import logging
 # ====================================================================================
 
 
-def saveHomePowerDataToCassandra(cassandra_session, home, config, table_name):
+def saveHomePowerDataToCassandra(cassandra_session, home, config):
 	""" 
 	save power flukso data to cassandra : P_cons, P_prod, P_tot
 	- home : Home object 
 		=> contains cons_prod_df : timestamp, P_cons, P_prod, P_tot
 	"""
 	hid = home.getHomeID()
-	logging.debug("- saving in Cassandra: {} ...".format(table_name))
+	logging.debug("- saving in Cassandra: {} ...".format(TBL_POWER))
 
 	try: 
 		insertion_time = str(pd.Timestamp.now())[:19] + "Z"
@@ -39,7 +39,7 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config, table_name):
 				# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
 				ts = str(timestamp)[:19] + "Z"
 				values = [hid, date, ts] + list(row)[:-1] + [insertion_time, config_id]  # [:-1] to avoid date column
-				insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
+				insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, TBL_POWER, col_names, values)
 
 				if (nb_inserts+1) % INSERTS_PER_BATCH == 0:
 					ptc.batch_insert(cassandra_session, insert_queries)

@@ -60,7 +60,7 @@ class Home:
 		+ the number of ligns containing NaN values + the total number of NaN values in the
 		dataframe
 		"""
-		logging.info("- len raw : {}, len NaN : {}, tot NaN: {}".format(
+		logging.info("     - len raw : {}, len NaN : {}, tot NaN: {}".format(
 			self.len_raw,
 			self.len_nan, 
 			self.nb_nan
