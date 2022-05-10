@@ -70,9 +70,9 @@ async function sendDateQuery(data_type, date) {
     document.getElementById("day_msg").innerHTML = "<strong>" + date + "</strong> : No data."
   } else {
     console.log("msg : " + resdata.msg);
-    console.log(alldata.rows[0]);
-    console.log("nb of rows received : " + alldata.rows.length);
-
+    console.log(alldata[0]);
+    console.log("nb of rows received : " + alldata.length);
+    
     if (data_type === "raw") {
       createChartRaw(alldata);
     } else if (data_type === "power") {
@@ -120,7 +120,7 @@ function createChartDatasetpowers() {
       },
       borderColor: 'rgb(255, 99, 132)',
       backgroundColor: Samples.utils.transparentize(255, 99, 132, 0.4),
-      borderWidth: 2,
+      borderWidth: 1.5,
 			pointRadius: 2,
       hidden: false,
 	    fill: false
@@ -133,7 +133,7 @@ function createChartDatasetpowers() {
       },
       borderColor: 'rgb(54, 162, 235)',
       backgroundColor: Samples.utils.transparentize(54, 162, 235, 0.4),
-      borderWidth: 2,
+      borderWidth: 1.5,
 			pointRadius: 2,
       hidden: false,
 	    fill: false
@@ -146,7 +146,7 @@ function createChartDatasetpowers() {
       },
       borderColor: 'rgb(170, 166, 157)',
       backgroundColor: Samples.utils.transparentize(201, 203, 207, 0.4),
-      borderWidth: 2,
+      borderWidth: 1.5,
 			pointRadius: 2,
       // fill: {above: 'red', below: 'green', target: "origin"}
       fill : false
