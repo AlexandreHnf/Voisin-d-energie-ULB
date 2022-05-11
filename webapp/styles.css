@@ -4,3 +4,12 @@
     width: 50%;
     padding: 10px;
 }
+
+.jumbotron {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+
+.active {
+    display: block
+}

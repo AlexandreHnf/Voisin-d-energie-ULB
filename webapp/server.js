@@ -115,6 +115,27 @@ function queryFluksoData(data_type, date, home_id, response) {
   });
 }
 
+
+async function queryFluksoData2(data_type, date, home_id, response) {
+  where_homeid = "";
+  if (home_id != "flukso_admin") {  // if not admin
+    where_homeid = `home_id = '${home_id}' and`;
+  }
+  var query = `SELECT * FROM flukso.${TABLES[data_type]} WHERE ${where_homeid} day = ? ALLOW FILTERING;`
+
+  const result = await client.execute(query, [date], { prepare: true });
+
+  let j = 0;
+  let res = [];
+  for await (const row of result) {
+    // console.log(j);
+    // console.log(row)
+    res.push(row);
+    j++;
+  }
+
+  response.json({msg: "date well received!", data: res});
+}
 // ==============
 
 
@@ -158,8 +179,8 @@ router.post('/date', (request, response) => {
   const home_id = request.body.home_id;
   console.log(`> date request from ${home_id} | date : ${date}, type : ${data_type}`);
   logger.log(`${new Date().toISOString()}: > date request from ${home_id} | date : ${date}, type : ${data_type}`);
-  queryFluksoData(data_type, date, home_id, response);
-  
+  // queryFluksoData(data_type, date, home_id, response);
+  queryFluksoData2(data_type, date, home_id, response);
 });
 
 

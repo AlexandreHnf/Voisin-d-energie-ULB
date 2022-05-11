@@ -9,10 +9,9 @@ import logging
 
 class Home:
 
-	def __init__(self, sensors_info, since, since_timing, to_timing, home_id, sensors):
+	def __init__(self, sensors_info, since_timing, to_timing, home_id, sensors):
 		self.sensors_config = sensors_info
 		self.sensors = sensors
-		self.since = since
 		self.since_timing = since_timing
 		self.to_timing = to_timing
 		self.home_id = home_id
@@ -46,9 +45,6 @@ class Home:
 	def getNbFluksoSensors(self):
 		return len(self.raw_df.columns)
 
-	def getSince(self):
-		return self.since
-
 	def getSinceTiming(self):
 		return self.since_timing
 
@@ -64,7 +60,7 @@ class Home:
 		+ the number of ligns containing NaN values + the total number of NaN values in the
 		dataframe
 		"""
-		logging.info("- len raw : {}, len NaN : {}, tot NaN: {}".format(
+		logging.info("     - len raw : {}, len NaN : {}, tot NaN: {}".format(
 			self.len_raw,
 			self.len_nan, 
 			self.nb_nan

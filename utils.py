@@ -4,6 +4,7 @@ import os
 import math
 from constants import *
 from datetime import date, timedelta, datetime
+import logging
 
 import pyToCassandra as ptc
 
@@ -142,12 +143,12 @@ def getTiming(t, now):
 								  hour=int(e[3]), minute=int(e[4]), second=int(e[5]), 
 								  tz="CET").tz_convert("UTC")
 		else:  # since x min, x hours, x days...
-			# print("time delta : ", pd.Timedelta(t))
+			# logging.info("time delta : " + pd.Timedelta(t))
 			timing = now - pd.Timedelta(t)
 	else:
 		timing = now  # now
 
-	# print("timing : ", timing)
+	# logging.info("timing : " + timing)
 	return timing
 
 
@@ -215,11 +216,11 @@ def isEarlier(ts1, ts2):
 def getSpecificSerie(value, since_timing, to_timing):
 
 	period = (to_timing - since_timing).total_seconds() / FREQ[0]
-	# print("s : {}, t : {}, to : {}, period : {}".format(self.since_timing, self.to_timing, to, period))
+	# logging.info("s : {}, t : {}, to : {}, period : {}".format(self.since_timing, self.to_timing, to, period))
 	values = pd.date_range(since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
-	# print("datetime range : ", values)
+	# logging.info("datetime range : " + values)
 	values_series = pd.Series(int(period) * [value], values)
-	# print(since_timing, values_series.index[0])
+	# logging.info(since_timing, values_series.index[0])
 
 	return values_series
 
@@ -228,7 +229,7 @@ def energy2power(energy_df):
 	"""
 	from cumulative energy to power (Watt)
 	"""
-	# print(energy_df.head(10))
+	# logging.info(energy_df.head(10))
 	power_df = energy_df.diff() * 1000
 	# power_df.drop(first_ts, inplace=True)  # drop first row because no data after conversion
 	# replace all negative values by 0, power can't be negative
@@ -245,6 +246,23 @@ def getTimeSpent(time_begin, time_end):
 	Get the time spent in seconds between 2 timings (1 timing = time.time())
 	"""
 	return timedelta(seconds=time_end - time_begin)
+
+
+def getIntermediateTimings(start_ts, end_ts):
+	""" 
+	Given 2 timestamps, generate the intermediate timings
+	- interval duration = 1 day
+	"""
+	intermediate_timings = [start_ts]
+	nb_days = (end_ts - start_ts).days
+	current_ts = start_ts
+	for _ in range(nb_days):
+		current_ts += timedelta(days = 1)
+		intermediate_timings.append(current_ts)
+	if end_ts != current_ts:
+		intermediate_timings.append(end_ts)
+
+	return intermediate_timings
 
 
 def setupLogLevel():
@@ -267,3 +285,14 @@ def setupLogLevel():
 		return logging.INFO
 	elif LOG_LEVEL == "DEBUG":
 		return logging.DEBUG
+
+
+def main():
+	# start_ts = pd.Timestamp('2022-05-01 08:12:00')
+	start_ts = pd.Timestamp('2022-05-07 08:16:00')
+	end_ts = pd.Timestamp('2022-05-08 08:16:00')
+	it = getIntermediateTimings(start_ts, end_ts)
+	print(it)
+
+if __name__ == '__main__':
+	main()
