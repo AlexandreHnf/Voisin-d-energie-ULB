@@ -124,7 +124,7 @@ async function queryFluksoData2(data_type, date, home_id, response) {
   var query = `SELECT * FROM flukso.${TABLES[data_type]} WHERE ${where_homeid} day = ? ALLOW FILTERING;`
 
   const result = await client.execute(query, [date], { prepare: true });
-  console.log(`${result}`)
+
   let j = 0;
   let res = [];
   for await (const row of result) {

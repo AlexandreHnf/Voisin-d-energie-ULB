@@ -65,7 +65,7 @@ async function sendDateQuery(data_type, date) {
 	const resdata = await response.json();
 
 	var alldata = resdata.data;
-	console.log("> --------- date sent to server...");
+	console.log("> date sent to server...");
   if (alldata === undefined) {
     document.getElementById("day_msg").innerHTML = "<strong>" + date + "</strong> : No data."
   } else {
@@ -121,7 +121,7 @@ function createChartDatasetpowers() {
       borderColor: 'rgb(255, 99, 132)',
       backgroundColor: Samples.utils.transparentize(255, 99, 132, 0.4),
       borderWidth: 1.5,
-			pointRadius: 2,
+			pointRadius: 1.5,
       hidden: false,
 	    fill: false
     },
@@ -134,7 +134,7 @@ function createChartDatasetpowers() {
       borderColor: 'rgb(54, 162, 235)',
       backgroundColor: Samples.utils.transparentize(54, 162, 235, 0.4),
       borderWidth: 1.5,
-			pointRadius: 2,
+			pointRadius: 1.5,
       hidden: false,
 	    fill: false
     },
@@ -147,7 +147,7 @@ function createChartDatasetpowers() {
       borderColor: 'rgb(170, 166, 157)',
       backgroundColor: Samples.utils.transparentize(201, 203, 207, 0.4),
       borderWidth: 1.5,
-			pointRadius: 2,
+			pointRadius: 1.5,
       // fill: {above: 'red', below: 'green', target: "origin"}
       fill : false
     },
@@ -185,9 +185,9 @@ function initCharts(chart, col_id) {
   /* 
   init each chart with empty dataset, but proper labels from the home
   */
-  console.log(charts_powers[day]);
+  // console.log(charts_powers[day]);
   if (charts_powers[day] !== null) { // first destroy previous charts if any
-    console.log("destroying previous charts...");
+    // console.log("destroying previous charts...");
     charts_powers[day].destroy();
   }
 
@@ -204,7 +204,7 @@ function initCharts(chart, col_id) {
       responsive: true, 
       plugins: {
         legend: {
-          position: 'right'
+          position: 'top'
         }
       },
       scales: {
@@ -239,10 +239,10 @@ function createChartpowers(powers_data) {
   initCharts(charts_powers[day], 1);
 
   data = []
-  for (let i = 0; i < powers_data.rows.length; i++) {
-    let row = powers_data.rows[i];
+  for (let i = 0; i < powers_data.length; i++) {
+    let row = powers_data[i];
     // let ts = row.ts.slice(0, -5);
-	let ts = row.ts;
+	  let ts = row.ts;
     charts_powers[day].data.datasets[0].data.push({x: ts, p_cons: row["p_cons"]});
     charts_powers[day].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
     charts_powers[day].data.datasets[2].data.push({x: ts, p_tot: row["p_tot"]});
