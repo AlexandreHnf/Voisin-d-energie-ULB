@@ -12,6 +12,19 @@ let COLORS = ["#34ace0", "#e55039", "#474787", "#fed330", "#32ff7e", "#0fb9b1", 
 
 // ==========================================================================
 
+function initFirstQuery() {
+  // set active tab : power
+  document.getElementById("default").click();
+
+  // query data of today
+  let today = new Date().toISOString().slice(0, 10);  // format (YYYY MM DD)
+  let date_badge = document.querySelectorAll('[id=date_badge]');
+	date_badge.forEach(badge => {
+		badge.innerHTML = today;
+	})
+  sendDateQuery("power", today.toString());
+}
+
 function validateTimingInput() {
 	document.getElementById("login_err_msg").innerHTML = "OK c'est bon";
 }
@@ -205,6 +218,9 @@ function initCharts(chart, col_id) {
       plugins: {
         legend: {
           position: 'top'
+        },
+        tooltip: {
+          enabled: false
         }
       },
       scales: {
@@ -283,6 +299,8 @@ function main() {
   socket.on('connect_error', function () {
     console.log('Connection Failed. Server down !');
   });
+
+  initFirstQuery();
 
 }
 
