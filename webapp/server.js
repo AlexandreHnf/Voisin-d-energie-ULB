@@ -47,7 +47,7 @@ else if (process.env.NODE_ENV === 'production') {
 }
 
 
-const TABLES = {'raw': 'raw', 'power': 'power', 'groups': 'groups_power'};
+const TABLES = {'access': 'access', 'raw': 'raw', 'power': 'power', 'groups': 'groups_power'};
 
 // ========================= LOGGER =====================================
 
@@ -97,26 +97,7 @@ function execute(query, params, callback) {
 }
 
 
-function queryFluksoData(data_type, date, home_id, response) {
-  where_homeid = "";
-  if (home_id != "flukso_admin") {  // if not admin
-    where_homeid = `home_id = '${home_id}' and`;
-  }
-  var query = `SELECT * FROM flukso.${TABLES[data_type]} WHERE ${where_homeid} day = ? ALLOW FILTERING;`
-
-  var data = execute(query, [date], (err, result) => {
-	  assert.ifError(err);
-    // console.log(result.rows[0]);
-    // console.log(result.rows.length);
-    
-	}).then((result) => {
-    // console.log(result.rows[1]);
-    response.json({msg: "date well received!", data: result});
-  });
-}
-
-
-async function queryFluksoData2(data_type, date, home_id, response) {
+async function queryFluksoData(data_type, date, home_id, response) {
   where_homeid = "";
   if (home_id != "flukso_admin") {  // if not admin
     where_homeid = `home_id = '${home_id}' and`;
@@ -128,8 +109,6 @@ async function queryFluksoData2(data_type, date, home_id, response) {
   let j = 0;
   let res = [];
   for await (const row of result) {
-    // console.log(j);
-    // console.log(row)
     res.push(row);
     j++;
   }
@@ -172,6 +151,21 @@ app.get('/chart.utils.js', function(req, res) {
   res.sendFile('/chart.utils.js', {root: __dirname});
 });
 
+async function doesClientExist(username, response) {
+  // Check if the username used to log in is indeed in db
+  var query = `SELECT * FROM flukso.${TABLES["access"]} WHERE login = ? ALLOW FILTERING;`
+  const result = await client.execute(query, [username], { prepare: true });
+
+  response.json({status: result.rows.length > 0});
+}
+
+router.post('/doesClientExist', (request, response) => {
+  // request from client => client wants to login
+  const username = request.body.username;
+
+  doesClientExist(username, response);
+});
+
 router.post('/date', (request, response) => {
   // client request flukso data of a specific day
   const date = request.body.date;
@@ -180,7 +174,7 @@ router.post('/date', (request, response) => {
   console.log(`> date request from ${home_id} | date : ${date}, type : ${data_type}`);
   logger.log(`${new Date().toISOString()}: > date request from ${home_id} | date : ${date}, type : ${data_type}`);
   // queryFluksoData(data_type, date, home_id, response);
-  queryFluksoData2(data_type, date, home_id, response);
+  queryFluksoData(data_type, date, home_id, response);
 });
 
 
