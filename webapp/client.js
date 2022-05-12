@@ -83,7 +83,7 @@ async function sendDateQuery(data_type, date) {
     document.getElementById("day_msg").innerHTML = "<strong>" + date + "</strong> : No data."
   } else {
     console.log("msg : " + resdata.msg);
-    console.log(alldata[0]);
+    // console.log(alldata[0]);
     console.log("nb of rows received : " + alldata.length);
     
     if (data_type === "raw") {
@@ -276,7 +276,7 @@ function createChartpowers(powers_data) {
   }
   charts_powers[day].update();
 
-  console.log(charts_powers[day].data.datasets);
+  // console.log(charts_powers[day].data.datasets);
 }
 
 

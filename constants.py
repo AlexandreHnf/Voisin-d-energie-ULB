@@ -55,6 +55,7 @@ CASSANDRA_CREDENTIALS_FILE = 			'cassandra_serv_credentials.json'
 CASSANDRA_KEYSPACE =                    "flukso" 
 
 # cassandra tables names
+TBL_ACCESS =                            "access"
 TBL_SENSORS_CONFIG =                    "sensors_config"
 TBL_GROUPS_CONFIG =                     "groups_config"
 TBL_RAW =                               "raw"

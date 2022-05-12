@@ -261,6 +261,23 @@ def correctPhaseSigns(sensors_df=None):
 	return sensors_df
 
 
+def writeAccessDataCassandra(cassandra_session, table_name):
+	""" 
+	write access data to cassandra (login ids)
+	"""
+	login_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Access")
+	by_login = login_df.groupby("Login")
+
+	col_names = ["login", "installations"]
+
+	for login_id, installation_ids in by_login:
+		values = [login_id, list(installation_ids["InstallationId"])]
+		ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
+
+	print("Successfully inserted sensors config in table : {}".format(table_name))
+
+
+
 # ==========================================================================
 # Cassandra table creation
 # ==========================================================================
@@ -292,6 +309,16 @@ def createTableGroupsConfig(cassandra_session, table_name):
 			"group_id TEXT", 
 			"homes LIST<TEXT>"]
 	ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, ["insertion_time, group_id"], [], {})
+
+
+def createTableAccess(cassandra_session, table_name):
+	"""
+	create a table for the login access
+	access, installations
+	"""
+	cols = ["login TEXT", 
+			"installations LIST<TEXT>"]
+	ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, ["login"], [], {})
 
 
 def createRawFluksoTable(cassandra_session, table_name):
@@ -392,15 +419,19 @@ def main():
 
 	if task == "create_tables":
 		# > create cassandra tables
-		createTableSensorConfig(cassandra_session, "sensors_config")		# sensors config
-		createRawFluksoTable(cassandra_session, "raw")						# raw
-		createPowerTable(cassandra_session, "power")						# power
-		createRawMissingTable(cassandra_session, "raw_missing")				# raw_missing
+		createTableAccess(cassandra_session, "access") 						# access
+		# createTableSensorConfig(cassandra_session, "sensors_config")		# sensors config
+		# createRawFluksoTable(cassandra_session, "raw")						# raw
+		# createPowerTable(cassandra_session, "power")						# power
+		# createRawMissingTable(cassandra_session, "raw_missing")				# raw_missing
 	
 	elif task == "new_config":
 		# > fill config tables using excel configuration file
 		print("new config : ")
-		writeSensorsConfigCassandra(cassandra_session, compact_df, "sensors_config", now)
+		writeSensorsConfigCassandra(cassandra_session, compact_df, TBL_SENSORS_CONFIG, now)
+
+	elif task == "login_config":
+		writeAccessDataCassandra(cassandra_session, TBL_ACCESS)
 
 
 if __name__ == "__main__":

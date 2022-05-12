@@ -408,10 +408,11 @@ def processHomes(cassandra_session, tmpo_session, config, timings, start_timing,
 	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
 		saved_sensors = {}  # for missing data, to check if sensors missing data already saved
 		if timings[hid]["start_ts"] is not None:  # if home has a start timestamp
-			logging.info("> {} | {} > {} ({} min.)".format(hid, timings[hid]["start_ts"], timings[hid]["end_ts"],
-								round((timings[hid]["end_ts"] - timings[hid]["start_ts"]).total_seconds() / 60.0, 2)))
-			
 			intermediate_timings = getIntermediateTimings(timings[hid]["start_ts"], timings[hid]["end_ts"])
+			
+			logging.info("> {} | {} > {} ({} days > {} min.)".format(hid, timings[hid]["start_ts"], timings[hid]["end_ts"],
+								len(intermediate_timings), 
+								round((timings[hid]["end_ts"] - timings[hid]["start_ts"]).total_seconds() / 60.0, 2)))
 
 			for i in range(len(intermediate_timings)-1):  # query day by day
 				start_timing = intermediate_timings[i]
