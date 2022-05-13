@@ -1,5 +1,5 @@
-const socket = io('http://localhost:5000');
-// const socket = io("http://iridia-vde-frontend.hpda.ulb.ac.be:5000/");
+const domain_name = 'http://localhost:5000';
+const socket = io(domain_name);
 const HOME_ID = sessionStorage.getItem("username")
 
 var timing_button = document.getElementById("buttonShow");
@@ -40,7 +40,6 @@ function changeTimeUnit() {
       unit = radio[i].value;
     }
   }
-  console.log(unit);
 	charts_powers[day].options.scales.x.time.unit = unit;
 	charts_powers[day].update();
  
@@ -51,7 +50,6 @@ function processDateQuery() {
 	Get a date input, send query to server
 	*/
 	var date = document.getElementById("day").value;
-	console.log("date: "+ date);
 	let date_badge = document.querySelectorAll('[id=date_badge]');
 	date_badge.forEach(badge => {
 		badge.innerHTML = date;
@@ -283,7 +281,7 @@ function createChartpowers(powers_data) {
 function createPage() {
   charts_powers[day] = null;
 
-  console.log("creating charts...")
+//   console.log("creating charts...")
   // powers data
   createChartCanvas(1, "power_data_charts");
   initCharts(charts_powers[day], 1);
