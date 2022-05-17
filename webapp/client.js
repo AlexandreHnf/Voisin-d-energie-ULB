@@ -83,6 +83,7 @@ async function sendDateQuery(data_type, date) {
     if (alldata.length == 0) {
       document.getElementById("day_msg").innerHTML = "<strong>" + date + "</strong> : No data."
     }
+    console.log(alldata[0]);
     
     if (data_type === "raw") {
       createChartRaw(alldata);
@@ -131,8 +132,8 @@ function createChartDatasetpowers() {
       },
       borderColor: 'rgb(255, 99, 132)',
       backgroundColor: Samples.utils.transparentize(255, 99, 132, 0.4),
-      borderWidth: 1.5,
-			pointRadius: 1.5,
+      borderWidth: 1,
+			pointRadius: 1.2,
       hidden: false,
 	    fill: false
     },
@@ -144,8 +145,8 @@ function createChartDatasetpowers() {
       },
       borderColor: 'rgb(54, 162, 235)',
       backgroundColor: Samples.utils.transparentize(54, 162, 235, 0.4),
-      borderWidth: 1.5,
-			pointRadius: 1.5,
+      borderWidth: 1,
+			pointRadius: 1.2,
       hidden: false,
 	    fill: false
     },
@@ -157,8 +158,8 @@ function createChartDatasetpowers() {
       },
       borderColor: 'rgb(170, 166, 157)',
       backgroundColor: Samples.utils.transparentize(201, 203, 207, 0.4),
-      borderWidth: 1.5,
-			pointRadius: 1.5,
+      borderWidth: 1,
+			pointRadius: 1.2,
       // fill: {above: 'red', below: 'green', target: "origin"}
       fill : false
     },
@@ -255,8 +256,8 @@ function createChartpowers(powers_data) {
   data = []
   for (let i = 0; i < powers_data.length; i++) {
     let row = powers_data[i];
-    // let ts = row.ts.slice(0, -5);
-	  let ts = row.ts;
+    let ts = row.ts.slice(0, -5);
+	  //let ts = row.ts;
     charts_powers[day].data.datasets[0].data.push({x: ts, p_cons: row["p_cons"]});
     charts_powers[day].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
     charts_powers[day].data.datasets[2].data.push({x: ts, p_tot: row["p_tot"]});
