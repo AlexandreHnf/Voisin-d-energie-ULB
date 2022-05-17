@@ -1,3 +1,4 @@
+from matplotlib.pyplot import table
 import pandas as pd
 import numpy as np
 from constants import *
@@ -417,13 +418,19 @@ def main():
 
 	now = pd.Timestamp.now()
 
-	if task == "create_tables":
+	if task == "create_table":
+		table_name = sys.argv[2]
 		# > create cassandra tables
-		createTableAccess(cassandra_session, "access") 						# access
-		# createTableSensorConfig(cassandra_session, "sensors_config")		# sensors config
-		# createRawFluksoTable(cassandra_session, "raw")						# raw
-		# createPowerTable(cassandra_session, "power")						# power
-		# createRawMissingTable(cassandra_session, "raw_missing")				# raw_missing
+		if table_name == "access":
+			createTableAccess(cassandra_session, "access") 						# access
+		elif table_name == "sensors_config":
+			createTableSensorConfig(cassandra_session, "sensors_config")		# sensors config
+		elif table_name == "raw":
+			createRawFluksoTable(cassandra_session, "raw")						# raw
+		elif table_name == "power":
+			createPowerTable(cassandra_session, "power")						# power
+		elif table_name == "raw_missing":
+			createRawMissingTable(cassandra_session, "raw_missing")				# raw_missing
 	
 	elif task == "new_config":
 		# > fill config tables using excel configuration file

@@ -4,7 +4,6 @@ var cassandra = require('cassandra-driver');
 const { Console } = require("console"); // get the Console class
 
 const http = require("http")
-const io = require("socket.io")
 const express = require('express'); //Import the express dependency
 const bodyParser = require("body-parser");
 const { resolve } = require('path');
@@ -16,22 +15,24 @@ app.use(bodyParser.json());
 app.use("/", router);
 const server = require('http').createServer(app);  //  express = request handler functions passed to http Server instances
 
+const io = require("socket.io")(server)
 // ===================== GLOBAL VARIABLES =========================== 
 
 // constants for server
 
 const CASSANDRA = {
-	DATACENTER : 									"datacenter1",
+	DATACENTER : 									    "datacenter1",
 	CREDENTIALS_FILE : 								"cassandra_serv_credentials.json",
-	CONTACT_POINT : 								"iridia-vde-frontend.hpda.ulb.ac.be",
+	DOMAIN_NAME : 								    "iridia-vde-frontend.hpda.ulb.ac.be",
+  IP :                              "164.15.254.92",
 
-	KEYSPACE : 										"flukso"
+	KEYSPACE : 										    "flukso"
 }
 
-const LOG_FILE = 									"logs.txt"
-const ERROR_LOG_FILE = 								"error_logs.txt"
+const LOG_FILE = 									  "logs.txt"
+const ERROR_LOG_FILE = 							"error_logs.txt"
 
-const PORT = 										"5000"
+const PORT = 										    "5000"
 
 // ==================================================================
 
@@ -114,16 +115,17 @@ function execute(query, params, callback) {
 
 
 async function queryFluksoData(data_type, date, home_id, response) {
-  where_homeid = "";
-  if (home_id != "flukso_admin") {  // if not admin
-    where_homeid = `home_id = '${home_id}' and`;
-  }
+  /*
+  Query power data from cassandra based on the provided date and home ID
+  */
+  where_homeid = `home_id = '${home_id}' and`;
   var query = `SELECT * FROM ${CASSANDRA.KEYSPACE}.${TABLES[data_type]} WHERE ${where_homeid} day = ? ALLOW FILTERING;`
 
   const result = await client.execute(query, [date], { prepare: true });
 
   let j = 0;
   let res = [];
+  // paging to get the large fetch results set in an array to send to client
   for await (const row of result) {
     res.push(row);
     j++;
@@ -168,7 +170,10 @@ app.get('/chart.utils.js', function(req, res) {
 });
 
 async function doesClientExist(username, response) {
-  // Check if the username used to log in is indeed in db
+  /* 
+  Check if the username used to log in is indeed in db
+  */
+  
   var query = `SELECT * FROM ${CASSANDRA.KEYSPACE}.${TABLES["access"]} WHERE login = ? ALLOW FILTERING;`
   const result = await client.execute(query, [username], { prepare: true });
 
@@ -176,14 +181,18 @@ async function doesClientExist(username, response) {
 }
 
 router.post('/doesClientExist', (request, response) => {
-  // request from client => client wants to login
+  /* 
+  request from client => client wants to login
+  */ 
   const username = request.body.username;
 
   doesClientExist(username, response);
 });
 
 router.post('/date', (request, response) => {
-  // client request flukso data of a specific day
+  /* 
+  client request flukso data of a specific day
+  */
   const date = request.body.date;
   const data_type = request.body.data_type;  // raw or power
   const home_id = request.body.home_id;
@@ -199,15 +208,17 @@ async function main() {
   //Authorize clients only after updating the server's data
   server.listen(PORT, () => {
     console.log(`> Server listening on port ${PORT}`);
-	logger.log(`${new Date().toISOString()}: > Server listening on port ${PORT}`);
+	  logger.log(`${new Date().toISOString()}: > Server listening on port ${PORT}`);
   });
-//   console.log(new Date().toLocaleTimeString());
-  io(server).on("connection", onUserConnected);
+  // console.log(new Date().toLocaleTimeString());
+  // io.on("connection", onUserConnected);
 }
 
 
-//Function that handles a new connection from a user and start listening for its queries
 function onUserConnected(socket) {
+  /* 
+  Function that handles a new connection from a user and start listening for its queries
+  */
   console.log('-> New user connected');
   logger.log(`${new Date().toISOString()}: -> New user connected`);
   socket.on('disconnect', () => {

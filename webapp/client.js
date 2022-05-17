@@ -1,5 +1,6 @@
 const domain_name = 'http://localhost:5000';
-const socket = io(domain_name);
+// const domain_name = 'https://iridia-vde.ulb.ac.be:5000';
+// const socket = io(domain_name);
 const HOME_ID = sessionStorage.getItem("username")
 
 var timing_button = document.getElementById("buttonShow");
@@ -76,13 +77,12 @@ async function sendDateQuery(data_type, date) {
 	const resdata = await response.json();
 
 	var alldata = resdata.data;
-	console.log("> date sent to server...");
-  if (alldata === undefined) {
-    document.getElementById("day_msg").innerHTML = "<strong>" + date + "</strong> : No data."
-  } else {
-    console.log("msg : " + resdata.msg);
-    // console.log(alldata[0]);
+  if (alldata != undefined) {
     console.log("nb of rows received : " + alldata.length);
+
+    if (alldata.length == 0) {
+      document.getElementById("day_msg").innerHTML = "<strong>" + date + "</strong> : No data."
+    }
     
     if (data_type === "raw") {
       createChartRaw(alldata);
@@ -294,9 +294,9 @@ function main() {
 
   createPage();
 
-  socket.on('connect_error', function () {
-    console.log('Connection Failed. Server down !');
-  });
+  // socket.on('connect_error', function () {
+  //   console.log('Connection Failed. Server down !');
+  // });
 
   initFirstQuery();
 
