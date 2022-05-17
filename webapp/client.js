@@ -1,21 +1,36 @@
+/* 
+Client.js -> main page
+author : Alexandre Heneffe. 
+*/
+
+
+// ============================== VARIABLES =================================
+
 const domain_name = 'http://localhost:5000';
 // const domain_name = 'https://iridia-vde.ulb.ac.be:5000';
 // const socket = io(domain_name);
-const HOME_ID = sessionStorage.getItem("username")
+const HOME_ID = sessionStorage.getItem("username");
+const GRP_IDS = JSON.parse(sessionStorage.getItem('grp_ids'));
+console.log(GRP_IDS);
 
-var timing_button = document.getElementById("buttonShow");
+// button that allows to confirm a timestamp choice
+var timing_button = document.getElementById("buttonShow"); 
 
 // ChartJS objects for today's data and specific day data.
 let charts_powers = {today : null, day: null};
 
+// predefined colors for charts lines
 let COLORS = ["#34ace0", "#e55039", "#474787", "#fed330", "#32ff7e", "#0fb9b1", "#fa8231", "#a5b1c2",
               "#4b7bec", "#a55eea", "#fad390", "#b71540", "#e58e26", "#38ada9", "#0a3d62"];
 
-// ==========================================================================
+// ============================= FUNCTIONS ==================================
 
 function initFirstQuery() {
+  /* 
+  When arriving in the main page, init a first query to get today's data
+  */
   // set active tab : power
-  document.getElementById("default").click();
+  document.getElementById("default").click();  // simulates a click
 
   // query data of today
   let today = new Date().toISOString().slice(0, 10);  // format (YYYY MM DD)
@@ -26,13 +41,10 @@ function initFirstQuery() {
   sendDateQuery("power", today.toString());
 }
 
-function validateTimingInput() {
-	document.getElementById("login_err_msg").innerHTML = "OK c'est bon";
-}
 
 function changeTimeUnit() {
 	/*
-	
+	Change the graph time unit - x axis
 	*/
   var radio = document.getElementsByName('time_unit_radio');
   let unit = "";

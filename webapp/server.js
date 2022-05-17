@@ -133,8 +133,19 @@ async function queryFluksoData(data_type, date, home_id, response) {
 
   response.json({msg: "date well received!", data: res});
 }
-// ==============
 
+async function doesClientExist(username, response) {
+  /* 
+  Check if the username used to log in is indeed in db
+  */
+  var query = `SELECT * FROM ${CASSANDRA.KEYSPACE}.${TABLES["access"]} WHERE login = ? ALLOW FILTERING;`
+  const result = await client.execute(query, [username], { prepare: true });
+
+  response.json({status: result.rows.length > 0, grp_ids: result});
+}
+
+
+// ========================================== GET ==========================================
 
 // ======= INDEX =======
 //Idiomatic expression in express to route and respond to a client request
@@ -169,16 +180,7 @@ app.get('/chart.utils.js', function(req, res) {
   res.sendFile('/chart.utils.js', {root: __dirname});
 });
 
-async function doesClientExist(username, response) {
-  /* 
-  Check if the username used to log in is indeed in db
-  */
-  
-  var query = `SELECT * FROM ${CASSANDRA.KEYSPACE}.${TABLES["access"]} WHERE login = ? ALLOW FILTERING;`
-  const result = await client.execute(query, [username], { prepare: true });
-
-  response.json({status: result.rows.length > 0});
-}
+// ========================================== POST =========================================
 
 router.post('/doesClientExist', (request, response) => {
   /* 
@@ -202,18 +204,7 @@ router.post('/date', (request, response) => {
 });
 
 
-async function main() {
-  let today = new Date().toISOString().slice(0, 10);  // format (YYYY MM DD)
-  //console.log(today);
-  //Authorize clients only after updating the server's data
-  server.listen(PORT, () => {
-    console.log(`> Server listening on port ${PORT}`);
-	  logger.log(`${new Date().toISOString()}: > Server listening on port ${PORT}`);
-  });
-  // console.log(new Date().toLocaleTimeString());
-  // io.on("connection", onUserConnected);
-}
-
+// =============================================================================================
 
 function onUserConnected(socket) {
   /* 
@@ -225,4 +216,17 @@ function onUserConnected(socket) {
     console.log('-> User disconnected');
 	logger.log(`${new Date().toISOString()}: -> User disconnected`);
   });
+}
+
+
+async function main() {
+  let today = new Date().toISOString().slice(0, 10);  // format (YYYY MM DD)
+  //console.log(today);
+  //Authorize clients only after updating the server's data
+  server.listen(PORT, () => {
+    console.log(`> Server listening on port ${PORT}`);
+	  logger.log(`${new Date().toISOString()}: > Server listening on port ${PORT}`);
+  });
+  // console.log(new Date().toLocaleTimeString());
+  // io.on("connection", onUserConnected);
 }
