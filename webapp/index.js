@@ -31,9 +31,9 @@ function handlePreConnection(username) {
     if (login_result.rows.length > 0) {
         for (let i = 0; i < login_result.rows[0].installations.length; i++) {
             install_id = login_result.rows[0].installations[i];
-            // if (install_id != username) {
+            if (install_id != username) {
                 grp_ids.push(install_id);
-            // }
+            }
         }
     }
     // console.log(grp_ids);

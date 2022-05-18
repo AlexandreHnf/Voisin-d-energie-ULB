@@ -54,7 +54,7 @@ else if (process.env.NODE_ENV === 'production') {
 		cassandra_credentials.username, 
 		cassandra_credentials.password
 	);
-	var contactPoints = [CASSANDRA.CONTACT_POINT];
+	var contactPoints = [CASSANDRA.IP, CASSANDRA.DOMAIN_NAME];
 	client = new cassandra.Client({
 		contactPoints: contactPoints, 
 		authProvider: authProvider, 

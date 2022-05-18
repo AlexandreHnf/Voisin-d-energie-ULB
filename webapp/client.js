@@ -10,20 +10,30 @@ const domain_name = 'http://localhost:5000';
 // const domain_name = 'https://iridia-vde.ulb.ac.be:5000';
 // const socket = io(domain_name);
 const HOME_ID = sessionStorage.getItem("username");
-const GRP_IDS = JSON.parse(sessionStorage.getItem('grp_ids'));
+let GRP_IDS = JSON.parse(sessionStorage.getItem('grp_ids'));
+GRP_IDS.push("CDB002"); // For testing purpose
 console.log(GRP_IDS);
 
 // button that allows to confirm a timestamp choice
 var timing_button = document.getElementById("buttonShow"); 
 
 // ChartJS objects for today's data and specific day data.
-let charts_powers = {today : null, day: null};
+let charts_powers = {today : null, day: {HOME_ID: null}};
+// let charts_groups = {today : {}, day: {}};
 
 // predefined colors for charts lines
 let COLORS = ["#34ace0", "#e55039", "#474787", "#fed330", "#32ff7e", "#0fb9b1", "#fa8231", "#a5b1c2",
               "#4b7bec", "#a55eea", "#fad390", "#b71540", "#e58e26", "#38ada9", "#0a3d62"];
 
 // ============================= FUNCTIONS ==================================
+
+function resetChartsPower(charts_powers) {
+  charts_powers.day[HOME_ID] = null;
+  for (let i = 0; i < GRP_IDS.length; i++) {
+    charts_powers.day[GRP_IDS[i]] = null;
+  }
+  console.log(charts_powers);
+}
 
 function initFirstQuery() {
   /* 
@@ -53,8 +63,8 @@ function changeTimeUnit() {
       unit = radio[i].value;
     }
   }
-	charts_powers[day].options.scales.x.time.unit = unit;
-	charts_powers[day].update();
+	charts_powers.day[HOME_ID].options.scales.x.time.unit = unit;
+	charts_powers.day[HOME_ID].update();
  
 }
 
@@ -95,12 +105,12 @@ async function sendDateQuery(data_type, date) {
     if (alldata.length == 0) {
       document.getElementById("day_msg").innerHTML = "<strong>" + date + "</strong> : No data."
     }
-    console.log(alldata[0]);
+    // console.log(alldata[0]);
     
     if (data_type === "raw") {
       createChartRaw(alldata);
     } else if (data_type === "power") {
-      createChartpowers(alldata);
+      createChartPowers(alldata, HOME_ID);
     } else if (data_type === "groups") {
       createChartGrppowers(alldata);
     }
@@ -108,14 +118,17 @@ async function sendDateQuery(data_type, date) {
   
 }
 
-function createChartCanvas(col_id, col_name) {
+function createChartCanvas(col_id, col_name, ids) {
 	/* 
 	create html chart canvas :
 	*/
-	let div = document.createElement("div");
-	div.innerHTML += `<p>${HOME_ID}</p>
-										<canvas id="chartCanvas${col_id}_${HOME_ID}"></canvas>`;
-	document.getElementById(`${col_name}`).appendChild(div);
+  for (var i = 0; i < ids.length; i++) {
+    let div = document.createElement("div");
+    div.innerHTML += `<p>${ids[i]}</p>
+                      <canvas id="chartCanvas${col_id}_${ids[i]}"></canvas>`;
+    document.getElementById(`${col_name}`).appendChild(div);
+  }
+	
 }
 
 function getRandomColor() {
@@ -205,21 +218,20 @@ function createChartDatasetpowers() {
 }
 
 
-function initCharts(chart, col_id) {
+function initCharts(chart, col_id, home_id) {
   /* 
   init each chart with empty dataset, but proper labels from the home
   */
-  // console.log(charts_powers[day]);
-  if (charts_powers[day] !== null) { // first destroy previous charts if any
+  if (chart.day[home_id] !== null) { // first destroy previous charts if any
     // console.log("destroying previous charts...");
-    charts_powers[day].destroy();
+    chart.day[home_id].destroy();
   }
 
   // create empty charts with labels
   createChartDatasetpowers();
 
-//   console.log(`chartCanvas${col_id}_${HOME_ID}`);
-  charts_powers[day] = new Chart(document.getElementById(`chartCanvas${col_id}_${HOME_ID}`).getContext('2d'), {
+  console.log(`chartCanvas${col_id}_${home_id}`);
+  chart.day[home_id] = new Chart(document.getElementById(`chartCanvas${col_id}_${home_id}`).getContext('2d'), {
     type: 'line',
     data: {
       datasets: datasets
@@ -259,20 +271,20 @@ function initCharts(chart, col_id) {
 }
 
 
-function createChartpowers(powers_data) {
+function createChartPowers(powers_data, home_id) {
   /* 
   fill chart with received data 
   */
-  initCharts(charts_powers[day], 1);
+  initCharts(charts_powers, 1, home_id);
 
   data = []
   for (let i = 0; i < powers_data.length; i++) {
     let row = powers_data[i];
     let ts = row.ts.slice(0, -5);
 	  //let ts = row.ts;
-    charts_powers[day].data.datasets[0].data.push({x: ts, p_cons: row["p_cons"]});
-    charts_powers[day].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
-    charts_powers[day].data.datasets[2].data.push({x: ts, p_tot: row["p_tot"]});
+    charts_powers.day[home_id].data.datasets[0].data.push({x: ts, p_cons: row["p_cons"]});
+    charts_powers.day[home_id].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
+    charts_powers.day[home_id].data.datasets[2].data.push({x: ts, p_tot: row["p_tot"]});
 
 		let prelevement = 0;
 		let injection = 0;
@@ -281,23 +293,26 @@ function createChartpowers(powers_data) {
 		} else if (row["p_tot"] < 0) {
 			injection = row["p_tot"];
 		}
-		charts_powers[day].data.datasets[3].data.push({x: ts, pre: prelevement});
-		charts_powers[day].data.datasets[4].data.push({x: ts, inj: injection});
+		charts_powers.day[home_id].data.datasets[3].data.push({x: ts, pre: prelevement});
+		charts_powers.day[home_id].data.datasets[4].data.push({x: ts, inj: injection});
 
   }
-  charts_powers[day].update();
-
-  // console.log(charts_powers[day].data.datasets);
+  charts_powers.day[home_id].update();
 }
 
 
 function createPage() {
-  charts_powers[day] = null;
+  resetChartsPower(charts_powers);
 
-//   console.log("creating charts...")
   // powers data
-  createChartCanvas(1, "power_data_charts");
-  initCharts(charts_powers[day], 1);
+  createChartCanvas(1, "power_data_charts", [HOME_ID]);
+  initCharts(charts_powers, 1, HOME_ID);
+
+  // groups power data
+  createChartCanvas(2, "groups_data_charts", GRP_IDS);
+  for (let i = 0; i < GRP_IDS.length; i++) {
+    initCharts(charts_powers, 2, GRP_IDS[i]);
+  }
   
 }
 

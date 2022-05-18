@@ -112,21 +112,21 @@
 		<!-- Menu pour Flukso, groups, activity -->
 		<ul class="nav nav-tabs" role="tablist">
 			<li class="nav-item">
-				<a class="nav-link disabled" data-toggle="tab" href="#raw_data">Données brutes</a>
+				<a class="nav-link" data-toggle="tab" href="#raw_data">Données brutes</a>
 			</li>
 			<li class="nav-item">
 				<a class="nav-link" id="default" data-toggle="tab" href="#power">Puissances (consommées, produites, totales) </a>
 			</li>
 			<li class="nav-item">
-				<a class="nav-link disabled" data-toggle="tab" href="#groups">Groupes d'installations</a>
+				<a class="nav-link" data-toggle="tab" href="#groups_power">Groupes d'installations</a>
 			</li>
 			<li class="nav-item">
-				<a class="nav-link disabled" data-toggle="tab" href="#flukso_activity">Activité des Fluksos</a>
+				<a class="nav-link" data-toggle="tab" href="#flukso_activity">Activité des Fluksos</a>
 			</li>
 		</ul>
 
-		  <!-- Tab panes -->
-		  <div class="tab-content">
+		<!-- Tab panes -->
+		<div class="tab-content">
 			
 			<!-- RAW DATA TAB -->
 			<div id="raw_data" class="container-fluid tab-pane fade"><br>
@@ -203,70 +203,56 @@
 						</dl>  
 					</div>   
 				</div>
-				
+			</div>
 
-			<!-- GROUPS TAB -->
-			<div id="groups" class="container-fluid tab-pane fade"><br>
-			  <h3>Groups of homes <span id="date_badge", class="badge bg-info"></span></h3>
+
+			<!-- GROUPS POWER TAB -->
+			<div id="groups_power" class="container-fluid tab-pane fade"><br>
+				<h3>Groups of homes <span id="date_badge", class="badge bg-info"></span></h3>
 				
-			  <br><br><h6>Temporarily disabled.</h6>
 				<!-- graphs -->
-				<div class="row">
-					<div class="col-sm-9">
-						<div class="container-fluid">
-							<!-- groups power data -->
-							<!-- list of items -->
-							<ul class="list-group">
-								<li class="list-group-item" id="groups_data_charts"></li>
-							</ul>
-						</div>
-					</div>
+				<div class="container-fluid">
+					<!-- list of items -->
+					<ul class="list-group">
+						<li class="list-group-item" id="groups_data_charts"></li>
+					</ul> 
+				</div>
+				
+				<!-- Graph textual Legend -->
+				<div class="container-fluid">
+					<div class="alert alert-secondary" role="alert">
+						<h3>Notations</h3>    
+						<p></p>
+						<dl>
+							<dt>P_cons : </dt>
+							<div class="alert alert-danger" role="alert">
+								<dd>Puissance consommée</dd>
+								<dl> 
+									P_cons = P_tot - P_prod
+								</dl>
+							</div>
 
-					<div class="col-sm-3">
-						<!-- => P_cons : P = Puissance, Consommation électrique : P_tot - P_prod
-						=> P_tot : P_cons + P_prod 
-							- P_tot Positif : Prélèvement 
-							- P_tot Négatif : Injection  -->
+							<dt>P_prod : </dt>
+							<div class="alert alert-primary" role="alert">
+								<dd>=> Puissance produite (Panneaux photovoltaïques)</dd>
+							</div>
 
-						<div class="container-fluid">
-							<div class="alert alert-secondary" role="alert">
-								<h3>Notations</h3>    
-								<p></p>
+							<dt>P_tot : </dt>
+							<div class="alert alert-dark" role="alert">
+								<dd>Puissance totale</dd>
 								<dl>
-									<dt>P_cons : </dt>
-									<div class="alert alert-danger" role="alert">
-										<dd>Puissance consommée</dd>
-										<dl> 
-											P_cons = P_tot - P_prod
-										</dl>
+									P_tot = P_cons + P_prod
+									<div class="alert alert-warning" role="alert">
+										<dd>- P_tot > 0 (Positif) : Prélèvement</dd>
 									</div>
-
-									<dt>P_prod : </dt>
-									<div class="alert alert-primary" role="alert">
-										<dd>=> Puissance produite (Panneaux photovoltaïques)</dd>
+									<div class="alert alert-success" role="alert">
+										<dd>- P_tot < 0 (Négatif) : Injection</dd>
 									</div>
-
-									<dt>P_tot : </dt>
-									<div class="alert alert-dark" role="alert">
-										<dd>Puissance totale</dd>
-										<dl>
-											P_tot = P_cons + P_prod
-											<div class="alert alert-warning" role="alert">
-												<dd>- P_tot > 0 (Positif) : Prélèvement</dd>
-											</div>
-											<div class="alert alert-success" role="alert">
-												<dd>- P_tot < 0 (Négatif) : Injection</dd>
-											</div>
-										</dl>
-									</div>
-								</dl>  
-
-								<h3>Groups</h3>
-									<dl id="groups_legend"> </dl>
-							</div> 
-						</div>
-					</div>
-				</div> 
+								</dl>
+							</div>
+						</dl>  
+					</div>   
+				</div>
 			</div>
 
 			<!-- ACTIVITY TAB -->
@@ -274,11 +260,10 @@
 			  <h3>Flukso activity</h3>
 
 			 	<br><br><h6>Not available yet.</h6>
-			</div>
-		  </div>
+		  	</div>
 		
 
-	</div>
+		</div>
 
 </body>
 
