@@ -88,7 +88,7 @@ try {
     });
   }
 } catch(error) {
-  showError("! Error when setting up cassandra client");
+  showError(error, "! Error when setting up cassandra client");
 }
 
 
@@ -104,14 +104,14 @@ async function connectCassandra() {
   });
 }
 
-connectCassandra().catch((e) => {
-  showError("There was an error connecting to the Cassandra database.");
+connectCassandra().catch((error) => {
+  showError(error, "There was an error connecting to the Cassandra database.");
 });
 
 
 //========== Launch main ==============
-main().catch((e) => {
-  showError("An error occured when launching the server:");
+main().catch((error) => {
+  showError(error, "An error occured when launching the server:");
 });
 
 
@@ -153,7 +153,7 @@ async function queryFluksoData(data_type, date, home_id, response) {
 
     response.json({msg: "date well received!", data: res});
   } catch(error) {
-    showError("! Error when querying cassandra data.");
+    showError(error, "! Error when querying cassandra data.");
   }
 }
 
@@ -167,7 +167,7 @@ async function doesClientExist(username, response) {
 
     response.json({status: result.rows.length > 0, grp_ids: result});
   } catch (error) {
-    showError("! Error when querying cassandra access table.");
+    showError(error, "! Error when querying cassandra access table.");
   }
 }
 

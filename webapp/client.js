@@ -67,8 +67,13 @@ function changeTimeUnit() {
       unit = radio[i].value;
     }
   }
-	charts_powers.day[HOME_ID].options.scales.x.time.unit = unit;
+  charts_powers.day[HOME_ID].options.scales.x.time.unit = unit;
 	charts_powers.day[HOME_ID].update();
+  // update groups charts
+  for (let i = 0; i < GRP_IDS.length; i++) {
+    charts_powers.day[GRP_IDS[i]].options.scales.x.time.unit = unit;
+	  charts_powers.day[GRP_IDS[i]].update();
+  }
  
 }
 
