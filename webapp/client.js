@@ -9,10 +9,10 @@ author : Alexandre Heneffe.
 const domain_name = 'http://localhost:5000';
 // const domain_name = 'https://iridia-vde.ulb.ac.be:5000';
 // const socket = io(domain_name);
+
 const HOME_ID = sessionStorage.getItem("username");
 let GRP_IDS = JSON.parse(sessionStorage.getItem('grp_ids'));
-GRP_IDS.push("CDB002"); // For testing purpose
-console.log(GRP_IDS);
+GRP_IDS.push("CDB002"); // For testing purpose TODO : remove that
 
 // button that allows to confirm a timestamp choice
 var timing_button = document.getElementById("buttonShow"); 
@@ -25,14 +25,18 @@ let charts_powers = {today : null, day: {HOME_ID: null}};
 let COLORS = ["#34ace0", "#e55039", "#474787", "#fed330", "#32ff7e", "#0fb9b1", "#fa8231", "#a5b1c2",
               "#4b7bec", "#a55eea", "#fad390", "#b71540", "#e58e26", "#38ada9", "#0a3d62"];
 
+const VERBOSE = true;
+
 // ============================= FUNCTIONS ==================================
 
 function resetChartsPower(charts_powers) {
+  /* 
+  set all charts to null
+  */
   charts_powers.day[HOME_ID] = null;
   for (let i = 0; i < GRP_IDS.length; i++) {
     charts_powers.day[GRP_IDS[i]] = null;
   }
-  console.log(charts_powers);
 }
 
 function initFirstQuery() {
@@ -102,12 +106,14 @@ async function sendDateQuery(data_type, date, home_id) {
 
 	var alldata = resdata.data;
   if (alldata != undefined) {
-    console.log("nb of rows received : " + alldata.length);
+    if (VERBOSE) {console.log("nb of rows received : " + alldata.length);}
 
     if (alldata.length == 0) {
       document.getElementById(`query_msg_${data_type}`).innerHTML = "<strong>" + date + "</strong> : Aucune donnée."
+    } else {
+      document.getElementById(`query_msg_${data_type}`).innerHTML = "";
     }
-    // console.log(alldata[0]);
+    // if (VERBOSE) {console.log(alldata[0]);}
     
     if (data_type === "raw") {
       createChartRaw(alldata);
@@ -224,16 +230,13 @@ function initChart(chart, col_id, home_id) {
   /* 
   init each chart with empty dataset, but proper labels from the home
   */
-  console.log(home_id);
   if (chart.day[home_id] !== null) { // first destroy previous charts if any
-    // console.log("destroying previous charts...");
     chart.day[home_id].destroy();
   }
 
   // create empty charts with labels
   createChartDatasetpowers();
 
-  console.log(`chartCanvas${col_id}_${home_id}`);
   chart.day[home_id] = new Chart(document.getElementById(`chartCanvas${col_id}_${home_id}`).getContext('2d'), {
     type: 'line',
     data: {
@@ -305,6 +308,9 @@ function createChartPowers(powers_data, col_id, home_id) {
 
 
 function createPage() {
+  /* 
+  when arriving in the main page, create the chart canvas and init charts.
+  */
   resetChartsPower(charts_powers);
 
   // powers data
