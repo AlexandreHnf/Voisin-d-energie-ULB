@@ -1,3 +1,8 @@
+/* 
+index.js -> login page
+author : Alexandre Heneffe. 
+*/
+
 var login_button = document.getElementById("submit");
 var already_exist = false;
 var login_result = [];

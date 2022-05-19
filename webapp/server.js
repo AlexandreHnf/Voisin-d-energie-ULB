@@ -64,7 +64,7 @@ else if (process.env.NODE_ENV === 'production') {
 }
 
 
-const TABLES = {'access': 'access', 'raw': 'raw', 'power': 'power', 'groups': 'groups_power'};
+const TABLES = {'access': 'access', 'raw': 'raw', 'power': 'power', 'groups': 'power'};
 
 // ========================= LOGGER =====================================
 

@@ -71,7 +71,6 @@
 					<input id="DaySubmit" type="submit" value="OK">
 				</form>
 				<br>
-				<p class="text-danger" id="day_msg"></p>
 			  </div>
 
 			  <div class="col-4">
@@ -112,7 +111,7 @@
 		<!-- Menu pour Flukso, groups, activity -->
 		<ul class="nav nav-tabs" role="tablist">
 			<li class="nav-item">
-				<a class="nav-link" data-toggle="tab" href="#raw_data">Données brutes</a>
+				<a class="nav-link disabled" data-toggle="tab" href="#raw_data">Données brutes</a>
 			</li>
 			<li class="nav-item">
 				<a class="nav-link" id="default" data-toggle="tab" href="#power">Puissances (consommées, produites, totales) </a>
@@ -121,7 +120,7 @@
 				<a class="nav-link" data-toggle="tab" href="#groups_power">Groupes d'installations</a>
 			</li>
 			<li class="nav-item">
-				<a class="nav-link" data-toggle="tab" href="#flukso_activity">Activité des Fluksos</a>
+				<a class="nav-link disabled" data-toggle="tab" href="#flukso_activity">Activité des Fluksos</a>
 			</li>
 		</ul>
 
@@ -157,7 +156,9 @@
 
 			<!-- POWER TAB -->
 			<div id="power" class="container-fluid tab-pane fade"><br>
-				<h3>Flukso Power <span id="date_badge", class="badge bg-info"></span></h3>
+				<h3>Puissances <span id="date_badge", class="badge bg-info"></span></h3>
+
+				<p class="text-danger" id="query_msg_power"></p>
 				
 				<!-- graphs -->
 				<!-- Flukso power : -->
@@ -208,7 +209,9 @@
 
 			<!-- GROUPS POWER TAB -->
 			<div id="groups_power" class="container-fluid tab-pane fade"><br>
-				<h3>Groups of homes <span id="date_badge", class="badge bg-info"></span></h3>
+				<h3>Groupes <span id="date_badge", class="badge bg-info"></span></h3>
+
+				<p class="text-danger" id="query_msg_groups"></p>
 				
 				<!-- graphs -->
 				<div class="container-fluid">

@@ -214,7 +214,7 @@ function createChartDatasetpowers() {
 }
 
 // init each chart with empty dataset, but proper labels from the home ids
-function initCharts(charts, col_id, data_type, ids) {
+function initChart(charts, col_id, data_type, ids) {
 
   for (const id in ids) {
     // first destroy previous charts if any
@@ -271,7 +271,7 @@ function initCharts(charts, col_id, data_type, ids) {
 
 // Create the Charts with raw data of a specific day
 function createChartRaw(raw_data) {
-  initCharts(charts_raw_day, 0, "raw", IDS);
+  initChart(charts_raw_day, 0, "raw", IDS);
 
   for (let i = 0; i < raw_data.rows.length; i++) {
     // row = {home_id; day, ts, phase1... phaseN}
@@ -289,7 +289,7 @@ function createChartRaw(raw_data) {
 
 
 function createChartpowers(powers_data) {
-  initCharts(charts_powers_day, 1, "powers", IDS);
+  initChart(charts_powers_day, 1, "powers", IDS);
 
   data = []
   for (let i = 0; i < powers_data.rows.length; i++) {
@@ -316,7 +316,7 @@ function createChartpowers(powers_data) {
 }
 
 function createChartGrppowers(grp_powers_data) {
-  initCharts(charts_grp_powers_day, 2, "groups", ALL_GRP_IDS);
+  initChart(charts_grp_powers_day, 2, "groups", ALL_GRP_IDS);
 
   for (let i = 0; i < grp_powers_data.rows.length; i++) {
     let row = grp_powers_data.rows[i];
@@ -357,7 +357,7 @@ function createPage() {
   console.log("creating charts...")
   // powers data
   createChartCanvas(1, "powers_data_charts", IDS);
-  initCharts(charts_powers_day, 1, "powers", IDS);
+  initChart(charts_powers_day, 1, "powers", IDS);
 
   // raw data
   createChartCanvas(0, "raw_data_charts", IDS);

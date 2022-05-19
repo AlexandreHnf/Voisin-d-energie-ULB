@@ -48,7 +48,7 @@ function initFirstQuery() {
 	date_badge.forEach(badge => {
 		badge.innerHTML = today;
 	})
-  sendDateQuery("power", today.toString());
+  sendDateQuery("power", today.toString(), HOME_ID);
 }
 
 
@@ -79,16 +79,18 @@ function processDateQuery() {
 	})
 	// document.getElementById("date_msg").innerHTML = "=> Flukso data - " + date;
 	// sendDateQuery("raw", date.toString());
-  sendDateQuery("power", date.toString());
-  // sendDateQuery("groups", date.toString());
+  sendDateQuery("power", date.toString(), HOME_ID);
+  for (let i = 0; i < GRP_IDS.length; i++) {
+    sendDateQuery("groups", date.toString(), GRP_IDS[i]);
+  }
 }
 
 
-async function sendDateQuery(data_type, date) {
+async function sendDateQuery(data_type, date, home_id) {
 	/* 
 	send pseudo to server
 	*/
-  const data = { date: date, data_type: data_type, home_id: HOME_ID };
+  const data = { date: date, data_type: data_type, home_id: home_id };
   const options = {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -103,16 +105,16 @@ async function sendDateQuery(data_type, date) {
     console.log("nb of rows received : " + alldata.length);
 
     if (alldata.length == 0) {
-      document.getElementById("day_msg").innerHTML = "<strong>" + date + "</strong> : No data."
+      document.getElementById(`query_msg_${data_type}`).innerHTML = "<strong>" + date + "</strong> : Aucune donnée."
     }
     // console.log(alldata[0]);
     
     if (data_type === "raw") {
       createChartRaw(alldata);
     } else if (data_type === "power") {
-      createChartPowers(alldata, HOME_ID);
+      createChartPowers(alldata, 1, home_id);
     } else if (data_type === "groups") {
-      createChartGrppowers(alldata);
+      createChartPowers(alldata, 2, home_id);
     }
   }	
   
@@ -124,7 +126,7 @@ function createChartCanvas(col_id, col_name, ids) {
 	*/
   for (var i = 0; i < ids.length; i++) {
     let div = document.createElement("div");
-    div.innerHTML += `<p>${ids[i]}</p>
+    div.innerHTML += `<b>${ids[i]}</b>
                       <canvas id="chartCanvas${col_id}_${ids[i]}"></canvas>`;
     document.getElementById(`${col_name}`).appendChild(div);
   }
@@ -218,10 +220,11 @@ function createChartDatasetpowers() {
 }
 
 
-function initCharts(chart, col_id, home_id) {
+function initChart(chart, col_id, home_id) {
   /* 
   init each chart with empty dataset, but proper labels from the home
   */
+  console.log(home_id);
   if (chart.day[home_id] !== null) { // first destroy previous charts if any
     // console.log("destroying previous charts...");
     chart.day[home_id].destroy();
@@ -271,11 +274,11 @@ function initCharts(chart, col_id, home_id) {
 }
 
 
-function createChartPowers(powers_data, home_id) {
+function createChartPowers(powers_data, col_id, home_id) {
   /* 
   fill chart with received data 
   */
-  initCharts(charts_powers, 1, home_id);
+  initChart(charts_powers, col_id, home_id);
 
   data = []
   for (let i = 0; i < powers_data.length; i++) {
@@ -306,12 +309,12 @@ function createPage() {
 
   // powers data
   createChartCanvas(1, "power_data_charts", [HOME_ID]);
-  initCharts(charts_powers, 1, HOME_ID);
+  initChart(charts_powers, 1, HOME_ID);
 
   // groups power data
   createChartCanvas(2, "groups_data_charts", GRP_IDS);
   for (let i = 0; i < GRP_IDS.length; i++) {
-    initCharts(charts_powers, 2, GRP_IDS[i]);
+    initChart(charts_powers, 2, GRP_IDS[i]);
   }
   
 }
