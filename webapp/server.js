@@ -213,7 +213,7 @@ router.post('/doesClientExist', (request, response) => {
   /* 
   request from client => client wants to login
   */ 
-  const username = request.body.username;
+  const username = request.body.username.toUpperCase();
 
   doesClientExist(username, response);
 });

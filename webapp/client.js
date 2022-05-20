@@ -264,7 +264,15 @@ function initChart(chart, col_id, home_id) {
         x: {
           type: 'time',
           time: {
-            unit: 'minute'
+            unit: 'minute',
+			displayFormats: {
+				second: 'HH:mm:ss',
+				minute: 'HH:mm',
+				hour: 'HH',
+				day: 'DD',
+				month: 'MM yyyy',
+				year: 'yyyy'
+			}
           },
           title: {
             color: 'red',
