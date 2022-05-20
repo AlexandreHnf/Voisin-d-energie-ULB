@@ -53,6 +53,9 @@ function initFirstQuery() {
 		badge.innerHTML = today;
 	})
   sendDateQuery("power", today.toString(), HOME_ID);
+  for (let i = 0; i < GRP_IDS.length; i++) { // groups
+    sendDateQuery("groups", today.toString(), GRP_IDS[i]);
+  }
 }
 
 

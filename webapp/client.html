@@ -26,13 +26,20 @@
 
 <!-- BODY -->
 <body>
-	<div class="jumbotron jumbotron-fluid">
-		<div class="container">
-		  <h1 class="display-4">Interface Flukso (version beta)</h1>
-		  <h3>Voisin d'énergie</h3>
-		  <p class="lead">par Alexandre Heneffe - ULB - IRIDIA.</p>
+	<div class="mt-4 p-5 bg-white text-dark rounded jumbotron">
+		<div class="row">
+			<div class="col-8">
+				<h1 class="display-4">Interface Flukso (version beta)</h1>
+				<h3>Voisin d'énergie</h3>
+				<p class="lead">par Alexandre Heneffe.</p>
+			</div>
+			<div class="col-4">
+				<img class="img" src="https://www.ulb.be/uas/ulbout/LOGO/Logo-ULB.svg" alt="">
+				<img class="img" src="https://www.multirobotsystems.org/sites/default/files/styles/medium/public/lab_pictures/iridia_logo_classic_simple_blue_small.jpg?itok=EujBd-ng", alt="">
+			</div>
 		</div>
-	  </div>
+	</div>
+
 
 	<div class="container-fluid">
 
@@ -111,7 +118,7 @@
 		<!-- Menu pour Flukso, groups, activity -->
 		<ul class="nav nav-tabs" role="tablist">
 			<li class="nav-item">
-				<a class="nav-link disabled" data-toggle="tab" href="#raw_data">Données brutes</a>
+				<a class="nav-link disabled" data-toggle="tab" href="#raw_data">Données brutes (monophasé ou triphasé)</a>
 			</li>
 			<li class="nav-item">
 				<a class="nav-link" id="default" data-toggle="tab" href="#power">Puissances (consommées, produites, totales) </a>
@@ -129,7 +136,7 @@
 			
 			<!-- RAW DATA TAB -->
 			<div id="raw_data" class="container-fluid tab-pane fade"><br>
-				<h3>Raw flukso data <span id="date_badge", class="badge bg-info"></span></h3>
+				<h3>Données brutes <span id="date_badge", class="badge bg-info"></span></h3>
 				
 
 				<br><br><h6>Temporarily disabled.</h6>
