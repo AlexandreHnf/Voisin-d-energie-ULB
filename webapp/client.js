@@ -85,20 +85,22 @@ function changeTimeUnit() {
 
 function download(){
 	/* 
-	// Download flukso data of a home to csv
+	// Download flukso data of the home and of the groups
 	*/
-	// convert to csv 
-	let csv = $.csv.fromObjects(powers_data[HOME_ID]);
+	for (const home_id in powers_data) {
+		// convert to csv 
+		let csv = $.csv.fromObjects(powers_data[home_id]);
 
-	// trigger a download
-    var downloadLink = document.createElement("a");
-    var blob = new Blob([csv], { type: 'text/csv' });
-    var url = URL.createObjectURL(blob);
-    downloadLink.href = url;
-    downloadLink.download = `data_${current_date}.csv`;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
+		// trigger a download
+		var downloadLink = document.createElement("a");
+		var blob = new Blob([csv], { type: 'text/csv' });
+		var url = URL.createObjectURL(blob);
+		downloadLink.href = url;
+		downloadLink.download = `data_${current_date}_${home_id}.csv`;
+		document.body.appendChild(downloadLink);
+		downloadLink.click();
+		document.body.removeChild(downloadLink);
+	}
 }
 
 function processDateQuery() {
