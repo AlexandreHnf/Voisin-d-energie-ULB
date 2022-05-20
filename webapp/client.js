@@ -31,6 +31,22 @@ const VERBOSE = true;
 
 // ============================= FUNCTIONS ==================================
 
+function activateLoader() {
+	/*
+	make the loader appear and spin
+	*/
+	document.getElementById("loader").style.display = "block";
+}
+
+function deactivateLoader() {
+	/* 
+	make the loader animation disappear after a certain amount of time
+	*/
+	setTimeout(() =>{
+		document.getElementById("loader").style.display = "none";
+	}, 3000);  // 3 seconds
+}
+
 function resetChartsPower(charts_powers) {
   /* 
   set all charts to null
@@ -46,7 +62,8 @@ function initFirstQuery() {
   When arriving in the main page, init a first query to get today's data
   */
   // set active tab : power
-  document.getElementById("default").click();  // simulates a click
+	document.getElementById("groups_tab").click();  // simulates a click
+  document.getElementById("power_tab").click();  // simulates a click
 
   // query data of today
   let today = new Date().toISOString().slice(0, 10);  // format (YYYY MM DD)
@@ -54,6 +71,7 @@ function initFirstQuery() {
 	date_badge.forEach(badge => {
 		badge.innerHTML = today;
 	})
+	activateLoader();
   sendDateQuery("power", today.toString(), HOME_ID);
   for (let i = 0; i < GRP_IDS.length; i++) { // groups
     sendDateQuery("groups", today.toString(), GRP_IDS[i]);
@@ -96,12 +114,13 @@ function download(){
 		var blob = new Blob([csv], { type: 'text/csv' });
 		var url = URL.createObjectURL(blob);
 		downloadLink.href = url;
-		downloadLink.download = `data_${current_date}_${home_id}.csv`;
+		downloadLink.download = `data_${home_id}_${current_date}.csv`;
 		document.body.appendChild(downloadLink);
 		downloadLink.click();
 		document.body.removeChild(downloadLink);
 	}
 }
+
 
 function processDateQuery() {
 	/* 
@@ -114,10 +133,12 @@ function processDateQuery() {
 	})
 	// document.getElementById("date_msg").innerHTML = "=> Flukso data - " + date;
 	// sendDateQuery("raw", date.toString());
+	activateLoader();
   sendDateQuery("power", date.toString(), HOME_ID);
   for (let i = 0; i < GRP_IDS.length; i++) {
     sendDateQuery("groups", date.toString(), GRP_IDS[i]);
   }
+	console.log("after queries");
 }
 
 
@@ -346,6 +367,7 @@ function createChartPowers(powers_data, col_id, home_id) {
 
   }
   charts_powers.day[home_id].update();
+	deactivateLoader();
 }
 
 

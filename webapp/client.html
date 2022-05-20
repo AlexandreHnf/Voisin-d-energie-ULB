@@ -85,6 +85,9 @@
 					<input id="DaySubmit" type="submit" value="OK">
 				</form>
 				<br>
+
+				<div class="loader" id="loader"></div>
+
 			  </div>
 
 			  <div class="col-4">
@@ -128,10 +131,10 @@
 				<a class="nav-link disabled" data-toggle="tab" href="#raw_data">Données brutes (monophasé ou triphasé)</a>
 			</li> -->
 			<li class="nav-item">
-				<a class="nav-link" id="default" data-toggle="tab" href="#power">Puissances (consommées, produites, totales) </a>
+				<a class="nav-link" id="power_tab" data-toggle="tab" href="#power">Puissances (consommées, produites, totales) </a>
 			</li>
 			<li class="nav-item">
-				<a class="nav-link" data-toggle="tab" href="#groups_power">Groupes d'installations</a>
+				<a class="nav-link" id="groups_tab" data-toggle="tab" href="#groups_power">Groupes d'installations</a>
 			</li>
 			<!-- <li class="nav-item">
 				<a class="nav-link disabled" data-toggle="tab" href="#flukso_activity">Activité des Fluksos</a>
