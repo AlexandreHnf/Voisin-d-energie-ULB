@@ -20,6 +20,8 @@ var timing_button = document.getElementById("buttonShow");
 // ChartJS objects for today's data and specific day data.
 let charts_powers = {today : null, day: {HOME_ID: null}};
 // let charts_groups = {today : {}, day: {}};
+let powers_data = {};
+let current_date = new Date().toISOString().slice(0, 10).toString();
 
 // predefined colors for charts lines
 let COLORS = ["#34ace0", "#e55039", "#474787", "#fed330", "#32ff7e", "#0fb9b1", "#fa8231", "#a5b1c2",
@@ -80,6 +82,25 @@ function changeTimeUnit() {
  
 }
 
+
+function download(){
+	/* 
+	// Download flukso data of a home to csv
+	*/
+	// convert to csv 
+	let csv = $.csv.fromObjects(powers_data[HOME_ID]);
+
+	// trigger a download
+    var downloadLink = document.createElement("a");
+    var blob = new Blob([csv], { type: 'text/csv' });
+    var url = URL.createObjectURL(blob);
+    downloadLink.href = url;
+    downloadLink.download = `data_${current_date}.csv`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+}
+
 function processDateQuery() {
 	/* 
 	Get a date input, send query to server
@@ -122,6 +143,9 @@ async function sendDateQuery(data_type, date, home_id) {
       document.getElementById(`query_msg_${data_type}`).innerHTML = "";
     }
     // if (VERBOSE) {console.log(alldata[0]);}
+
+	powers_data[home_id] = alldata;
+	current_date = date;
     
     if (data_type === "raw") {
       createChartRaw(alldata);
