@@ -37,7 +37,7 @@ function changeTimeUnit() {
   }
   console.log(unit);
   for (const id in IDS) {
-    charts_raw_day[id].options.scales.x.time.unit = unit;
+    charts_raw_day[id].options.scales.x.time.unit = unit; 
     charts_powers_day[id].options.scales.x.time.unit = unit;
     charts_raw_day[id].update();
     charts_powers_day.update();

@@ -6,8 +6,6 @@ import logging
 import copy
 import pandas as pd
 
-import logging
-
 # ====================================================================================
 # called by syncRawFluksoData.py just after writing raw data to cassandra
 # ====================================================================================
