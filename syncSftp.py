@@ -16,15 +16,17 @@ as possible.
 """
 
 
-from datetime import timedelta
+
 from constants import *
 import pyToCassandra as ptc
 from utils import *
 from sensorConfig import Configuration
-import logging
 
+import logging
 import pandas as pd
+from datetime import timedelta
 import json
+import os
 
 import paramiko
 
@@ -32,6 +34,7 @@ import paramiko
 SFTP_HOST = 						"repo.memoco.eu"
 SFTP_PORT = 						3584
 DESTINATION_PATH = 					"/upload/"
+LOCAL_PATH = 						"output/fluksoData/sftp_data/"
 SFTP_CREDENTIALS_FILE = 			"sftp_credentials.json"
 
 
@@ -54,9 +57,9 @@ def getdateToQuery(now):
 	return date, moment
 
 
-def getCsvFilename(date, moment):
+def getCsvFilename(home_id, date, moment):
 	part = 1 if moment == "<" else 2
-	return "{}_part_{}.csv".format(date, part)
+	return "{}_{}_part_{}.csv".format(home_id, date, part)
 	
 
 def saveDataToCsv(data_df, csv_filename):
@@ -64,7 +67,7 @@ def saveDataToCsv(data_df, csv_filename):
 	Save to csv
 	"""
 
-	outdir = OUTPUT_FILE
+	outdir = LOCAL_PATH
 	if not os.path.exists(outdir):
 		os.mkdir(outdir)
 	filepath = os.path.join(outdir, csv_filename)
@@ -121,7 +124,7 @@ def sendFileToSFTP(filename):
 	transport = paramiko.Transport((SFTP_HOST, SFTP_PORT))
 
 	dest_path = DESTINATION_PATH + filename
-	local_path = OUTPUT_FILE + filename
+	local_path = LOCAL_PATH + filename
 
 	with open(SFTP_CREDENTIALS_FILE) as json_file:
 		cred = json.load(json_file)
@@ -131,6 +134,23 @@ def sendFileToSFTP(filename):
 
 	sftp.close()
 	transport.close()
+
+	# os.remove(local_path)
+
+
+def processAllHomes(cassandra_session, config, date, moment):
+	""" 
+	send 1 csv file per home to the sftp server
+	"""
+
+	home_powerdata = getPowerDataFromCassandra(cassandra_session, config, date, moment, TBL_POWER)
+
+	for home_id, power_data in home_powerdata.items():
+		csv_filename = getCsvFilename(home_id, date, moment)
+		print(csv_filename)
+		saveDataToCsv(power_data.set_index("home_id"), csv_filename)
+
+		sendFileToSFTP(csv_filename)
 
 
 def main():	
@@ -145,13 +165,8 @@ def main():
 	# print("moment : ", moment)
 	date = "2022-05-22"
 	moment = "<"
-	csv_filename = getCsvFilename(date, moment)
-	home_powerdata = getPowerDataFromCassandra(cassandra_session, config, date, moment, TBL_POWER)
-	print(home_powerdata["CDB001"])
 
-	saveDataToCsv(home_powerdata["CDB001"].set_index("home_id"), csv_filename)
-
-	sendFileToSFTP(csv_filename)
+	processAllHomes(cassandra_session, config, date, moment)
 
 
 if __name__ == "__main__":
