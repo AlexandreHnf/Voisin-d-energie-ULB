@@ -15,6 +15,7 @@ chunks of data that follow well. To avoid having too much delay, execute the scr
 as possible.
 """
 
+
 from datetime import timedelta
 from constants import *
 import pyToCassandra as ptc
@@ -22,8 +23,16 @@ from utils import *
 from sensorConfig import Configuration
 import logging
 
-import copy
 import pandas as pd
+import json
+
+import paramiko
+
+
+SFTP_HOST = 						"repo.memoco.eu"
+SFTP_PORT = 						3584
+DESTINATION_PATH = 					"/upload/"
+SFTP_CREDENTIALS_FILE = 			"sftp_credentials.json"
 
 
 def getdateToQuery(now):
@@ -44,18 +53,21 @@ def getdateToQuery(now):
 	
 	return date, moment
 
+
+def getCsvFilename(date, moment):
+	part = 1 if moment == "<" else 2
+	return "{}_part_{}.csv".format(date, part)
 	
 
-def saveDataToCsv(data_df, date, moment):
+def saveDataToCsv(data_df, csv_filename):
 	""" 
 	Save to csv
 	"""
-	part = 1 if moment == "<" else 2
-	outname = "{} part {}.csv".format(date, part)
+
 	outdir = OUTPUT_FILE
 	if not os.path.exists(outdir):
 		os.mkdir(outdir)
-	filepath = os.path.join(outdir, outname)
+	filepath = os.path.join(outdir, csv_filename)
 
 	data_df.to_csv(filepath)
 
@@ -101,24 +113,45 @@ def getPowerDataFromCassandra(cassandra_session, config, date, moment, table_nam
 	return homes_powerdata
 
 
-def main():
-	print("Hello world")
-	
+def sendFileToSFTP(filename):
+	""" 
+	Send csv file to the sftp server
+	"""
+
+	transport = paramiko.Transport((SFTP_HOST, SFTP_PORT))
+
+	dest_path = DESTINATION_PATH + filename
+	local_path = OUTPUT_FILE + filename
+
+	with open(SFTP_CREDENTIALS_FILE) as json_file:
+		cred = json.load(json_file)
+		transport.connect(username = cred["username"], password = cred["password"])
+		sftp = paramiko.SFTPClient.from_transport(transport)
+		sftp.put(local_path, dest_path)
+
+	sftp.close()
+	transport.close()
+
+
+def main():	
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
-	config = getLastRegisteredConfig(cassandra_session, TBL_SENSORS_CONFIG)
+	config = getLastRegisteredConfig(cassandra_session, TBL_SENSORS_CONFIG) # TODO : tester avec 2-3 configs
 	print("config id : ", config.getConfigID())
 
 	now = pd.Timestamp.now()
-	date, moment = getdateToQuery(now)
-	print("date : ", date)
-	print("moment : ", moment)
-	# date = "2022-05-22"
-	# moment = "<"
+	# date, moment = getdateToQuery(now)
+	# print("date : ", date)
+	# print("moment : ", moment)
+	date = "2022-05-22"
+	moment = "<"
+	csv_filename = getCsvFilename(date, moment)
 	home_powerdata = getPowerDataFromCassandra(cassandra_session, config, date, moment, TBL_POWER)
 	print(home_powerdata["CDB001"])
 
-	# saveDataToCsv(home_powerdata["CDB001"], date, moment)
+	saveDataToCsv(home_powerdata["CDB001"].set_index("home_id"), csv_filename)
+
+	sendFileToSFTP(csv_filename)
 
 
 if __name__ == "__main__":
