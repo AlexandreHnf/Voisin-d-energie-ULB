@@ -1,0 +1,10 @@
+
+[Unit]
+Description=Backend - timer - sync to sftp server
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
