@@ -10,6 +10,8 @@ import pyToCassandra as ptc
 
 import logging
 
+
+
 def getProgDir():
 	import __main__
 	main_path = os.path.abspath(__main__.__file__)

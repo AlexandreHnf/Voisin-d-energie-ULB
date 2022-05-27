@@ -169,7 +169,7 @@ def selectQuery(session, keyspace, table, columns, where_clause, allow_filtering
 	rows = selectResToDf(session, query)
 
 	return rows
-
+	
 
 # ==========================================================================
 

@@ -225,7 +225,7 @@ def getTimings(tmpo_session, cassandra_session, config, current_config_id, missi
 			if config.getConfigID() == current_config_id:
 				timings[home_id]["end_ts"] = setInitSeconds(now).tz_localize("CET").tz_convert("UTC")
 	except:
-		logging.critial("Exception occured in 'getTimings' : ", exc_info=True)
+		logging.critical("Exception occured in 'getTimings' : ", exc_info=True)
 
 	return timings
 
