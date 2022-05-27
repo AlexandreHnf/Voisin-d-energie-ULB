@@ -12,7 +12,6 @@ const domain_name = 'http://localhost:5000';
 
 const HOME_ID = sessionStorage.getItem("username");
 let GRP_IDS = JSON.parse(sessionStorage.getItem('grp_ids'));
-GRP_IDS.push("CDB002"); // For testing purpose TODO : remove that
 
 // button that allows to confirm a timestamp choice
 var timing_button = document.getElementById("buttonShow"); 
@@ -138,7 +137,6 @@ function processDateQuery() {
   for (let i = 0; i < GRP_IDS.length; i++) {
     sendDateQuery("groups", date.toString(), GRP_IDS[i]);
   }
-	console.log("after queries");
 }
 
 
