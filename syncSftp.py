@@ -19,8 +19,6 @@ Constraints :
 """
 
 
-
-from unittest import result
 from constants import *
 import pyToCassandra as ptc
 from utils import *
@@ -139,6 +137,24 @@ def getHomesPowerDataFromCassandra(cassandra_session, config, date, moment, tabl
 		homes_powerdata[home_id] = home_df
 
 	return homes_powerdata
+	
+
+def listFilesSFTP():
+	""" 
+	return the list of 
+	"""
+	transport = paramiko.Transport((SFTP_HOST, SFTP_PORT))
+
+	with open(SFTP_CREDENTIALS_FILE) as json_file:
+		cred = json.load(json_file)
+		transport.connect(username = cred["username"], password = cred["password"])
+		sftp = paramiko.SFTPClient.from_transport(transport)
+
+		for filename in sftp.listdir('/upload/'):
+			print(filename)
+
+	sftp.close()
+	transport.close()
 
 
 def sendFileToSFTP(filename):
@@ -219,7 +235,7 @@ def processAllHomes(cassandra_session, config, default_date, moment, default_mom
 	ids = config.getIds()
 	for home_id in ids.keys():
 		all_dates = [default_date]  # TODO : replace default date by a list of missing dates
-		moments = {default_date: [default_moment]}
+		moments = {default_date: [moment]}
 		if mode == "history":
 			all_dates = getAllHistoryDates(cassandra_session, home_id, TBL_POWER, now)
 			moments = getMoments(all_dates, default_moment)
@@ -231,7 +247,7 @@ def processAllHomes(cassandra_session, config, default_date, moment, default_mom
 				home_data = getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, TBL_POWER)
 				saveDataToCsv(home_data.set_index("home_id"), csv_filename)
 
-				# sendFileToSFTP(csv_filename)
+				sendFileToSFTP(csv_filename)
 
 
 
@@ -254,9 +270,11 @@ def main():
 	# processAllHomes(cassandra_session, config, default_date, moment, default_moment, now, mode)
 	
 	# for testing purpose 
-	dates = getAllHistoryDates(cassandra_session, "CDB001", TBL_POWER, now)
-	print(dates)
-	print(getMoments(dates, AM))
+	# dates = getAllHistoryDates(cassandra_session, "CDB001", TBL_POWER, now)
+	# print(dates)
+	# print(getMoments(dates, AM))
+
+	listFilesSFTP()
 
 
 if __name__ == "__main__":
