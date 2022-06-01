@@ -16,6 +16,11 @@ Constraints :
 
 	- We save 1 csv file per home, otherwise, fusing all homes in one file can cause memory issues (since the
 	number of homes can grow in time). 
+
+	- the files already sent to the sftp server in the /upload/ folder must remain in that folder
+	because the system depends on those files to determine which date to query. Or at least, the most 
+	important files are the last ones for each home. 
+		- solution to become independent on the server : locally save the last sent files and check locally
 """
 
 
@@ -29,7 +34,6 @@ import pandas as pd
 from datetime import timedelta
 import json
 import os
-import sys
 
 import paramiko
 
@@ -39,9 +43,10 @@ SFTP_PORT = 						3584
 DESTINATION_PATH = 					"/upload/"
 LOCAL_PATH = 						"output/fluksoData/sftp_data/"
 SFTP_CREDENTIALS_FILE = 			"sftp_credentials.json"
-DELETE_LOCAL_FILES = 				False
-AM = 								"<"
+DELETE_LOCAL_FILES = 				True
+AM = 								"<="
 PM = 								">"
+VERBOSE = 							True
 
 
 def getdateToQuery(now):
@@ -53,20 +58,20 @@ def getdateToQuery(now):
 	nb_hours_today = round((now-midnight).total_seconds() / (60.0*60.0), 1)
 
 	date = str(now.date()) # if we are in the PM part, we take data from the first half of today
-	moment = "<"  # first half : AM TODO : <= ?
-	default_moment = PM  # the moment of today
+	moment = AM  # first half : AM 
+	moment_now = PM  # the moment of today
 
 	if nb_hours_today <= 12.0:  # AM
 		# we are in the AM part, so we take data from the second half of the previous day
 		date = str(now.date() - timedelta(days=1))  # previous day
-		moment = ">"  # second half : PM 
-		default_moment = AM
+		moment = PM  # second half : PM 
+		moment_now = AM
 	
-	return date, moment, default_moment
+	return date, moment, moment_now
 
 
 def getCsvFilename(home_id, date, moment):
-	part = "AM" if moment == "<" else "PM"
+	part = "AM" if moment == AM else "PM"
 	return "{}_{}_{}.csv".format(home_id, date, part)
 	
 
@@ -96,7 +101,7 @@ def getLastRegisteredConfig(cassandra_session, table_name):
 	config = None
 	if len(all_configs_df) > 0:
 		config_ids = list(all_configs_df.groups.keys())  # keys sorted by default
-		print(config_ids)
+		# print(config_ids)
 
 		last_config_id = config_ids[-1]
 		config = Configuration(last_config_id, all_configs_df.get_group(last_config_id).set_index("sensor_id"))
@@ -160,7 +165,8 @@ def listFilesSFTP():
 
 	return sftp_filenames
 
-def getLastDate():
+
+def getLastDate(home_id):
 	""" 
 	Get the last filename sent to the sftp server in order
 	to know which date to start the new query from.
@@ -178,7 +184,7 @@ def getLastDate():
 		sftp = paramiko.SFTPClient.from_transport(transport)
 
 		for fileattr in sftp.listdir_attr('/upload/'):
-			if fileattr.st_mtime > latest:
+			if fileattr.filename.startswith(home_id) and fileattr.st_mtime > latest:
 				latest = fileattr.st_mtime
 				latest_file = fileattr.filename
 
@@ -251,68 +257,71 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	if len(result_df) > 0:
 		first_date = result_df.groupby('day').first().iloc[0]['ts']
 		del result_df
-		print("first date : ", first_date)
+		# print("first date : ", first_date)
 
 		all_dates = getDatesBetween(first_date, now)
 
 	return all_dates
 
 
-def processAllHomes(cassandra_session, config, default_date, moment, default_moment, now, latest_date, mode):
+def processAllHomes(cassandra_session, config, default_date, moment, moment_now, now):
 	""" 
 	send 1 csv file per home, per day moment (AM or PM) to the sftp server
+	- if no data sent for this home yet, we send the whole history
+	- otherwise, we send data from the last sent date to now
 	"""
-
-	# home_powerdata = getHomesPowerDataFromCassandra(cassandra_session, config, date, moment, TBL_POWER)
 
 	ids = config.getIds()
 	for home_id in ids.keys():
-		all_dates = [default_date]  # TODO : replace default date by a list of missing dates
+		latest_date = getLastDate(home_id)
+		all_dates = [default_date]
 		moments = {default_date: [moment]}
-		if mode == "history":
+		if latest_date is None:  # history
 			all_dates = getAllHistoryDates(cassandra_session, home_id, TBL_POWER, now)
-			moments = getMoments(all_dates, default_moment)
-		elif mode == "realtime":
+			moments = getMoments(all_dates, moment_now)
+		else:					 # realtime
 			all_dates = getDatesBetween(latest_date, now)
-			moments = getMoments(all_dates, default_moment)
+			moments = getMoments(all_dates, moment_now)
 
 		for date in moments:
 			for moment in moments[date]:
 				csv_filename = getCsvFilename(home_id, date, moment)
-				print(csv_filename)
+				if VERBOSE:
+					print(csv_filename)
 				home_data = getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, TBL_POWER)
-				# saveDataToCsv(home_data.set_index("home_id"), csv_filename)
+				
+				saveDataToCsv(home_data.set_index("home_id"), csv_filename)  # first save csv locally
+				sendFileToSFTP(csv_filename)								 # then, send to sftp server
 
-				# sendFileToSFTP(csv_filename)
+		if VERBOSE: 
+			print("---------------------")
 
 
 
-def main():	
-	mode = sys.argv[1]  # 'history' or 'realtime'
-
+def main():
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	config = getLastRegisteredConfig(cassandra_session, TBL_SENSORS_CONFIG) # TODO : tester avec 2-3 configs
-	print("config id : ", config.getConfigID())
 
 	now = pd.Timestamp.now()
-	# default_date, moment, default_moment = getdateToQuery(now)
-	# print("date : ", default_date)
-	# print("moment : ", moment)
-	default_date = "2022-05-30"
-	moment = "<"
-	default_moment = PM
+	default_date, moment, moment_now = getdateToQuery(now)
 
-	latest_date = getLastDate()
+	if VERBOSE : 
+		print("config id : ", config.getConfigID())
+		print("date : ", default_date)
+		print("moment : ", moment)
+		print("moment now : ", moment_now)
 
-	processAllHomes(cassandra_session, config, default_date, moment, default_moment, now, latest_date, mode)
-	
-	# for testing purpose 
-	# dates = getAllHistoryDates(cassandra_session, "CDB001", TBL_POWER, now)
-	# print(dates)
-	# print(getMoments(dates, AM))
-
+	# temporary (for testing purpose)
+	# default_date = "2022-05-30"
+	# moment = AM
+	# moment_now = PM
+	# now = pd.Timestamp("2022-05-31 10:00:00")
+ 
 	# sftp_filenames = listFilesSFTP()
+
+
+	processAllHomes(cassandra_session, config, default_date, moment, moment_now, now)
 
 
 if __name__ == "__main__":

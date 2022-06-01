@@ -4,7 +4,7 @@ Description=Backend - timer - sync to sftp server
 
 [Timer]
 OnBootSec=1min
-OnUnitActiveSec=5min
+OnUnitActiveSec=12hours
 
 [Install]
 WantedBy=timers.target
