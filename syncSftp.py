@@ -43,10 +43,20 @@ SFTP_PORT = 						3584
 DESTINATION_PATH = 					"/upload/"
 LOCAL_PATH = 						"output/fluksoData/sftp_data/"
 SFTP_CREDENTIALS_FILE = 			"sftp_credentials.json"
+LOG_FILE_SFTP = 					"output/fluksoData/sftp_data/logs_sftp.log"
 DELETE_LOCAL_FILES = 				True
 AM = 								"<="
 PM = 								">"
 VERBOSE = 							True
+
+
+logging_handlers = [logging.FileHandler(LOG_FILE_SFTP)]
+
+# Create and configure logger
+logging.basicConfig(level = setupLogLevel(),
+					format = "{asctime} {levelname:<8} {message}", style='{',
+					handlers=logging_handlers
+					)
 
 
 def getdateToQuery(now):
@@ -87,7 +97,7 @@ def saveDataToCsv(data_df, csv_filename):
 
 	data_df.to_csv(filepath)
 
-	logging.info("Successfully Saved flukso data in csv")
+	# logging.info("Successfully Saved flukso data in csv")
 
 
 
@@ -169,6 +179,7 @@ def listFilesSFTP(sftp_session):
 	for filename in sftp_session.listdir('/upload/'):
 		sftp_filenames.append(filename)
 		print(filename)
+		logging.info(filename)
 
 	return sftp_filenames
 
@@ -189,7 +200,6 @@ def getLastDate(sftp_session, home_id):
 			latest_file = fileattr.filename
 
 	if latest_file is not None:
-		# print(latest_file)
 		latest_date = pd.Timestamp(latest_file.split("_")[1])
 
 	return latest_date
@@ -246,6 +256,7 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 		first_date = pd.Timestamp(list(result_df.groupby('day').groups.keys())[0])
 		del result_df
 		# print("first date : ", first_date)
+		# logging.info("first date : " + first_date)
 
 		all_dates = getDatesBetween(first_date, now)
 
@@ -276,6 +287,7 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 				csv_filename = getCsvFilename(home_id, date, moment)
 				if VERBOSE:
 					print(csv_filename)
+					logging.info(csv_filename)
 				home_data = getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, TBL_POWER)
 				
 				saveDataToCsv(home_data.set_index("home_id"), csv_filename)  # first save csv locally
@@ -283,6 +295,7 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 
 		if VERBOSE: 
 			print("---------------------")
+			logging.info("-----------------------")
 
 
 
@@ -297,9 +310,13 @@ def main():
 
 	if VERBOSE : 
 		print("config id : ", config.getConfigID())
+		logging.info("config id : " + str(config.getConfigID()))
 		print("date : ", default_date)
+		logging.info("date : " + default_date)
 		print("moment : ", moment)
+		logging.info("moment : " + moment)
 		print("moment now : ", moment_now)
+		logging.info("moment now : " + moment_now)
 
 	# temporary (for testing purpose)
 	# default_date = "2022-05-30"
