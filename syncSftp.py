@@ -144,29 +144,36 @@ def getHomesPowerDataFromCassandra(cassandra_session, config, date, moment, tabl
 	return homes_powerdata
 	
 
-def listFilesSFTP():
+def getSFTPsession():
 	""" 
-	return the list of 
+	connect to the sftp server
 	"""
+
 	transport = paramiko.Transport((SFTP_HOST, SFTP_PORT))
 
-	sftp_filenames = []
 	with open(SFTP_CREDENTIALS_FILE) as json_file:
 		cred = json.load(json_file)
 		transport.connect(username = cred["username"], password = cred["password"])
 		sftp = paramiko.SFTPClient.from_transport(transport)
 
-		for filename in sftp.listdir('/upload/'):
-			sftp_filenames.append(filename)
-			print(filename)
+	return sftp
 
-	sftp.close()
-	transport.close()
+
+def listFilesSFTP(sftp_session):
+	""" 
+	return the list of 
+	"""
+
+	sftp_filenames = []
+
+	for filename in sftp_session.listdir('/upload/'):
+		sftp_filenames.append(filename)
+		print(filename)
 
 	return sftp_filenames
 
 
-def getLastDate(home_id):
+def getLastDate(sftp_session, home_id):
 	""" 
 	Get the last filename sent to the sftp server in order
 	to know which date to start the new query from.
@@ -176,20 +183,10 @@ def getLastDate(home_id):
 	latest_file = None
 	latest_date = None
 
-	transport = paramiko.Transport((SFTP_HOST, SFTP_PORT))
-
-	with open(SFTP_CREDENTIALS_FILE) as json_file:
-		cred = json.load(json_file)
-		transport.connect(username = cred["username"], password = cred["password"])
-		sftp = paramiko.SFTPClient.from_transport(transport)
-
-		for fileattr in sftp.listdir_attr('/upload/'):
-			if fileattr.filename.startswith(home_id) and fileattr.st_mtime > latest:
-				latest = fileattr.st_mtime
-				latest_file = fileattr.filename
-
-	sftp.close()
-	transport.close()
+	for fileattr in sftp_session.listdir_attr('/upload/'):
+		if fileattr.filename.startswith(home_id) and fileattr.st_mtime > latest:
+			latest = fileattr.st_mtime
+			latest_file = fileattr.filename
 
 	if latest_file is not None:
 		# print(latest_file)
@@ -198,24 +195,15 @@ def getLastDate(home_id):
 	return latest_date
 
 
-def sendFileToSFTP(filename):
+def sendFileToSFTP(sftp_session, filename):
 	""" 
 	Send csv file to the sftp server
 	"""
 
-	transport = paramiko.Transport((SFTP_HOST, SFTP_PORT))
-
 	dest_path = DESTINATION_PATH + filename
 	local_path = LOCAL_PATH + filename
 
-	with open(SFTP_CREDENTIALS_FILE) as json_file:
-		cred = json.load(json_file)
-		transport.connect(username = cred["username"], password = cred["password"])
-		sftp = paramiko.SFTPClient.from_transport(transport)
-		sftp.put(local_path, dest_path)
-
-	sftp.close()
-	transport.close()
+	sftp_session.put(local_path, dest_path)
 
 	if DELETE_LOCAL_FILES:
 		os.remove(local_path)
@@ -250,12 +238,12 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 
 	# get first date available for this home
 	where_clause = "home_id = {}".format("'"+home_id+"'")
-	cols = ["day", "ts"]
-	result_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, where_clause, "ALLOW FILTERING", "")
+	cols = ["home_id", "day"]
+	result_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, where_clause, "ALLOW FILTERING", "", "DISTINCT")
 
 	all_dates = []
 	if len(result_df) > 0:
-		first_date = result_df.groupby('day').first().iloc[0]['ts']
+		first_date = pd.Timestamp(list(result_df.groupby('day').groups.keys())[0])
 		del result_df
 		# print("first date : ", first_date)
 
@@ -264,7 +252,7 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	return all_dates
 
 
-def processAllHomes(cassandra_session, config, default_date, moment, moment_now, now):
+def processAllHomes(cassandra_session, sftp_session, config, default_date, moment, moment_now, now):
 	""" 
 	send 1 csv file per home, per day moment (AM or PM) to the sftp server
 	- if no data sent for this home yet, we send the whole history
@@ -273,7 +261,7 @@ def processAllHomes(cassandra_session, config, default_date, moment, moment_now,
 
 	ids = config.getIds()
 	for home_id in ids.keys():
-		latest_date = getLastDate(home_id)
+		latest_date = getLastDate(sftp_session, home_id)
 		all_dates = [default_date]
 		moments = {default_date: [moment]}
 		if latest_date is None:  # history
@@ -291,7 +279,7 @@ def processAllHomes(cassandra_session, config, default_date, moment, moment_now,
 				home_data = getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, TBL_POWER)
 				
 				saveDataToCsv(home_data.set_index("home_id"), csv_filename)  # first save csv locally
-				sendFileToSFTP(csv_filename)								 # then, send to sftp server
+				sendFileToSFTP(sftp_session, csv_filename)								 # then, send to sftp server
 
 		if VERBOSE: 
 			print("---------------------")
@@ -300,6 +288,7 @@ def processAllHomes(cassandra_session, config, default_date, moment, moment_now,
 
 def main():
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+	sftp_session = getSFTPsession()
 
 	config = getLastRegisteredConfig(cassandra_session, TBL_SENSORS_CONFIG) # TODO : tester avec 2-3 configs
 
@@ -321,7 +310,7 @@ def main():
 	# sftp_filenames = listFilesSFTP()
 
 
-	processAllHomes(cassandra_session, config, default_date, moment, moment_now, now)
+	processAllHomes(cassandra_session, sftp_session, config, default_date, moment, moment_now, now)
 
 
 if __name__ == "__main__":
