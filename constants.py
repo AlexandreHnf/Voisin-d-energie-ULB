@@ -5,8 +5,7 @@ Constants
 
 # =========================== FILE PATHS ====================================
 # files paths
-# FLUKSO_TECHNICAL_FILE =                 "flukso_config/FluksoTechnical.xlsx"
-FLUKSO_TECHNICAL_FILE =                 "flukso_config/Installation_sensors.xlsx"
+FLUKSO_TECHNICAL_FILE =                 "flukso_config/Configuration.xlsx"
 
 # FLUKSO_TECHNICAL_FILE =                 "sensors/FluksoConfigurations/FluksoTechnical_config1.xlsx"
 UPDATED_FLUKSO_TECHNICAL_FILE =         "sensors/updated_sensors.csv"

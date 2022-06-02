@@ -1,11 +1,14 @@
+
 from matplotlib.pyplot import table
 import pandas as pd
 import numpy as np
 from constants import *
 import pyToCassandra as ptc
+from sensorConfig import Configuration
 import json
 import sys
 from utils import * 
+
 
 # ==========================================================================
 
@@ -44,14 +47,14 @@ def getInstallationsIds(flukso_ids, fluksos):
 	return installation_id_col
 
 
-def getCompactSensorDF2():
+def getCompactSensorDF():
 	"""
 	read the excel sheet containing the flukso ids, the sensors ids, the tokens
 	and compact them into a simpler usable csv file
 	columns : home_id, phase, flukso_id, sensor_id, token, net, con, pro
 	"""
 	print("Config file : ", FLUKSO_TECHNICAL_FILE)
-	sensors_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Installation_sensors")
+	sensors_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Export_InstallationSensors")
 	compact_df = pd.DataFrame(columns=["home_ID",
 									   "phase",
 									   "flukso_id",
@@ -77,50 +80,62 @@ def getCompactSensorDF2():
 	return compact_df
 
 
-def getCompactSensorDF():
+def getLastRegisteredConfig(cassandra_session, table_name):
+	""" 
+	Get the last registered config based on insertion time
 	"""
-	read the excel sheet containing the flukso ids, the sensors ids, the tokens
-	and compact them into a simpler usable csv file
-	columns : home_id, phase, flukso_id, sensor_id, token, net, con, pro
+	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name,
+									["*"], "", "", "").groupby("insertion_time")
+	
+	config = None
+	if len(all_configs_df) > 0:
+		config_ids = list(all_configs_df.groups.keys())  # keys sorted by default
+		# print(config_ids)
+
+		last_config_id = config_ids[-1]
+		config = Configuration(last_config_id, all_configs_df.get_group(last_config_id).set_index("sensor_id"))
+
+	return config
+
+
+def getHomesToRecompute(cassandra_session, table_name, config):
+	""" 
+	Get the previous configuration and check for each home if a sign has changed in one of the
+	sensors : if yes, then we have to recompute all power data for this home based on the raw data
 	"""
-	# 'Sensors' sheet
-	print("Config file : ", FLUKSO_TECHNICAL_FILE)
-	sensors_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Sensors")
-	compact_df = pd.DataFrame(columns=["home_ID",
-									   "phase",
-									   "flukso_id",
-									   "sensor_id",
-									   "token",
-									   "net",
-									   "con",
-									   "pro"])
+	previous_config = getLastRegisteredConfig(cassandra_session, table_name)
 
-	compact_df["phase"] = sensors_df["Function"]
-	compact_df["flukso_id"] = sensors_df["FlmId"]
-	compact_df["sensor_id"] = sensors_df["SensorId"]
-	compact_df["token"] = sensors_df["Token"]
-	compact_df["net"] = sensors_df["Network"]
-	compact_df["con"] = sensors_df["Cons"]
-	compact_df["pro"] = sensors_df["Prod"]
+	print(config)
 
-	compact_df.fillna(0, inplace=True)
+	homes_modif = []
+	if previous_config is not None:
+		for hid, home_sensors in previous_config.getSensorsConfig().groupby("home_id"):
+			print(hid)
+			print(home_sensors)
+			home_df = config.loc[config['home_ID'] == hid]
 
-	# 'Flukso' sheet
-	installation_ids_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Flukso")
-	fluksos = getFluksosDic(installation_ids_df)  # {flukso_id : install_id}
-	installation_ids_col = getInstallationsIds(sensors_df["FlmId"], fluksos)
-	# print(installation_ids_col)
-	compact_df["home_ID"] = installation_ids_col
+			for _, sid in enumerate(home_sensors.index):
+				print(sid)
+				p = home_sensors.loc[sid]["pro"]
+				n = home_sensors.loc[sid]["net"]
+				c = home_sensors.loc[sid]["con"]
+				print("p : {}, n : {}, c : {}".format(p, n, c))
 
-	# remove unused fluksos (those without active installations)
-	compact_df = compact_df.drop(compact_df[compact_df.home_ID == "unknown"].index)
-	compact_df.reset_index(inplace=True, drop=True)
+				found = home_df[home_df['sensor_id'].str.contains(sid)]
 
-	compact_df.sort_values(by=["home_ID"])
+				if len(found) > 0:
+					pp = home_df.loc[home_df["sensor_id"] == sid]["pro"].iloc[0]
+					nn = home_df.loc[home_df["sensor_id"] == sid]["net"].iloc[0]
+					cc = home_df.loc[home_df["sensor_id"] == sid]["con"].iloc[0]
+					print("pp : {}, nn : {}, cc : {}".format(pp, nn, cc))
 
-	# saveToCsv(compact_df, COMPACT_SENSOR_FILE)
+					if not (p == pp and n == nn and c == cc):
+						homes_modif.append(hid)
+						break 
 
-	return compact_df
+	print(homes_modif)
+
+	return homes_modif
 
 
 def writeSensorsConfigCassandra(cassandra_session, compact_df, table_name, now):
@@ -266,7 +281,7 @@ def writeAccessDataCassandra(cassandra_session, table_name):
 	""" 
 	write access data to cassandra (login ids)
 	"""
-	login_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Access")
+	login_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Export_Access")
 	by_login = login_df.groupby("Login")
 
 	col_names = ["login", "installations"]
@@ -412,7 +427,7 @@ def main():
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	# > get the useful flukso sensors data in a compact csv
-	compact_df = getCompactSensorDF2()
+	compact_df = getCompactSensorDF()
 	# compact_df = correctPhaseSigns(compact_df) # > correct phase signs
 	print("nb sensors : ", len(compact_df))
 
@@ -435,7 +450,8 @@ def main():
 	elif task == "new_config":
 		# > fill config tables using excel configuration file
 		print("new config : ")
-		writeSensorsConfigCassandra(cassandra_session, compact_df, TBL_SENSORS_CONFIG, now)
+		homes_modif = getHomesToRecompute(cassandra_session, TBL_SENSORS_CONFIG, compact_df)
+		# writeSensorsConfigCassandra(cassandra_session, compact_df, TBL_SENSORS_CONFIG, now)
 
 	elif task == "login_config":
 		writeAccessDataCassandra(cassandra_session, TBL_ACCESS)

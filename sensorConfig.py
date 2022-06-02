@@ -1,10 +1,10 @@
 
 class Configuration:
     def __init__(self, config_id, sconfig_df):
-        self.config_id = config_id
-        self.sconfig_df = sconfig_df
+        self.config_id = config_id          # config insertion date
+        self.sconfig_df = sconfig_df        # dataframe with the whole config
 
-        self.ids = self.getHomeSensors()
+        self.ids = self.getHomeSensors()    # all home ids (installation ids)
 
     def getNbHomes(self):
         return len(self.ids)
