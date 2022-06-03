@@ -94,7 +94,7 @@ def getLastRegisteredTimestamp2(cassandra_session, table_name, sensor_id):
 	if len(dates_df) > 0:
 		last_date = dates_df.iloc[len(dates_df) - 1]['day']
 
-		where_clause = "sensor_id = '{}' AND day = {} ORDER BY ts DESC".format(
+		where_clause = "sensor_id = '{}' AND day = '{}' ORDER BY ts DESC".format(
 			sensor_id, last_date)
 		ts_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name,
 								["ts"], where_clause, "ALLOW FILTERING", "LIMIT 1")
@@ -116,7 +116,6 @@ def getDefaultTiming(cassandra_session, sensor_id):
 	# get last registered timestamp in raw table
 	# last_timestamp = getLastRegisteredTimestamp(cassandra_session, TBL_RAW, sensor_id)
 	last_timestamp = getLastRegisteredTimestamp2(cassandra_session, TBL_RAW, sensor_id)
-	print(last_timestamp)
 	if not last_timestamp.empty:  # != None
 		return last_timestamp.iloc[0]['ts']
 	else:  # if no registered timestamp in raw table yet
