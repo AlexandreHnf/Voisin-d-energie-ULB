@@ -16,8 +16,6 @@ as possible.
 """
 
 
-
-from unittest import result
 from constants import *
 import pyToCassandra as ptc
 from utils import *
@@ -120,6 +118,29 @@ def getPowerDataFromCassandra(cassandra_session, config, date, moment, table_nam
 		homes_powerdata[home_id] = home_df
 
 	return homes_powerdata
+
+
+def listSFTPfiles():
+	""" 
+	Connect to the SFTP server and list all files
+	"""
+
+	transport = paramiko.Transport((SFTP_HOST, SFTP_PORT))
+
+	filenames = []
+
+	with open(SFTP_CREDENTIALS_FILE) as json_file:
+		cred = json.load(json_file)
+		transport.connect(username = cred["username"], password = cred["password"])
+		sftp = paramiko.SFTPClient.from_transport(transport)
+
+		for filename in sftp.listdir(DESTINATION_PATH):
+			filenames.append(filename)
+
+	sftp.close()
+	transport.close()
+
+	return filenames
 
 
 def sendFileToSFTP(filename):
