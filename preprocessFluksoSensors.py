@@ -98,40 +98,70 @@ def getLastRegisteredConfig(cassandra_session, table_name):
 	return config
 
 
-def getHomesToRecompute(cassandra_session, table_name, config):
+def sameSigns(home1_sensors_df, home2_sensors_df):
 	""" 
-	Get the previous configuration and check for each home if a sign has changed in one of the
-	sensors : if yes, then we have to recompute all power data for this home based on the raw data
+	
 	"""
-	previous_config = getLastRegisteredConfig(cassandra_session, table_name)
+	res = True
+	for _, sid in enumerate(home1_sensors_df.index):
+		print(sid)
+		p = home1_sensors_df.loc[sid]["pro"]
+		n = home1_sensors_df.loc[sid]["net"]
+		c = home1_sensors_df.loc[sid]["con"]
+		print("p : {}, n : {}, c : {}".format(p, n, c))
+
+		found = home2_sensors_df[home2_sensors_df['sensor_id'].str.contains(sid)]
+
+		if len(found) > 0:
+			pp = home2_sensors_df.loc[home2_sensors_df["sensor_id"] == sid]["pro"].iloc[0]
+			nn = home2_sensors_df.loc[home2_sensors_df["sensor_id"] == sid]["net"].iloc[0]
+			cc = home2_sensors_df.loc[home2_sensors_df["sensor_id"] == sid]["con"].iloc[0]
+			print("pp : {}, nn : {}, cc : {}".format(pp, nn, cc))
+
+			if not (p == pp and n == nn and c == cc):
+				res = False
+				break 
+	
+	return res 
+
+
+def sameSensorsIds(hid, home1_sensors_df, home2_sensors_df):
+	""" 
+	Check if the 2 homes have the same number of sensors and the same sensors ids.
+	"""
+	print("---- {} ----".format(hid))
+	sid_home1 = set(home1_sensors_df.index)
+	sid_home2 = set(home2_sensors_df["sensor_id"].tolist())
+	print("sid prev config : ", sid_home1)
+	print("sid new config : ", sid_home2)
+	print("same sensors ids ? ", sid_home1 == sid_home2)
+
+	return sid_home1 == sid_home2
+
+
+def getHomesToRecompute(config, previous_config):
+	""" 
+	Get the previous configuration and check for each home if 
+	- it has the same sensors ids as the new config
+		- if yes, then we check a sign has changed in one of the sensors : 
+			- if yes, then we have to recompute all power data for this home based on the raw data
+	- else : we do not need to recompute the data
+	"""
 
 	print(config)
 
 	homes_modif = []
 	if previous_config is not None:
-		for hid, home_sensors in previous_config.getSensorsConfig().groupby("home_id"):
+		for hid, home1_sensors_df in previous_config.getSensorsConfig().groupby("home_id"):
 			print(hid)
-			print(home_sensors)
-			home_df = config.loc[config['home_ID'] == hid]
+			print(home1_sensors_df)
+			home2_sensors_df = config.loc[config['home_ID'] == hid]
 
-			for _, sid in enumerate(home_sensors.index):
-				print(sid)
-				p = home_sensors.loc[sid]["pro"]
-				n = home_sensors.loc[sid]["net"]
-				c = home_sensors.loc[sid]["con"]
-				print("p : {}, n : {}, c : {}".format(p, n, c))
-
-				found = home_df[home_df['sensor_id'].str.contains(sid)]
-
-				if len(found) > 0:
-					pp = home_df.loc[home_df["sensor_id"] == sid]["pro"].iloc[0]
-					nn = home_df.loc[home_df["sensor_id"] == sid]["net"].iloc[0]
-					cc = home_df.loc[home_df["sensor_id"] == sid]["con"].iloc[0]
-					print("pp : {}, nn : {}, cc : {}".format(pp, nn, cc))
-
-					if not (p == pp and n == nn and c == cc):
-						homes_modif.append(hid)
-						break 
+			# same sensors ids
+			if sameSensorsIds(hid, home1_sensors_df, home2_sensors_df):
+				# at least one sign is different
+				if not sameSigns(home1_sensors_df, home2_sensors_df):
+					homes_modif.append(hid)
 
 	print(homes_modif)
 
@@ -450,7 +480,9 @@ def main():
 	elif task == "new_config":
 		# > fill config tables using excel configuration file
 		print("new config : ")
-		homes_modif = getHomesToRecompute(cassandra_session, TBL_SENSORS_CONFIG, compact_df)
+		previous_config = getLastRegisteredConfig(cassandra_session, TBL_SENSORS_CONFIG)  # change to a loop
+		homes_modif = getHomesToRecompute(compact_df, previous_config)
+
 		# writeSensorsConfigCassandra(cassandra_session, compact_df, TBL_SENSORS_CONFIG, now)
 
 	elif task == "login_config":
