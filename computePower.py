@@ -241,9 +241,9 @@ def saveGroupsStatsToCassandra(session, groups_powers, table_name):
 
 def main():
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-	# sensors = read_sensor_info("", UPDATED_SENSORS_FILE)
+
 	sensors_config = getSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
-	home_ids = list(sensors_config.groupby("home_id").indices)
+	home_ids = sensors_config.getIds()
 	ids = getSensorsIds(sensors_config)
 
 	# test raw data retrieval

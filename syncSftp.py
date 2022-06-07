@@ -34,16 +34,19 @@ import pandas as pd
 from datetime import timedelta
 import json
 import os
+import argparse
 
 import paramiko
 
 
-SFTP_HOST = 						"repo.memoco.eu"
-SFTP_PORT = 						3584
-DESTINATION_PATH = 					"/upload/"
+# ==============================================================================
+
+
 LOCAL_PATH = 						"output/fluksoData/sftp_data/"
 SFTP_CREDENTIALS_FILE = 			"sftp_credentials.json"
 LOG_FILE_SFTP = 					"output/fluksoData/sftp_data/logs_sftp.log"
+
+SEND_TO_SFTP = 						False
 DELETE_LOCAL_FILES = 				True
 AM = 								"<="
 PM = 								">"
@@ -154,19 +157,31 @@ def getHomesPowerDataFromCassandra(cassandra_session, config, date, moment, tabl
 	return homes_powerdata
 	
 
-def getSFTPsession():
+def getSftpInfo(sftp_info_filename):
+	""" 
+	Returns a dictionary with the sftp server info : 
+	host, port, username, password, destination file
+	"""
+
+	sftp_info = {}
+	with open(sftp_info_filename) as json_file:
+		sftp_info = json.load(json_file)
+
+	return sftp_info
+
+
+def getSFTPsession(sftp_info):
 	""" 
 	connect to the sftp server
 	"""
 
-	transport = paramiko.Transport((SFTP_HOST, SFTP_PORT))
+	transport = paramiko.Transport((sftp_info["host"], sftp_info["port"]))
 
-	with open(SFTP_CREDENTIALS_FILE) as json_file:
-		cred = json.load(json_file)
-		transport.connect(username = cred["username"], password = cred["password"])
-		sftp = paramiko.SFTPClient.from_transport(transport)
+	transport.connect(username = sftp_info["username"], password = sftp_info["password"])
+	sftp = paramiko.SFTPClient.from_transport(transport)
 
 	return sftp
+
 
 
 def listFilesSFTP(sftp_session):
@@ -205,12 +220,12 @@ def getLastDate(sftp_session, home_id):
 	return latest_date
 
 
-def sendFileToSFTP(sftp_session, filename):
+def sendFileToSFTP(sftp_session, filename, sftp_info):
 	""" 
 	Send csv file to the sftp server
 	"""
 
-	dest_path = DESTINATION_PATH + filename
+	dest_path = sftp_info["destination_path"] + filename
 	local_path = LOCAL_PATH + filename
 
 	sftp_session.put(local_path, dest_path)
@@ -263,7 +278,7 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	return all_dates
 
 
-def processAllHomes(cassandra_session, sftp_session, config, default_date, moment, moment_now, now):
+def processAllHomes(cassandra_session, sftp_session, config, default_date, moment, moment_now, now, sftp_info):
 	""" 
 	send 1 csv file per home, per day moment (AM or PM) to the sftp server
 	- if no data sent for this home yet, we send the whole history
@@ -291,17 +306,39 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 				home_data = getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, TBL_POWER)
 				
 				saveDataToCsv(home_data.set_index("home_id"), csv_filename)  # first save csv locally
-				sendFileToSFTP(sftp_session, csv_filename)								 # then, send to sftp server
+				if SEND_TO_SFTP:
+					sendFileToSFTP(sftp_session, csv_filename, sftp_info)								 # then, send to sftp server
 
 		if VERBOSE: 
 			print("---------------------")
 			logging.info("-----------------------")
 
 
+def processArguments():
+	"""
+	process arguments 
+	argument : sftp config filename
+		-> contains host, port, username, password and destination path
+	"""
+	argparser = argparse.ArgumentParser(
+		description=__doc__,
+		formatter_class=argparse.RawDescriptionHelpFormatter,
+	)
+	argparser.add_argument("--c", type=str, default="sftp_credentials.json",
+						   help="sftp config file")
+
+	return argparser
+
 
 def main():
+
+	argparser = processArguments()
+	args = argparser.parse_args()
+	sftp_info_filename = args.c
+
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-	sftp_session = getSFTPsession()
+	sftp_info = getSftpInfo(sftp_info_filename)
+	sftp_session = getSFTPsession(sftp_info)
 
 	config = getLastRegisteredConfig(cassandra_session, TBL_SENSORS_CONFIG) # TODO : tester avec 2-3 configs
 
@@ -327,7 +364,7 @@ def main():
 	# sftp_filenames = listFilesSFTP()
 
 
-	processAllHomes(cassandra_session, sftp_session, config, default_date, moment, moment_now, now)
+	processAllHomes(cassandra_session, sftp_session, config, default_date, moment, moment_now, now, sftp_info)
 
 
 if __name__ == "__main__":
