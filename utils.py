@@ -28,14 +28,17 @@ def read_sensor_info(path, sensor_file):
 	return sensors
 
 
-def getSensorsConfigCassandra(cassandra_session, table_name):
+def getSensorsConfigCassandra(cassandra_session, table_name, config_id):
 	""" 
 	Get flukso sensors configurations : home ids, sensors ids, tokens, 
 	indices for each phase
+
+	config id = insertion_time
 	"""
 
+	where_clause = "insertion_time = '{}'".format(config_id)
 	sensors_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, ["*"], 
-				"", "allow filtering", "")
+				where_clause, "allow filtering", "")
 
 	return sensors_df.set_index("sensor_id")
 	
@@ -54,24 +57,7 @@ def getCurrentSensorsConfigCassandra(cassandra_session, table_name):
 	dates = list(by_date_df.groups.keys())
 	current_config_id = dates[-1]   # last config registered
 
-	return current_config_id, by_date_df
-
-
-def getSensorsIds(sensors):
-	""" 
-	sensors of the form : home_id, phase, flukso_id, sensor_id, token, net, con, pro
-	return {home_id = [sensor_id1, sensor_id2, ...]}
-	"""
-	home_ids = sensors.home_id
-	sensor_ids = sensors.index
-	ids = {}
-	for i in range(len(home_ids)):
-		if home_ids[i] not in ids:
-			ids[home_ids[i]] = [sensor_ids[i]]
-		else:
-			ids[home_ids[i]].append(sensor_ids[i])
-	
-	return ids		
+	return current_config_id, by_date_df	
 
 
 def getFLuksoGroups():

@@ -190,7 +190,8 @@ def getHomesToRecompute(new_config, previous_config):
 
 def recomputeData(cassandra_session, new_config):
 	""" 
-	
+	compare new config with all previous config, and determine which data to recompute
+	for each home
 	"""
 
 	all_configs = getAllRegisteredConfigs(cassandra_session)
