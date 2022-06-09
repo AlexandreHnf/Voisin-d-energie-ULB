@@ -261,7 +261,7 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	from that first date, return the list of dates until now.
 	"""
 
-	# get first date available for this home
+	# get first date available for this home TODO : use limit 1 to be more efficient
 	where_clause = "home_id = {}".format("'"+home_id+"'")
 	cols = ["home_id", "day"]
 	result_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, where_clause, "ALLOW FILTERING", "", "DISTINCT")

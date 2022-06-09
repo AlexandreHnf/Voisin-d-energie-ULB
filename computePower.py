@@ -188,6 +188,26 @@ def saveRecomputedPowersToCassandra(cassandra_session, config, cons_prod_df, tab
 	ptc.batch_insert(cassandra_session, insert_queries)
 
 
+def getDataDatesFromConfig(cassandra_session, home_id, config_id, now):
+	""" 
+	From a config, get all registered dates in power table for a home
+	"""
+	where_clause = "home_id = '{}' and config_id = '{}.000000+0000'".format(home_id, config_id)
+	first_date_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, TBL_POWER,
+									["day"], where_clause, "ALLOW FILTERING", "LIMIT 1")
+
+	all_dates = []
+	if len(first_date_df) > 0:
+		# print(first_date_df)
+
+		first_date = pd.Timestamp(first_date_df.iloc[0]["day"])
+
+		all_dates = getDatesBetween(first_date, now)  #TODO : replace now by last registered date
+		# print(all_dates)
+
+	return all_dates
+
+
 def recomputePowerData(cassandra_session, config):
 	""" 
 	Given a configuration, recompute all power data for all homes constituting it
@@ -195,20 +215,23 @@ def recomputePowerData(cassandra_session, config):
 	"""
 	
 	config_id = config.getConfigID()
+	now = pd.Timestamp.now()
+
 	for hid, sensors_df in config.getSensorsConfig().groupby("home_id"):
 		print(hid)
-		# first select all dates registered for this config
-
+		# first select all dates registered with this config for this home
+		all_dates = getDataDatesFromConfig(cassandra_session, hid, config_id, now)
 		# then, for each day, recompute data and store it in the database (overwrite existing data)
+		for date in all_dates:
 
-		# get raw data
-		home_rawdata = getHomeRawData(cassandra_session, hid, sensors_df, "2022-05-29", config_id)
+			# get raw data
+			home_rawdata = getHomeRawData(cassandra_session, hid, sensors_df, date, config_id)
 
-		# recompute power data : consumption, production, total
-		home_powers = getHomeConsumptionProductionDf(home_rawdata, hid, sensors_df, config_id)
+			# recompute power data : consumption, production, total
+			home_powers = getHomeConsumptionProductionDf(home_rawdata, hid, sensors_df, config_id)
 
-		# save (overwrite) to cassandra table
-		saveRecomputedPowersToCassandra(cassandra_session, config, home_powers, "power2")
+			# save (overwrite) to cassandra table
+			# saveRecomputedPowersToCassandra(cassandra_session, config, home_powers, "power2")
 
 
 # ====================================================================================

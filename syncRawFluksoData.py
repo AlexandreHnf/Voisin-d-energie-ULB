@@ -84,6 +84,8 @@ def getLastRegisteredTimestamp2(cassandra_session, table_name, sensor_id):
 
 	technique : first get the last registered date for the sensor, then
 	query the last timestamp of this day for this sensor.
+
+	more robust function than 'getLastRegisteredTimestamp' hereabove, but much slower
 	"""
 	# get last date available for this home
 	where_clause = "sensor_id = {}".format("'"+sensor_id+"'")
