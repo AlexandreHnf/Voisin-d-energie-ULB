@@ -1,5 +1,4 @@
 
-from matplotlib.pyplot import table
 import pandas as pd
 import numpy as np
 from constants import *
@@ -78,43 +77,6 @@ def getCompactSensorDF():
 	compact_df.sort_values(by=["home_ID"])
 
 	return compact_df
-
-
-def getLastRegisteredConfig(cassandra_session):
-	""" 
-	Get the last registered config based on insertion time
-	"""
-	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, TBL_SENSORS_CONFIG,
-									["*"], "", "", "").groupby("insertion_time")
-	
-	config = None
-	if len(all_configs_df) > 0:
-		config_ids = list(all_configs_df.groups.keys())  # keys sorted by default
-		# print(config_ids)
-
-		last_config_id = config_ids[-1]
-		config = Configuration(last_config_id, all_configs_df.get_group(last_config_id).set_index("sensor_id"))
-
-	return config
-
-
-def getAllRegisteredConfigs(cassandra_session):
-	""" 
-	Get all configs present in the system
-	returns a list of config ids
-	"""
-	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, TBL_SENSORS_CONFIG,
-									["insertion_time, home_id, sensor_id"], "", "", "")
-
-	configs = []
-	if len(all_configs_df) > 0:
-		for config_id, config in all_configs_df.groupby("insertion_time"):
-			print("config ", config_id)
-			print(config)
-
-			configs.append(Configuration(config_id, config.set_index("sensor_id")))
-
-	return configs
 
 
 def sameSigns(home1_sensors_df, home2_sensors_df):
@@ -515,7 +477,7 @@ def main():
 		# > fill config tables using excel configuration file
 		print("new config : ")
 		all_configs = getAllRegisteredConfigs(cassandra_session)
-		previous_config = getLastRegisteredConfig(cassandra_session)  # change to a loop
+		previous_config = getLastRegisteredConfig(cassandra_session)  # TODO : change to a loop
 		homes_modif = getHomesToRecompute(compact_df, previous_config)
 
 		# writeSensorsConfigCassandra(cassandra_session, compact_df, TBL_SENSORS_CONFIG, now)

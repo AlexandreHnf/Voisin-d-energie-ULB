@@ -3,6 +3,7 @@ import numpy as np
 import os
 import math
 from constants import *
+from sensorConfig import Configuration
 from datetime import date, timedelta, datetime
 import logging
 
@@ -26,21 +27,6 @@ def read_sensor_info(path, sensor_file):
 	path += sensor_file
 	sensors = pd.read_csv(path, header=0, index_col=1)
 	return sensors
-
-
-def getSensorsConfigCassandra(cassandra_session, table_name, config_id):
-	""" 
-	Get flukso sensors configurations : home ids, sensors ids, tokens, 
-	indices for each phase
-
-	config id = insertion_time
-	"""
-
-	where_clause = "insertion_time = '{}'".format(config_id)
-	sensors_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, ["*"], 
-				where_clause, "allow filtering", "")
-
-	return sensors_df.set_index("sensor_id")
 	
 
 def getCurrentSensorsConfigCassandra(cassandra_session, table_name):
@@ -48,6 +34,9 @@ def getCurrentSensorsConfigCassandra(cassandra_session, table_name):
 	Get the last registered sensors configuration
 	sensors configurations columns : home ids, sensors ids, tokens, indices for each phase (net, pro, con)
 	method : get all rows of the table, groupby config id (sorted by dates) and pick the last one
+	
+	POTENTIAL ISSUE : if the whole config table does not fit in memory
+		-> possible solution : select distinct insertion_time, home_id, sensor_id to reduce the nb of queried lines
 	"""
 
 	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, ["*"], 
@@ -58,6 +47,49 @@ def getCurrentSensorsConfigCassandra(cassandra_session, table_name):
 	current_config_id = dates[-1]   # last config registered
 
 	return current_config_id, by_date_df	
+
+
+def getLastRegisteredConfig(cassandra_session):
+	""" 
+	Get the last registered config based on insertion time
+
+	POTENTIAL ISSUE : if the whole config table does not fit in memory
+		-> possible solution : select distinct insertion_time, home_id, sensor_id to reduce the nb of queried lines
+	"""
+	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, TBL_SENSORS_CONFIG,
+									["*"], "", "", "").groupby("insertion_time")
+	
+	config = None
+	if len(all_configs_df) > 0:
+		config_ids = list(all_configs_df.groups.keys())  # keys sorted by default
+		# print(config_ids)
+
+		last_config_id = config_ids[-1]
+		config = Configuration(last_config_id, all_configs_df.get_group(last_config_id).set_index("sensor_id"))
+
+	return config
+
+
+def getAllRegisteredConfigs(cassandra_session):
+	""" 
+	Get all configs present in the system
+	returns a list of config ids
+
+	POTENTIAL ISSUE : if the whole config table does not fit in memory
+		-> possible solution : select distinct insertion_time, home_id, sensor_id to reduce the nb of queried lines
+	"""
+	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, TBL_SENSORS_CONFIG,
+									["insertion_time, home_id, sensor_id"], "", "", "")
+
+	configs = []
+	if len(all_configs_df) > 0:
+		for config_id, config in all_configs_df.groupby("insertion_time"):
+			print("config ", config_id)
+			print(config)
+
+			configs.append(Configuration(config_id, config.set_index("sensor_id")))
+
+	return configs
 
 
 def getFLuksoGroups():
@@ -71,37 +103,6 @@ def getFLuksoGroups():
             groups.append(line.strip().split(","))
 
     return groups
-
-
-def getGroupsConfigCassandra(cassandra_session, table_name):
-	""" 
-	get groups config from cassandra table
-	with format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
-	"""
-	groups_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, ["*"], 
-				"", "allow filtering", "")
-	groups_df.set_index("group_id", inplace=True)
-	by_gid = groups_df.groupby("group_id")
-
-	groups = []
-	for gid, group in by_gid:
-		groups.append(list(group["homes"][0]))
-
-	return groups
-
-
-def getGroupsConfigsCassandra(cassandra_session, table_name):
-	""" 
-	get all groups config from cassandra table
-	with format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
-	"""
-	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, ["*"], 
-				"", "allow filtering", "")
-	by_date_df = all_configs_df.groupby("insertion_time")
-	dates = list(by_date_df.groups.keys())
-	current_config_id = dates[-1]   # last config registered
-	
-	return current_config_id, by_date_df
 
 
 def setInitSeconds(ts):
