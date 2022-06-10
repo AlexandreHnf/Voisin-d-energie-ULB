@@ -4,6 +4,7 @@ import numpy as np
 from constants import *
 import pyToCassandra as ptc
 from sensorConfig import Configuration
+import computePower as cp
 import json
 import sys
 from utils import * 
@@ -162,6 +163,7 @@ def recomputeData(cassandra_session, new_config):
 		changed_homes = getHomesToRecompute(new_config, all_configs[i])
 
 		# recompute those homes
+		cp.recomputePowerData(cassandra_session, all_configs[i], changed_homes)
 
 
 def writeSensorsConfigCassandra(cassandra_session, compact_df, table_name, now):
@@ -201,7 +203,7 @@ def writeGroupsFromFluksoIDs():
 			for flukso in grp_df["FlmId"]:
 				if flukso in available_fluksos:
 					install_id = fluksos[flukso]
-					print(flukso, install_id)
+					# print(flukso, install_id)
 					if install_id not in group:
 						group += install_id + ","
 
@@ -249,7 +251,7 @@ def writeGroupsFromInstallationsIds():
 				if install_id not in group:
 					group += install_id + ","
 
-			print(group[:-1])
+			# print(group[:-1])
 			gf.write(group[:-1] + "\n")  # -1 to remove the last ","
 
 
@@ -453,9 +455,9 @@ def main():
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	# > get the useful flukso sensors data in a compact csv
-	compact_df = getCompactSensorDF()
+	config_compact_df = getCompactSensorDF()
 	# compact_df = correctPhaseSigns(compact_df) # > correct phase signs
-	print("nb sensors : ", len(compact_df))
+	print("nb sensors : ", len(config_compact_df))
 
 	now = pd.Timestamp.now()
 
@@ -476,11 +478,12 @@ def main():
 	elif task == "new_config":
 		# > fill config tables using excel configuration file
 		print("new config : ")
-		all_configs = getAllRegisteredConfigs(cassandra_session)
-		previous_config = getLastRegisteredConfig(cassandra_session)  # TODO : change to a loop
-		homes_modif = getHomesToRecompute(compact_df, previous_config)
+		# all_configs = getAllRegisteredConfigs(cassandra_session)
+		# previous_config = getLastRegisteredConfig(cassandra_session)
+		# homes_modif = getHomesToRecompute(config_compact_df, previous_config)
+		recomputeData(cassandra_session, config_compact_df)
 
-		# writeSensorsConfigCassandra(cassandra_session, compact_df, TBL_SENSORS_CONFIG, now)
+		# writeSensorsConfigCassandra(cassandra_session, config_compact_df, TBL_SENSORS_CONFIG, now)
 
 	elif task == "login_config":
 		writeAccessDataCassandra(cassandra_session, TBL_ACCESS)

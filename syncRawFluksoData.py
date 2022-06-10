@@ -118,7 +118,7 @@ def getDefaultTiming(cassandra_session, sensor_id):
 	# get last registered timestamp in raw table
 	# last_timestamp = getLastRegisteredTimestamp(cassandra_session, TBL_RAW, sensor_id)
 	last_timestamp = getLastRegisteredTimestamp2(cassandra_session, TBL_RAW, sensor_id)
-	if not last_timestamp.empty:  # != None
+	if last_timestamp is not None:  # != None
 		return last_timestamp.iloc[0]['ts']
 	else:  # if no registered timestamp in raw table yet
 		return None

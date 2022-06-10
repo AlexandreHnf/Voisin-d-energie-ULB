@@ -79,13 +79,13 @@ def getAllRegisteredConfigs(cassandra_session):
 		-> possible solution : select distinct insertion_time, home_id, sensor_id to reduce the nb of queried lines
 	"""
 	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, TBL_SENSORS_CONFIG,
-									["insertion_time, home_id, sensor_id"], "", "", "")
+									["*"], "", "", "")
 
 	configs = []
 	if len(all_configs_df) > 0:
 		for config_id, config in all_configs_df.groupby("insertion_time"):
-			print("config ", config_id)
-			print(config)
+			# print("config ", config_id)
+			# print(config)
 
 			configs.append(Configuration(config_id, config.set_index("sensor_id")))
 

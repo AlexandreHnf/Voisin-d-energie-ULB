@@ -96,7 +96,7 @@ def savePowerDataToCassandra(cassandra_session, homes, config, table_name):
 # =====================================================================================
 
 
-def getHomeRawData(cassandra_session, home_id, sensors_df, day, config_id):
+def getHomeRawData(cassandra_session, sensors_df, day, config_id):
 	""" 
 	get raw flukso data from cassandra given a certain day and a certain configuration
 	return dictionary of the format : 
@@ -109,8 +109,7 @@ def getHomeRawData(cassandra_session, home_id, sensors_df, day, config_id):
 		where_clause = "sensor_id = '{}' and day = '{}' and config_id = '{}.000000+0000'".format(sid, day, config_id)
 		raw_data_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, TBL_RAW,
 								["*"], where_clause, "ALLOW FILTERING", "")
-		# print(where_clause)
-		# print(raw_data_df.head(3))
+
 		home_rawdata[sid] = raw_data_df
 
 	return home_rawdata
@@ -142,7 +141,6 @@ def getHomeConsumptionProductionDf(home_rawdata, home_id, sensors_df, config_id)
 	cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
 
 	cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
-	# print(cons_prod_df.head(3))
 
 	return cons_prod_df
 
@@ -202,36 +200,43 @@ def getDataDatesFromConfig(cassandra_session, home_id, config_id, now):
 
 		first_date = pd.Timestamp(first_date_df.iloc[0]["day"])
 
-		all_dates = getDatesBetween(first_date, now)  #TODO : replace now by last registered date
+		all_dates = getDatesBetween(first_date, now)
 		# print(all_dates)
 
 	return all_dates
 
 
-def recomputePowerData(cassandra_session, config):
+def recomputePowerData(cassandra_session, config, homes):
 	""" 
-	Given a configuration, recompute all power data for all homes constituting it
+	Given a configuration, recompute all power data for all select homes
 	based on the existing raw data stored in Cassandra.
 	"""
 	
 	config_id = config.getConfigID()
 	now = pd.Timestamp.now()
+	config_by_home = config.getSensorsConfig().groupby("home_id")  # group by home
+	if len(homes) == 0:
+		homes = list(config_by_home.groups.keys())
 
-	for hid, sensors_df in config.getSensorsConfig().groupby("home_id"):
+	for hid in homes:
 		print(hid)
+		sensors_df = config_by_home.get_group(hid)
+
 		# first select all dates registered with this config for this home
 		all_dates = getDataDatesFromConfig(cassandra_session, hid, config_id, now)
 		# then, for each day, recompute data and store it in the database (overwrite existing data)
 		for date in all_dates:
 
 			# get raw data
-			home_rawdata = getHomeRawData(cassandra_session, hid, sensors_df, date, config_id)
+			home_rawdata = getHomeRawData(cassandra_session, sensors_df, date, config_id)
 
 			# recompute power data : consumption, production, total
 			home_powers = getHomeConsumptionProductionDf(home_rawdata, hid, sensors_df, config_id)
 
 			# save (overwrite) to cassandra table
-			# saveRecomputedPowersToCassandra(cassandra_session, config, home_powers, "power2")
+			if len(home_powers) > 0:
+				print(home_powers.head(3))
+				# saveRecomputedPowersToCassandra(cassandra_session, config, home_powers, "power2")
 
 
 # ====================================================================================
@@ -242,7 +247,7 @@ def main():
 
 	last_config = getLastRegisteredConfig(cassandra_session)
 	
-	recomputePowerData(cassandra_session, last_config)
+	recomputePowerData(cassandra_session, last_config, [])
 	
 	
 
