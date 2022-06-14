@@ -116,7 +116,6 @@ def getDefaultTiming(cassandra_session, sensor_id):
 	will be defined later by 'getTimings' function based on the configuration)
 	"""
 	# get last registered timestamp in raw table
-	# last_timestamp = getLastRegisteredTimestamp(cassandra_session, TBL_RAW, sensor_id)
 	last_timestamp = getLastRegisteredTimestamp2(cassandra_session, TBL_RAW, sensor_id)
 	if last_timestamp is not None:  # != None
 		return last_timestamp.iloc[0]['ts']
@@ -443,10 +442,10 @@ def processHomes(cassandra_session, tmpo_session, config, timings, start_timing,
 	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
 		saved_sensors = {}  # for missing data, to check if sensors missing data already saved
 		if timings[hid]["start_ts"] is not None:  # if home has a start timestamp
-			intermediate_timings = getIntermediateTimings(timings[hid]["start_ts"], timings[hid]["end_ts"])
+			nb_days, intermediate_timings = getIntermediateTimings(timings[hid]["start_ts"], timings[hid]["end_ts"])
 			
 			logging.info("> {} | {} > {} ({} days > {} min.)".format(hid, timings[hid]["start_ts"], timings[hid]["end_ts"],
-								len(intermediate_timings), 
+								nb_days, 
 								round((timings[hid]["end_ts"] - timings[hid]["start_ts"]).total_seconds() / 60.0, 2)))
 
 			for i in range(len(intermediate_timings)-1):  # query day by day

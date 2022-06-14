@@ -127,3 +127,19 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# uneccessary files to push : 
+.idea/
+.tmpo/tmpo.sqlite3
+literature/
+output/flukso-guillaume-2022-02-18-113420.csv
+output/fluksoData/
+sensors/Configuration.xlsx
+sensors/grp_ids.json
+sensors/ids.json
+sensors/~$FluksoTechnical.xlsx
+sftp_credentials.json
+tmpo.sqlite3
+webapp/error_logs.txt
+webapp/logs.txt
+webapp/node_modules/.bin/

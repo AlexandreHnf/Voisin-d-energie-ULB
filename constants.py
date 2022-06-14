@@ -7,10 +7,9 @@ Constants
 # files paths
 FLUKSO_TECHNICAL_FILE =                 "flukso_config/Configuration.xlsx"
 
-# FLUKSO_TECHNICAL_FILE =                 "sensors/FluksoConfigurations/FluksoTechnical_config1.xlsx"
 UPDATED_FLUKSO_TECHNICAL_FILE =         "sensors/updated_sensors.csv"
 COMPACT_SENSOR_FILE =                   "sensors/sensors_technical.csv"
-PHASE_TO_MODIF_FILE =                   "flukso_config/phases_to_modify.txt"
+PHASE_TO_MODIF_FILE =                   "sensors/phases_to_modify.txt"
 # SENSOR_FILE =                           "sensors/sensors.csv"
 UPDATED_SENSORS_FILE =                  "sensors/updated_sensors.csv"
 
@@ -39,7 +38,7 @@ LAST_TS_DAYS =                          2  # days
 # "since" default value for the earliest timestamp of a flukso
 # normally since = 0, but for testing, we put since = 4min
 FROM_FIRST_TS_STATUS = 					"local"
-FROM_FIRST_TS =                         "2days" 
+FROM_FIRST_TS =                         "4min" 
 
 # nb lines to insert per batch insert when inserting in cassandra table
 INSERTS_PER_BATCH =                     11000
@@ -55,7 +54,7 @@ CASSANDRA_KEYSPACE =                    "flukso"
 
 # cassandra tables names
 TBL_ACCESS =                            "access"
-TBL_SENSORS_CONFIG =                    "sensors_config"
+TBL_SENSORS_CONFIG =                    "sensors_config2"
 TBL_GROUPS_CONFIG =                     "groups_config"
 TBL_RAW =                               "raw"
 TBL_RAW_MISSING =                       "raw_missing"

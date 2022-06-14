@@ -160,24 +160,25 @@ def recomputeData(cassandra_session, new_config):
 	all_configs = getAllRegisteredConfigs(cassandra_session)
 
 	for i in range(len(all_configs)-1, -1, -1):
+		print("config : ", all_configs[i].getConfigID())
 		changed_homes = getHomesToRecompute(new_config, all_configs[i])
 
 		# recompute those homes
 		cp.recomputePowerData(cassandra_session, all_configs[i], changed_homes)
 
 
-def writeSensorsConfigCassandra(cassandra_session, compact_df, table_name, now):
+def writeSensorsConfigCassandra(cassandra_session, new_config_df, now):
 	""" 
 	write sensors config to cassandra table 
 	"""
 	col_names = ["insertion_time", "home_id", "phase", "flukso_id", "sensor_id", "sensor_token", "net", "con", "pro"]
 	insertion_time = str(now)[:19] + "Z"
 
-	for _, row in compact_df.iterrows():
+	for _, row in new_config_df.iterrows():
 		values = [insertion_time] + list(row)
-		ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
+		ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, TBL_SENSORS_CONFIG, col_names, values)
 
-	print("Successfully inserted sensors config in table : {}".format(table_name))
+	print("Successfully inserted sensors config in table : {}".format(TBL_SENSORS_CONFIG))
 
 
 # ==========================================================================
@@ -411,7 +412,7 @@ def createRawMissingTable(cassandra_session, table_name):
 # ==========================================================================
 
 
-def saveHomeIds(compact_df):
+def saveHomeIds(new_config_df):
 	""" 
 	Take the compact df of the form "home_ID,phase,flukso_id,sensor_id,token,net,con,pro"
 	and save the ids for each home :
@@ -419,7 +420,7 @@ def saveHomeIds(compact_df):
 	 {hid: home_id2, phases: [...]}, ...}
 	"""
 	ids = {}
-	for hid, phase, fid, sid, t, n, c, p in compact_df.values:
+	for hid, phase, fid, sid, t, n, c, p in new_config_df.values:
 		if hid not in ids:
 			ids[hid] = ["{}_{}".format(fid, phase)]
 		else:
@@ -455,9 +456,8 @@ def main():
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	# > get the useful flukso sensors data in a compact csv
-	config_compact_df = getCompactSensorDF()
-	# compact_df = correctPhaseSigns(compact_df) # > correct phase signs
-	print("nb sensors : ", len(config_compact_df))
+	new_config_df = getCompactSensorDF()
+	print("nb sensors : ", len(new_config_df))
 
 	now = pd.Timestamp.now()
 
@@ -476,14 +476,15 @@ def main():
 			createRawMissingTable(cassandra_session, "raw_missing")				# raw_missing
 	
 	elif task == "new_config":
-		# > fill config tables using excel configuration file
+		# first compare new config with previous configs and recompute data if necessary
 		print("new config : ")
 		# all_configs = getAllRegisteredConfigs(cassandra_session)
 		# previous_config = getLastRegisteredConfig(cassandra_session)
-		# homes_modif = getHomesToRecompute(config_compact_df, previous_config)
-		recomputeData(cassandra_session, config_compact_df)
+		# homes_modif = getHomesToRecompute(new_config_df, previous_config)
+		# recomputeData(cassandra_session, new_config_df)
 
-		# writeSensorsConfigCassandra(cassandra_session, config_compact_df, TBL_SENSORS_CONFIG, now)
+		# > fill config tables using excel configuration file
+		writeSensorsConfigCassandra(cassandra_session, new_config_df, now)
 
 	elif task == "login_config":
 		writeAccessDataCassandra(cassandra_session, TBL_ACCESS)

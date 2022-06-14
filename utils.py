@@ -251,7 +251,7 @@ def getIntermediateTimings(start_ts, end_ts):
 	if end_ts != current_ts:
 		intermediate_timings.append(end_ts)
 
-	return intermediate_timings
+	return nb_days, intermediate_timings
 
 
 def setupLogLevel():
@@ -280,7 +280,7 @@ def main():
 	# start_ts = pd.Timestamp('2022-05-01 08:12:00')
 	start_ts = pd.Timestamp('2022-05-07 08:16:00')
 	end_ts = pd.Timestamp('2022-05-08 08:16:00')
-	it = getIntermediateTimings(start_ts, end_ts)
+	nb_days, it = getIntermediateTimings(start_ts, end_ts)
 	print(it)
 
 if __name__ == '__main__':
