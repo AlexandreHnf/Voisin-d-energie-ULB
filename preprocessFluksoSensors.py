@@ -55,7 +55,7 @@ def getCompactSensorDF():
 	"""
 	print("Config file : ", FLUKSO_TECHNICAL_FILE)
 	sensors_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Export_InstallationSensors")
-	compact_df = pd.DataFrame(columns=["home_ID",
+	compact_df = pd.DataFrame(columns=["home_id",
 									   "phase",
 									   "flukso_id",
 									   "sensor_id",
@@ -64,7 +64,7 @@ def getCompactSensorDF():
 									   "con",
 									   "pro"])
 
-	compact_df["home_ID"] = sensors_df["InstallationId"]
+	compact_df["home_id"] = sensors_df["InstallationId"]
 	compact_df["phase"] = sensors_df["Function"]
 	compact_df["flukso_id"] = sensors_df["FlmId"]
 	compact_df["sensor_id"] = sensors_df["SensorId"]
@@ -75,7 +75,7 @@ def getCompactSensorDF():
 
 	compact_df.fillna(0, inplace=True)
 
-	compact_df.sort_values(by=["home_ID"])
+	compact_df.sort_values(by=["home_id"])
 
 	return compact_df
 
@@ -122,7 +122,7 @@ def sameSensorsIds(hid, home1_sensors_df, home2_sensors_df):
 	return sid_home1 == sid_home2
 
 
-def getHomesToRecompute(new_config, previous_config):
+def getHomesToRecompute(new_config_df, previous_config):
 	""" 
 	Get the previous configuration and check for each home if 
 	- it has the same sensors ids as the new config
@@ -131,14 +131,10 @@ def getHomesToRecompute(new_config, previous_config):
 	- else : we do not need to recompute the data
 	"""
 
-	# print(new_config)
-
 	homes_modif = []
 	if previous_config is not None:
 		for hid, home1_sensors_df in previous_config.getSensorsConfig().groupby("home_id"):
-			# print("---- {} ----".format(hid))
-			# print(home1_sensors_df)
-			home2_sensors_df = new_config.loc[new_config['home_ID'] == hid]
+			home2_sensors_df = new_config_df.loc[new_config_df['home_id'] == hid]
 
 			# same sensors ids
 			if sameSensorsIds(hid, home1_sensors_df, home2_sensors_df):
@@ -146,25 +142,26 @@ def getHomesToRecompute(new_config, previous_config):
 				if not sameSigns(home1_sensors_df, home2_sensors_df):
 					homes_modif.append(hid)
 
-	print(homes_modif)
-
 	return homes_modif
 
 
-def recomputeData(cassandra_session, new_config):
+def recomputeData(cassandra_session, new_config_df, now):
 	""" 
 	compare new config with all previous config, and determine which data to recompute
 	for each home
 	"""
 
 	all_configs = getAllRegisteredConfigs(cassandra_session)
+	new_config = Configuration(now, new_config_df.set_index("sensor_id"))
 
 	for i in range(len(all_configs)-1, -1, -1):
-		print("config : ", all_configs[i].getConfigID())
-		changed_homes = getHomesToRecompute(new_config, all_configs[i])
+		prev_config_id = all_configs[i].getConfigID()
+		print("config : ", prev_config_id)
+		changed_homes = getHomesToRecompute(new_config_df, all_configs[i])
+		print("homes to recompute : ", changed_homes)
 
 		# recompute those homes
-		cp.recomputePowerData(cassandra_session, all_configs[i], changed_homes)
+		cp.recomputePowerData(cassandra_session, prev_config_id, new_config, changed_homes, now)
 
 
 def writeSensorsConfigCassandra(cassandra_session, new_config_df, now):
@@ -284,7 +281,7 @@ def correctPhaseSigns(sensors_df=None):
 	#     sensors_df = pd.read_csv(COMPACT_SENSOR_FILE)
 
 	for i in range(len(sensors_df)):
-		hid = sensors_df.loc[i, "home_ID"]
+		hid = sensors_df.loc[i, "home_id"]
 		if hid in to_modif:
 			phase = sensors_df.loc[i, "phase"]
 			if ("-" in phase and phase[:-1] in to_modif[hid]) or (phase in to_modif[hid]):
@@ -368,7 +365,7 @@ def createTableAccess(cassandra_session, table_name):
 
 def createRawFluksoTable(cassandra_session, table_name):
 	""" 
-	compact df : home_ID,phase,flukso_id,sensor_id,token,net,con,pro
+	compact df : home_id,phase,flukso_id,sensor_id,token,net,con,pro
 	create a cassandra table for the raw flukso data : 
 		columns : flukso_sensor_id, day, timestamp, insertion_time, config_id, power_value 
 	"""
@@ -414,7 +411,7 @@ def createRawMissingTable(cassandra_session, table_name):
 
 def saveHomeIds(new_config_df):
 	""" 
-	Take the compact df of the form "home_ID,phase,flukso_id,sensor_id,token,net,con,pro"
+	Take the compact df of the form "home_id,phase,flukso_id,sensor_id,token,net,con,pro"
 	and save the ids for each home :
 	[{hid: home_id1, phases: [flukso_id1_phase1, ..., flukso_id1_phaseN]}, 
 	 {hid: home_id2, phases: [...]}, ...}
@@ -477,13 +474,11 @@ def main():
 	
 	elif task == "new_config":
 		# first compare new config with previous configs and recompute data if necessary
-		print("new config : ")
-		# all_configs = getAllRegisteredConfigs(cassandra_session)
-		# previous_config = getLastRegisteredConfig(cassandra_session)
-		# homes_modif = getHomesToRecompute(new_config_df, previous_config)
-		# recomputeData(cassandra_session, new_config_df)
+		print("> Checking for data to recompute... ")
+		recomputeData(cassandra_session, new_config_df, now)
 
 		# > fill config tables using excel configuration file
+		print("> Writing new config in cassandra...")
 		writeSensorsConfigCassandra(cassandra_session, new_config_df, now)
 
 	elif task == "login_config":
