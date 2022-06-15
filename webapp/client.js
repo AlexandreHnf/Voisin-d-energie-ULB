@@ -12,6 +12,7 @@ const domain_name = 'http://localhost:5000';
 
 const HOME_ID = sessionStorage.getItem("username");
 let GRP_IDS = JSON.parse(sessionStorage.getItem('grp_ids'));
+let GRP_captions = {};
 
 // button that allows to confirm a timestamp choice
 var timing_button = document.getElementById("buttonShow"); 
@@ -40,6 +41,7 @@ function activateLoader() {
 function deactivateLoader() {
 	/* 
 	make the loader animation disappear after a certain amount of time
+  -> it simulates the actual loading time of the data arriving in the graphs.
 	*/
 	setTimeout(() =>{
 		document.getElementById("loader").style.display = "none";
@@ -63,6 +65,8 @@ function initFirstQuery() {
   // set active tab : power
 	document.getElementById("groups_tab").click();  // simulates a click
   document.getElementById("power_tab").click();  // simulates a click
+
+  sendCaptionQuery();
 
   // query data of today
   let today = new Date().toISOString().slice(0, 10);  // format (YYYY MM DD)
@@ -119,6 +123,34 @@ function download(){
 		document.body.removeChild(downloadLink);
 	}
 }
+
+
+async function sendCaptionQuery() {
+  /*
+  Send caption query to get captions for each group
+  */
+  const data = {group_ids : GRP_IDS};
+  const options = {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  };
+
+  const response = await fetch('/caption', options);
+  const resdata = await response.json();
+
+  if (resdata != undefined) {
+    console.log(resdata.data.rows);
+    for (let i = 0; i < resdata.data.rows.length; i++) {
+      cap = resdata.data.rows[i];
+      GRP_captions[cap.installation_id] = cap.caption;
+      document.getElementById(`caption${cap.installation_id}`).innerHTML = `${cap.caption}`;
+    }
+  } 
+
+  console.log(GRP_captions);
+
+} 
 
 
 function processDateQuery() {
@@ -185,8 +217,10 @@ function createChartCanvas(col_id, col_name, ids) {
 	*/
   for (var i = 0; i < ids.length; i++) {
     let div = document.createElement("div");
-    div.innerHTML += `<b>${ids[i]}</b>
+    div.innerHTML += `<b>${ids[i]}</b><br>
+                      <p id="caption${ids[i]}"> </p><br>
                       <canvas id="chartCanvas${col_id}_${ids[i]}"></canvas>`;
+              
     document.getElementById(`${col_name}`).appendChild(div);
   }
 	

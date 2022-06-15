@@ -92,7 +92,7 @@ try {
 }
 
 
-const TABLES = {'access': 'access', 'raw': 'raw', 'power': 'power', 'groups': 'power'};
+const TABLES = {'access': 'access', 'raw': 'raw', 'power': 'power', 'groups': 'power', 'group': 'group'};
 
 
 // ========================= FUNCTIONS ==================================
@@ -172,6 +172,29 @@ async function doesClientExist(username, response) {
 }
 
 
+async function queryGroupsCaptions(group_ids, response) {
+  /*
+  Query groups captions for the provided ids
+  */
+  try {
+    let ids_str = ""
+    for (let i = 0; i < group_ids.length; i++) {
+      ids_str += `'${group_ids[i]}'`
+      if (i < group_ids.length-1) {ids_str += ","}
+    }
+    console.log(ids_str);
+    where_clause = `installation_id IN (${ids_str})`;
+    var query = `SELECT * FROM ${CASSANDRA.KEYSPACE}.${TABLES["group"]} WHERE ${where_clause};`
+
+    const result = await client.execute(query, [], { prepare: true });
+    console.log(result.rows)
+
+    response.json({msg: "caption request well received!", data: result});
+  } catch(error) {
+    showError(error, "! Error when querying cassandra data.");
+  }
+}
+
 // ========================================== GET ==========================================
 
 // ======= INDEX =======
@@ -220,7 +243,7 @@ router.post('/doesClientExist', (request, response) => {
 
 router.post('/date', (request, response) => {
   /* 
-  client request flukso data of a specific day
+  client requests flukso data of a specific day
   */
   const date = request.body.date;
   const data_type = request.body.data_type;  // raw or power
@@ -230,6 +253,14 @@ router.post('/date', (request, response) => {
   queryFluksoData(data_type, date, home_id, response);
 });
 
+router.post('/caption', (request, response) => {
+  /*
+  client requests captions for groups
+  */
+ const group_ids = request.body.group_ids;
+ console.log(group_ids);
+  queryGroupsCaptions(group_ids, response);
+});
 
 // =============================================================================================
 

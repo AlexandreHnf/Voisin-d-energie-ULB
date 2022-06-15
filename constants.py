@@ -59,7 +59,7 @@ TBL_GROUPS_CONFIG =                     "groups_config"
 TBL_RAW =                               "raw"
 TBL_RAW_MISSING =                       "raw_missing"
 TBL_POWER =                             "power"
-TBL_GROUPS_POWER =                      "groups_power"
+TBL_GROUP =                             "group"
 
 
 # ============================= SERVER ======================================
