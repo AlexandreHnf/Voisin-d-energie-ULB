@@ -303,6 +303,22 @@ def correctPhaseSigns(sensors_df=None):
 	return sensors_df
 
 
+def getInstallationCaptions():
+	""" 
+	get a dictionary with
+	key : installation id (login id = home id) => generally a group
+	value : caption, description
+	"""
+	captions_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="InstallationCaptions")
+	captions = {}
+	for i in captions_df.index:
+		captions[captions_df.iloc[i]["InstallationId"]] = captions_df.iloc[i]["Caption"]
+
+	print(captions)
+	
+	return captions
+
+
 def writeAccessDataCassandra(cassandra_session, table_name):
 	""" 
 	write access data to cassandra (login ids)
@@ -316,8 +332,25 @@ def writeAccessDataCassandra(cassandra_session, table_name):
 		values = [login_id, list(installation_ids["InstallationId"])]
 		ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 
-	print("Successfully inserted sensors config in table : {}".format(table_name))
+	print("Successfully inserted access data in table : {}".format(table_name))
 
+
+def writeGroupCaptionsToCassandra(cassandra_session, table_name):
+	""" 
+	write groups (installation ids) with their captions
+	"""
+	captions = getInstallationCaptions()
+
+	col_names = ["installation_id", "caption"]
+
+	for installation_id, caption in captions.items():
+		caption = caption.replace("'", "''")
+		print(caption)
+		values = [installation_id, caption]
+
+		ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
+	
+	print("Successfully inserted group captions in table : {}".format(table_name))
 
 
 # ==========================================================================
@@ -359,8 +392,19 @@ def createTableAccess(cassandra_session, table_name):
 	access, installations
 	"""
 	cols = ["login TEXT", 
-			"installations LIST<TEXT>"]
+			"installations LIST<TEXT>",
+			"caption TEXT"]
 	ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, ["login"], [], {})
+
+
+def createTableGroup(cassandra_session, table_name):
+	""" 
+	create a table for the groups captions
+	installation_id, caption
+	"""
+	cols = ["installation_id TEXT",
+			"caption TEXT"]
+	ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, ["installation_id"], [], {})
 
 
 def createRawFluksoTable(cassandra_session, table_name):
@@ -471,6 +515,8 @@ def main():
 			createPowerTable(cassandra_session, "power")						# power
 		elif table_name == "raw_missing":
 			createRawMissingTable(cassandra_session, "raw_missing")				# raw_missing
+		elif table_name == "group":
+			createTableGroup(cassandra_session, "group")
 	
 	elif task == "new_config":
 		# first compare new config with previous configs and recompute data if necessary
@@ -482,7 +528,10 @@ def main():
 		writeSensorsConfigCassandra(cassandra_session, new_config_df, now)
 
 	elif task == "login_config":
-		writeAccessDataCassandra(cassandra_session, TBL_ACCESS)
+		writeAccessDataCassandra(cassandra_session, "access")
+	
+	elif task == "group_captions":
+		writeGroupCaptionsToCassandra(cassandra_session, "group")
 
 
 if __name__ == "__main__":
