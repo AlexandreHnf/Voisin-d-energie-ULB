@@ -216,7 +216,35 @@ function createChartCanvas(col_id, col_name, ids) {
     let div = document.createElement("div");
     div.innerHTML += `<b>${ids[i]}</b><br>
                       <p id="caption${ids[i]}"> </p><br>
-                      <canvas id="chartCanvas${col_id}_${ids[i]}"></canvas>`;
+                      <canvas id="chartCanvas${col_id}_${ids[i]}"></canvas>
+											
+											<div class="alert alert-secondary" role="alert">
+
+											<!-- Stats table with total injection and total taking (Prelevement) -->
+											<h3>Energies</h3>
+											<p>Energies totales de la journée</p>         
+											<table id=stat_table${col_id}_${ids[i]} class="table table-striped">
+												<thead>
+													<tr>
+														<th>Installation ID</th>
+														<th>Consommation (kWh)</th>
+														<th>Production (kWh)</th>
+														<th>Injection - P_tot < 0 (kWh)</th>
+														<th>Prelevement - P_tot > 0 (kWh)</th>
+													</tr>
+												</thead>
+												<tbody>
+													<tr>
+														<td></td>
+														<td></td>
+														<td></td>
+														<td></td>
+														<td></td>
+													</tr>
+												</tbody>
+											</table>
+										</div>
+										`;
               
     document.getElementById(`${col_name}`).appendChild(div);
   }
@@ -403,7 +431,7 @@ function createChartPowers(powers_data, col_id, home_id) {
   }
   charts_powers.day[home_id].update();
 	deactivateLoader();
-	updateStatsTable(powers_data, totals, "stat_table" + col_id);
+	updateStatsTable(powers_data, totals, `stat_table${col_id}_${home_id}`, home_id);
 }
 
 function getEnergy(powers_data, tot_power) {
@@ -432,9 +460,9 @@ function getEnergy(powers_data, tot_power) {
 }
 
 
-function updateStatsTable(powers_data, totals, table_name) {
+function updateStatsTable(powers_data, totals, table_name, home_id) {
 	console.log(totals);
-	document.getElementById(table_name).rows[1].cells[0].innerHTML = HOME_ID;
+	document.getElementById(table_name).rows[1].cells[0].innerHTML = home_id;
 	document.getElementById(table_name).rows[1].cells[1].innerHTML = getEnergy(powers_data, totals.p_cons_tot);
 	document.getElementById(table_name).rows[1].cells[2].innerHTML = getEnergy(powers_data, totals.p_prod_tot);
 	document.getElementById(table_name).rows[1].cells[3].innerHTML = getEnergy(powers_data, totals.p_inj_tot);
