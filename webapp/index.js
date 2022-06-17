@@ -53,7 +53,7 @@ function validateLoginForm() {
 	/* 
 	check if the provided username is valid (is in the system or not)
 	*/
-    var username = document.getElementById("uname").value;
+    var username = document.getElementById("uname").value.toUpperCase();
 
     sendUsername(username);
     

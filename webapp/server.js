@@ -182,12 +182,10 @@ async function queryGroupsCaptions(group_ids, response) {
       ids_str += `'${group_ids[i]}'`
       if (i < group_ids.length-1) {ids_str += ","}
     }
-    console.log(ids_str);
     where_clause = `installation_id IN (${ids_str})`;
     var query = `SELECT * FROM ${CASSANDRA.KEYSPACE}.${TABLES["group"]} WHERE ${where_clause};`
 
     const result = await client.execute(query, [], { prepare: true });
-    console.log(result.rows)
 
     response.json({msg: "caption request well received!", data: result});
   } catch(error) {
@@ -236,7 +234,7 @@ router.post('/doesClientExist', (request, response) => {
   /* 
   request from client => client wants to login
   */ 
-  const username = request.body.username.toUpperCase();
+  const username = request.body.username;
 
   doesClientExist(username, response);
 });

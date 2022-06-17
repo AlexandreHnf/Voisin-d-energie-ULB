@@ -313,8 +313,6 @@ def getInstallationCaptions():
 	captions = {}
 	for i in captions_df.index:
 		captions[captions_df.iloc[i]["InstallationId"]] = captions_df.iloc[i]["Caption"]
-
-	print(captions)
 	
 	return captions
 
@@ -345,7 +343,6 @@ def writeGroupCaptionsToCassandra(cassandra_session, table_name):
 
 	for installation_id, caption in captions.items():
 		caption = caption.replace("'", "''")
-		print(caption)
 		values = [installation_id, caption]
 
 		ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)

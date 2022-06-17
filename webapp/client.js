@@ -140,15 +140,12 @@ async function sendCaptionQuery() {
   const resdata = await response.json();
 
   if (resdata != undefined) {
-    console.log(resdata.data.rows);
     for (let i = 0; i < resdata.data.rows.length; i++) {
       cap = resdata.data.rows[i];
       GRP_captions[cap.installation_id] = cap.caption;
       document.getElementById(`caption${cap.installation_id}`).innerHTML = `${cap.caption}`;
     }
   } 
-
-  console.log(GRP_captions);
 
 } 
 
