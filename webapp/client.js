@@ -376,6 +376,7 @@ function createChartPowers(powers_data, col_id, home_id) {
   initChart(charts_powers, col_id, home_id);
 
   data = []
+  totals = {p_cons_tot: 0, p_prod_tot: 0, p_inj_tot: 0, p_pre_tot: 0}
   for (let i = 0; i < powers_data.length; i++) {
     let row = powers_data[i];
     let ts = row.ts.slice(0, -5);
@@ -384,19 +385,33 @@ function createChartPowers(powers_data, col_id, home_id) {
     charts_powers.day[home_id].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
     charts_powers.day[home_id].data.datasets[2].data.push({x: ts, p_tot: row["p_tot"]});
 
-		let prelevement = 0;
-		let injection = 0;
-		if (row["p_tot"] > 0) {
-			prelevement = row["p_tot"];
-		} else if (row["p_tot"] < 0) {
-			injection = row["p_tot"];
-		}
-		charts_powers.day[home_id].data.datasets[3].data.push({x: ts, pre: prelevement});
-		charts_powers.day[home_id].data.datasets[4].data.push({x: ts, inj: injection});
+	let prelevement = 0;
+	let injection = 0;
+	if (row["p_tot"] > 0) {
+		prelevement = row["p_tot"];
+	} else if (row["p_tot"] < 0) {
+		injection = row["p_tot"];
+	}
+	charts_powers.day[home_id].data.datasets[3].data.push({x: ts, pre: prelevement});
+	charts_powers.day[home_id].data.datasets[4].data.push({x: ts, inj: injection});
+
+	totals.p_cons_tot += row["p_cons"];
+	totals.p_prod_tot += row["p_prod"];
+	totals.p_inj_tot += injection;
+	totals.p_pre_tot += prelevement;
 
   }
   charts_powers.day[home_id].update();
 	deactivateLoader();
+	updateStatsTable(totals);
+}
+
+function updateStatsTable(totals) {
+	console.log(totals);
+	document.getElementById("stat_table").rows[1].cells[0].innerHTML = totals.p_cons_tot;
+	document.getElementById("stat_table").rows[1].cells[1].innerHTML = Math.abs(totals.p_prod_tot);
+	document.getElementById("stat_table").rows[1].cells[2].innerHTML = Math.abs(totals.p_inj_tot);
+	document.getElementById("stat_table").rows[1].cells[3].innerHTML = totals.p_pre_tot;
 }
 
 

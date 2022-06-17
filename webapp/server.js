@@ -255,8 +255,7 @@ router.post('/caption', (request, response) => {
   /*
   client requests captions for groups
   */
- const group_ids = request.body.group_ids;
- console.log(group_ids);
+  const group_ids = request.body.group_ids;
   queryGroupsCaptions(group_ids, response);
 });
 
