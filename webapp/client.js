@@ -403,15 +403,42 @@ function createChartPowers(powers_data, col_id, home_id) {
   }
   charts_powers.day[home_id].update();
 	deactivateLoader();
-	updateStatsTable(totals);
+	updateStatsTable(powers_data, totals, "stat_table" + col_id);
 }
 
-function updateStatsTable(totals) {
+function getEnergy(powers_data, tot_power) {
+	/*
+	from the total power value, compute the total energy
+	given a certain number of data points and timestamps
+	Energy : volume under the curve
+	*/
+
+	let N = powers_data.length;  // number of data points
+	let T = 0										 // number of hours 
+	if (N > 0) {
+		first_ts = new Date(powers_data[0].ts.slice(0, -5))
+		last_ts = new Date(powers_data[N-1].ts.slice(0, -5))
+		T = Math.abs(last_ts - first_ts) / 36e5;
+	}
+	// first compute the mean :
+	let P_mean = Math.abs(tot_power) / N;
+	Q_tot = (P_mean / 1000) * T;  // divided by 1000 to convert to KWh
+	// console.log("N : " + N)
+	// console.log("T : " + T)
+	// console.log("P_mean : " + P_mean)
+	// console.log("Q_tot : " + Q_tot)
+
+	return Q_tot;
+}
+
+
+function updateStatsTable(powers_data, totals, table_name) {
 	console.log(totals);
-	document.getElementById("stat_table").rows[1].cells[0].innerHTML = totals.p_cons_tot;
-	document.getElementById("stat_table").rows[1].cells[1].innerHTML = Math.abs(totals.p_prod_tot);
-	document.getElementById("stat_table").rows[1].cells[2].innerHTML = Math.abs(totals.p_inj_tot);
-	document.getElementById("stat_table").rows[1].cells[3].innerHTML = totals.p_pre_tot;
+	document.getElementById(table_name).rows[1].cells[0].innerHTML = HOME_ID;
+	document.getElementById(table_name).rows[1].cells[1].innerHTML = getEnergy(powers_data, totals.p_cons_tot);
+	document.getElementById(table_name).rows[1].cells[2].innerHTML = getEnergy(powers_data, totals.p_prod_tot);
+	document.getElementById(table_name).rows[1].cells[3].innerHTML = getEnergy(powers_data, totals.p_inj_tot);
+	document.getElementById(table_name).rows[1].cells[4].innerHTML = getEnergy(powers_data, totals.p_pre_tot);
 }
 
 
