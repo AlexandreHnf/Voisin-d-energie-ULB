@@ -1,0 +1,11 @@
+[Unit]
+Description=Backend service - alert for missing data
+After=multi-user.target
+
+[Service]
+Type=simple
+Restart=no
+ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/alerts.py" --m missing
+
+[Install]
+WantedBy=multi-user.target

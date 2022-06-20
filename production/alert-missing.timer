@@ -1,0 +1,10 @@
+
+[Unit]
+Description=Backend - timer - alert for incorrect signs
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1week
+
+[Install]
+WantedBy=timers.target

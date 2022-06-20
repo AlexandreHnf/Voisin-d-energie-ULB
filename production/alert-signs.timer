@@ -1,0 +1,10 @@
+
+[Unit]
+Description=Backend - timer - alert for missing data
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=24hours
+
+[Install]
+WantedBy=timers.target
