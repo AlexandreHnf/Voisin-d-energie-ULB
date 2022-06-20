@@ -54,6 +54,7 @@ def checkMissing2(cassandra_session, sensor_id, table_name):
     If the number of missing rows exceeds a certain threshold, then we send an alert by mail
     ex : 24 hours of missing data
     Assumption : we take the last configuration into consideration
+    Obsolete : too specific with sensor ids, doesn't apply to a whole home. 
     """
     alert = False 
     where_clause = "sensor_id = '{}'".format(sensor_id)
@@ -88,6 +89,7 @@ def checkSigns(cassandra_session, home_id, date, table_name):
     """
     home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name)
 
+    # TODO : third condition : using config
     status = {"ok": True, "cons_neg": False, "prod_pos": False}
     if len(home_df) > 0:
         status["cons_neg"] = (home_df["p_cons"] < 0).any()
@@ -98,51 +100,92 @@ def checkSigns(cassandra_session, home_id, date, table_name):
     return status
 
 
-def processAllHomes(cassandra_session, config, now):
+def getHomesWithMissingData(cassandra_session, config, yesterday):
     """ 
-    
+    For each home, check if power data has a lot of missing data, 
+    if the percentage of missing data is non negligeable, we send an alert by email
     """
     MISSING_ALERT_THRESHOLD = 1
     to_alert = {}
     ids = config.getIds()
     for home_id, sensor_ids in ids.items():
-        print(home_id)
-        nb_zeros, tot_len = checkMissing(cassandra_session, home_id, "2022-06-14", TBL_POWER)
+        # print(home_id)
+        nb_zeros, tot_len = checkMissing(cassandra_session, home_id, yesterday, TBL_POWER)
 
         percentage = 0
         if nb_zeros > 0:
             percentage = (100 * nb_zeros) / tot_len
-        print("nb 0 : {}, tot len : {}, {}%".format(nb_zeros, tot_len, percentage))
+        # print("nb 0 : {}, tot len : {}, {}%".format(nb_zeros, tot_len, percentage))
         if percentage >= MISSING_ALERT_THRESHOLD:  # if at least 80% of the rows are 0s, then alert
             to_alert[home_id] = percentage 
     
     print(to_alert)
+    return to_alert
 
 
-def processAllHomes2(cassandra_session, config):
+def getHomesWithIncorrectSigns(cassandra_session, config, yesterday):
     """ 
-    
+    For each home, we check if power data are correct w.r.t the signs
+    If some signs are incorrect, we send an alert by email
     """
     to_alert = {}
     ids = config.getIds()
     for home_id, sensor_ids in ids.items():
-        print(home_id)
-        status = checkSigns(cassandra_session, home_id, "2022-06-14", TBL_POWER)
-        print(status)
+        # print(home_id)
+        status = checkSigns(cassandra_session, home_id, yesterday, TBL_POWER)
+        # print(status)
         if not status["ok"]:
             to_alert[home_id] = status
 
     print(to_alert)
+    return to_alert
+
+
+def getYesterday(now):
+    """ 
+    Given the timestamp of today, get the previous day's date.
+    -> YYYY-MM-DD
+    """
+
+    yesterday = now.date()-timedelta(days=1)
+
+    return yesterday
+
+
+def processArguments():
+	"""
+	process arguments 
+	argument : sftp config filename
+		-> contains host, port, username, password and destination path
+	"""
+	argparser = argparse.ArgumentParser(
+		description=__doc__,
+		formatter_class=argparse.RawDescriptionHelpFormatter,
+	)
+	argparser.add_argument("--m", type=str, default="missing",
+						   help="sftp config file")
+
+	return argparser
 
 
 def main():
+
+    argparser = processArguments()
+    args = argparser.parse_args()
+    mode = args.m
+
     cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
     last_config = getLastRegisteredConfig(cassandra_session)
     now = pd.Timestamp.now()
-    # processAllHomes(cassandra_session, last_config, now)
+    # yesterday = getYesterday(now)  # TODO : handle multiple past dates
+    yesterday = "2022-06-14"
+    print("yesterday : ", yesterday)
 
-    processAllHomes2(cassandra_session, last_config)
+    if mode == "missing":
+        to_alert = getHomesWithMissingData(cassandra_session, last_config, yesterday)
+    elif mode == "sign":
+        to_alert = getHomesWithIncorrectSigns(cassandra_session, last_config, yesterday)
 
 
 if __name__ == "__main__":
