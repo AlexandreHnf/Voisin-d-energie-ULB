@@ -451,17 +451,13 @@ function getEnergy(powers_data, tot_power) {
 	// first compute the mean :
 	let P_mean = Math.abs(tot_power) / N;
 	Q_tot = (P_mean / 1000) * T;  // divided by 1000 to convert to KWh
-	// console.log("N : " + N)
-	// console.log("T : " + T)
-	// console.log("P_mean : " + P_mean)
-	// console.log("Q_tot : " + Q_tot)
 
 	return Q_tot;
 }
 
 
 function updateStatsTable(powers_data, totals, table_name, home_id) {
-	console.log(totals);
+
 	document.getElementById(table_name).rows[1].cells[0].innerHTML = home_id;
 	document.getElementById(table_name).rows[1].cells[1].innerHTML = getEnergy(powers_data, totals.p_cons_tot);
 	document.getElementById(table_name).rows[1].cells[2].innerHTML = getEnergy(powers_data, totals.p_prod_tot);

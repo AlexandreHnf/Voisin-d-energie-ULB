@@ -38,7 +38,7 @@ LAST_TS_DAYS =                          2  # days
 # "since" default value for the earliest timestamp of a flukso
 # normally since = 0, but for testing, we put since = 4min
 FROM_FIRST_TS_STATUS = 					"local"
-FROM_FIRST_TS =                         "4min" 
+FROM_FIRST_TS =                         "2days" 
 
 # nb lines to insert per batch insert when inserting in cassandra table
 INSERTS_PER_BATCH =                     11000
@@ -54,8 +54,7 @@ CASSANDRA_KEYSPACE =                    "flukso"
 
 # cassandra tables names
 TBL_ACCESS =                            "access"
-TBL_SENSORS_CONFIG =                    "sensors_config2"
-TBL_GROUPS_CONFIG =                     "groups_config"
+TBL_SENSORS_CONFIG =                    "sensors_config"
 TBL_RAW =                               "raw"
 TBL_RAW_MISSING =                       "raw_missing"
 TBL_POWER =                             "power"

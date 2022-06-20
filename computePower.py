@@ -225,6 +225,7 @@ def recomputePowerData(cassandra_session, prev_config_id, new_config, homes, now
 		# then, for each day, recompute data and store it in the database (overwrite existing data)
 		for date in all_dates:
 
+			print(date)
 			# get raw data from previous config
 			home_rawdata = getHomeRawData(cassandra_session, sensors_df, date, prev_config_id)
 
@@ -233,7 +234,7 @@ def recomputePowerData(cassandra_session, prev_config_id, new_config, homes, now
 
 			# save (overwrite) to cassandra table  # TODO : change to 'power'
 			if len(home_powers) > 0:
-				saveRecomputedPowersToCassandra(cassandra_session, prev_config_id, home_powers, "power2")
+				saveRecomputedPowersToCassandra(cassandra_session, prev_config_id, home_powers, "power")
 
 
 # ====================================================================================
