@@ -340,7 +340,7 @@ def main():
 	sftp_info = getSftpInfo(sftp_info_filename)
 	sftp_session = getSFTPsession(sftp_info)
 
-	config = getLastRegisteredConfig(cassandra_session, TBL_SENSORS_CONFIG) # TODO : tester avec 2-3 configs
+	config = getLastRegisteredConfig(cassandra_session, TBL_SENSORS_CONFIG)
 
 	now = pd.Timestamp.now()
 	default_date, moment, moment_now = getdateToQuery(now)
