@@ -1,9 +1,15 @@
 """ 
+Author : Alexandre Heneffe
 
+Script to trigger an alert whenever something went wrong in the power data
+- Every X time, we query the Cassandra database (power table) and we check
+    - if there is no data arriving since a certain amount of time
+    - if some signs are incorrect/incoherent 
+        - if we see negative consumption values
+        - if we see positive production values
+        - if we see photovoltaic values during the night
 """
 
-from concurrent.futures import process
-from turtle import home
 from constants import *
 import pyToCassandra as ptc
 from utils import *
@@ -12,9 +18,21 @@ from sensorConfig import Configuration
 import logging
 import pandas as pd
 from datetime import timedelta
-import json
-import os
 import argparse
+
+
+def getMailText(problem_title, legend, to_alert, date):
+    """ 
+    create a alert txt with specific details (to send a mail)
+    """
+    txt = "- Alert - {} \n".format(problem_title)
+    txt += "- Legend : {} \n".format(legend)
+    txt += "- Date : " + date
+    txt += "------------------------------------------------------"
+    for hid, values in to_alert.items():
+        txt += "{} > {}\n".format(hid, values)
+    
+    return txt 
 
 
 def getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name):
@@ -25,7 +43,7 @@ def getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name):
 	"""
 
 	where_clause = "home_id = {} and day = '{}'".format("'"+home_id+"'", date)
-	cols = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot"]
+	cols = ["home_id", "day", "ts", "config_id", "p_cons", "p_prod", "p_tot"]
 	home_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, where_clause, "ALLOW FILTERING", "")
 
 	return home_df
@@ -90,14 +108,21 @@ def checkSigns(cassandra_session, home_id, date, table_name):
     home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name)
 
     # TODO : third condition : using config
-    status = {"ok": True, "cons_neg": False, "prod_pos": False}
+    ok = True
+    info = {}
     if len(home_df) > 0:
-        status["cons_neg"] = (home_df["p_cons"] < 0).any()
-        status["prod_pos"] = (home_df["p_prod"] > 0).any()
-        if status["cons_neg"] or status["prod_pos"]:
-            status["ok"] = False
+        for config_id, power_df in home_df.groupby("config_id"):
+            # print(power_df.head(1))
+            cons_neg = (power_df["p_cons"] < 0).any()
+            prod_pos = (power_df["p_prod"] > 0).any()
+            
+            if cons_neg or prod_pos:
+                # print("cons_neg : {}, prod_pos : {}".format(cons_neg, prod_pos))
+                ok = False
+                info[str(config_id)] = {"cons_neg": cons_neg, "prod_pos": prod_pos}
 
-    return status
+    # print(info)
+    return ok, info
 
 
 def getHomesWithMissingData(cassandra_session, config, yesterday):
@@ -119,7 +144,7 @@ def getHomesWithMissingData(cassandra_session, config, yesterday):
         if percentage >= MISSING_ALERT_THRESHOLD:  # if at least 80% of the rows are 0s, then alert
             to_alert[home_id] = percentage 
     
-    print(to_alert)
+    # print(to_alert)
     return to_alert
 
 
@@ -130,14 +155,12 @@ def getHomesWithIncorrectSigns(cassandra_session, config, yesterday):
     """
     to_alert = {}
     ids = config.getIds()
-    for home_id, sensor_ids in ids.items():
+    for home_id in ids.keys():
         # print(home_id)
-        status = checkSigns(cassandra_session, home_id, yesterday, TBL_POWER)
-        # print(status)
-        if not status["ok"]:
-            to_alert[home_id] = status
+        ok, info = checkSigns(cassandra_session, home_id, yesterday, TBL_POWER)
+        if not ok:
+            to_alert[home_id] = info
 
-    print(to_alert)
     return to_alert
 
 
@@ -184,8 +207,16 @@ def main():
 
     if mode == "missing":
         to_alert = getHomesWithMissingData(cassandra_session, last_config, yesterday)
+        legend = "{'home id': percentage of missing data for 1 day, ...}"
+        txt = getMailText("There is missing data", legend, to_alert, yesterday)
+        print(txt)
     elif mode == "sign":
         to_alert = getHomesWithIncorrectSigns(cassandra_session, last_config, yesterday)
+        legend = "{'home id ': {'config id : ': {'cons_neg = is there any negative consumption values ?', \
+                                    'prod_pos = is there any positive production values ?'}...}...}"
+        txt = getMailText("There are incorrect signs", legend, to_alert, yesterday)
+        print(txt)
+
 
 
 if __name__ == "__main__":
