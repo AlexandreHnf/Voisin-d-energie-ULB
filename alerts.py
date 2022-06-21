@@ -187,15 +187,15 @@ def getYesterday(now):
 def processArguments():
 	"""
 	process arguments 
-	argument : sftp config filename
-		-> contains host, port, username, password and destination path
+	argument : what to monitor : missing data or signs
 	"""
 	argparser = argparse.ArgumentParser(
 		description=__doc__,
 		formatter_class=argparse.RawDescriptionHelpFormatter,
 	)
 	argparser.add_argument("--m", type=str, default="missing",
-						   help="sftp config file")
+						   help="missing : send alert when too much missing data; "
+                                "sign : send alert when incorrect signs")
 
 	return argparser
 

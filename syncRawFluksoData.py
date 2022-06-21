@@ -527,17 +527,16 @@ def showProcessingTimes(configs, begin, setup_time, config_timers):
 
 def processArguments():
 	"""
-	# 29-10-2021 from Midnight to midnight :
-	# --since s2021-10-29-00-00-00 --to s2021-10-30-00-00-00
-	# 17-12-2021 from Midnight to midnight :
-	# --since s2021-12-17-00-00-00 --to s2021-12-18-00-00-00
+	process arguments 
+	argument : manual or automatic
+	TODO : refactor manual mode or remove it, because it is obsolete now
 	"""
 	argparser = argparse.ArgumentParser(
 		description=__doc__,
 		formatter_class=argparse.RawDescriptionHelpFormatter,
 	)
 	argparser.add_argument("--mode", type=str, default="manual",
-						   help="Manual : set --since --to parameters"
+						   help="Manual : set --since --to parameters; "
 								"Automatic : no parameters to provide")
 
 	argparser.add_argument("--since",

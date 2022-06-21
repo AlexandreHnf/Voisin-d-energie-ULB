@@ -150,6 +150,22 @@ List of packages to install (Ubuntu) :
 ## Usage
 
 
+### 
+
+syncRawFluksoData.py --mode automatic
+
+preprocessFluksoSensors.py 
+    create_table + table_name (access, sensors_config, raw, power, raw_missing, group)
+    new_config 
+    login_config
+    group_captions
+
+alerts.py --m 
+    missing
+    sign
+
+
+
 _For more examples, please refer to the [Documentation](https://example.com)_
 
 <p align="right">(<a href="#top">back to top</a>)</p>

@@ -8,6 +8,7 @@ import computePower as cp
 import json
 import sys
 from utils import * 
+import argparse
 
 
 # ==========================================================================
@@ -487,9 +488,31 @@ def saveGroupsIds():
 
 # ==========================================================================
 
+def processArguments():
+
+	argparser = argparse.ArgumentParser(
+		description=__doc__,
+		formatter_class=argparse.RawDescriptionHelpFormatter,
+	)
+
+	argparser.add_argument("--table_name", type=str, default="",
+						   help="access, sensors_config, raw, power, raw_missing, group")
+
+	argparser.add_argument("--task", type=str, default="new_config",
+						   help="create_table : create new table in cassandra : requires --table_name; "
+						   		"new_config : write new config to cassandra; "
+                                "login_config : write login info to cassandra; "
+								"group_captions : write group captions to cassandra; ")
+
+	return argparser
+
 
 def main():
-	task = sys.argv[1]
+	# > arguments
+	argparser = processArguments()
+	args = argparser.parse_args()
+	task = args.task
+	table_name = args.table_name
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
@@ -500,7 +523,6 @@ def main():
 	now = pd.Timestamp.now()
 
 	if task == "create_table":
-		table_name = sys.argv[2]
 		# > create cassandra tables
 		if table_name == "access":
 			createTableAccess(cassandra_session, "access") 						# access
