@@ -213,6 +213,11 @@ app.get('/client.html', (req, res) => {        //get requests to the root ("/") 
                                                       //the .sendFile method needs the absolute path to the file, see: https://expressjs.com/en/4x/api.html#res.sendFile 
 });
 
+app.get('/cabine.html', (req, res) => {        //get requests to the root ("/") will route here
+  res.sendFile('cabine.html', {root: __dirname});      //server responds by sending the client.html file to the client's browser
+                                                      //the .sendFile method needs the absolute path to the file, see: https://expressjs.com/en/4x/api.html#res.sendFile 
+});
+
 app.get('/client.js', function(req, res) {
   res.sendFile('/client.js', {root: __dirname});
 });

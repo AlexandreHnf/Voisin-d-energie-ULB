@@ -525,9 +525,11 @@ def main():
 		writeSensorsConfigCassandra(cassandra_session, new_config_df, now)
 
 	elif task == "login_config":
+		# write login and group ids to 'access' cassandra table
 		writeAccessDataCassandra(cassandra_session, "access")
 	
 	elif task == "group_captions":
+		# write group captions to 'group' cassandra table 
 		writeGroupCaptionsToCassandra(cassandra_session, "group")
 
 
