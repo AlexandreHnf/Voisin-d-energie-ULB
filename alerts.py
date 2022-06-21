@@ -20,6 +20,10 @@ import pandas as pd
 from datetime import timedelta
 import argparse
 
+# from google.oauth2 import service_account
+# from goggleapiclient.discovery import build
+
+
 
 def getMailText(problem_title, legend, to_alert, date):
     """ 
@@ -27,12 +31,17 @@ def getMailText(problem_title, legend, to_alert, date):
     """
     txt = "- Alert - {} \n".format(problem_title)
     txt += "- Legend : {} \n".format(legend)
-    txt += "- Date : " + date
-    txt += "------------------------------------------------------"
+    txt += "- Date : {} \n".format(date)
+    txt += "------------------------------------------------------\n"
     for hid, values in to_alert.items():
         txt += "{} > {}\n".format(hid, values)
     
     return txt 
+
+
+def sendMail():
+
+    pass 
 
 
 def getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name):
@@ -216,6 +225,8 @@ def main():
                                     'prod_pos = is there any positive production values ?'}...}...}"
         txt = getMailText("There are incorrect signs", legend, to_alert, yesterday)
         print(txt)
+
+    sendMail()
 
 
 

@@ -452,6 +452,10 @@ function getEnergy(powers_data, tot_power) {
 	let P_mean = Math.abs(tot_power) / N;
 	Q_tot = (P_mean / 1000) * T;  // divided by 1000 to convert to KWh
 
+  if (isNaN(Q_tot)) {
+    Q_tot = 0;
+  }
+
 	return Q_tot;
 }
 
