@@ -1,3 +1,9 @@
+__title__ = "sensorConfig"
+__version__ = "0.0.1"
+__author__ = "Alexandre Heneffe"
+__license__ = "MIT"
+__copyright__ = "Copyright 2022 Alexandre Heneffe"
+
 
 class Configuration:
     def __init__(self, config_id, sconfig_df):

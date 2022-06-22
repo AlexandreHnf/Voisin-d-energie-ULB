@@ -1,6 +1,10 @@
-""" 
-Author : Alexandre Heneffe
+__title__ = "alerts"
+__version__ = "0.0.1"
+__author__ = "Alexandre Heneffe"
+__license__ = "MIT"
+__copyright__ = "Copyright 2022 Alexandre Heneffe"
 
+"""
 Script to trigger an alert whenever something went wrong in the power data
 - Every X time, we query the Cassandra database (power table) and we check
     - if there is no data arriving since a certain amount of time

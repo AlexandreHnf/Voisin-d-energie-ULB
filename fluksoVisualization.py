@@ -1,8 +1,11 @@
-"""
-Authors :
-    - Guillaume Levasseur
-    - Alexandre Heneffe
+__title__ = "fluksoVisualization"
+__version__ = "0.0.1"
+__author__ = "Guillaume Levasseur, Alexandre Heneffe"
+__license__ = "MIT"
+__copyright__ = "Copyright 2022 Alexandre Heneffe"
 
+
+"""
 Script to fetch Fluksometer data using the tmpo protocol and
     - export it as a CSV file.
     - visualize it (time series)

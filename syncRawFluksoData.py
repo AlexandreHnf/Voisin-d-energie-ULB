@@ -1,6 +1,11 @@
-""" 
-Author : Alexandre Heneffe
+__title__ = "syncRawFluksoData"
+__version__ = "0.0.1"
+__author__ = "Alexandre Heneffe"
+__license__ = "MIT"
+__copyright__ = "Copyright 2022 Alexandre Heneffe"
 
+
+"""
 Script to fetch Fluksometer data using the tmpo protocol and 
 - format it into tables of time series
 - save the raw data in Cassandra database

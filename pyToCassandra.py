@@ -1,3 +1,10 @@
+__title__ = "pyToCassandra"
+__version__ = "0.0.1"
+__author__ = "Alexandre Heneffe"
+__license__ = "MIT"
+__copyright__ = "Copyright 2022 Alexandre Heneffe"
+
+
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
 import pandas as pd

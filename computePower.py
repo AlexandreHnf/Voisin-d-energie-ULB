@@ -1,3 +1,9 @@
+__title__ = "computePower"
+__version__ = "0.0.1"
+__author__ = "Alexandre Heneffe"
+__license__ = "MIT"
+__copyright__ = "Copyright 2022 Alexandre Heneffe"
+
 from constants import *
 import pyToCassandra as ptc
 from utils import *
