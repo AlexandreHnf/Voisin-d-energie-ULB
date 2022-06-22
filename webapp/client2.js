@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2022 Alexandre Heneffe
+ * License : MIT
+ *
+ */
+
 const socket = io('http://localhost:5000');
 const HOME_ID = sessionStorage.getItem("username")
 

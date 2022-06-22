@@ -1,7 +1,8 @@
-/* 
-Flukso interface - Server
-Author : Alexandre Heneffe.
-*/
+/**
+ * Copyright (c) 2022 Alexandre Heneffe
+ * License : MIT
+ * Flukso interface - Server
+ */
 
 var fs = require('fs') // get fs module for creating write streams
 var assert = require('assert');

@@ -1,7 +1,9 @@
-/* 
-index.js -> login page
-author : Alexandre Heneffe. 
-*/
+/**
+ * Copyright (c) 2022 Alexandre Heneffe
+ * License : MIT
+ * index.js -> login page
+ */
+
 
 var login_button = document.getElementById("submit");
 var already_exist = false;

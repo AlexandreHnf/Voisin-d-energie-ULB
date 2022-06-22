@@ -1,7 +1,8 @@
-/* 
-Client.js -> main page
-author : Alexandre Heneffe. 
-*/
+/**
+ * Copyright (c) 2022 Alexandre Heneffe
+ * License : MIT
+ * Client.js -> main page
+ */
 
 
 // ============================== VARIABLES =================================
