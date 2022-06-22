@@ -149,8 +149,24 @@ List of packages to install (Ubuntu) :
 <!-- USAGE EXAMPLES -->
 ## Usage
 
+In this section, we describe how to use the different scripts and with the right arguments.
 
-### 
+### Prerequisite
+1. First, start Cassandra service
+   ```sh
+   sudo service cassandra start
+   ``` 
+2. Start cqlsh and enter the 'flukso' keyspace
+   ```sh
+   cqlsh
+   use flukso;
+   ```
+3. execute any script using the instructions below : 
+
+### Scripts
+
+Here are the list of all the executable scripts aswell as their arguments : 
+
 
 syncRawFluksoData.py --mode automatic
 

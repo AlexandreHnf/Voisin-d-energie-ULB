@@ -193,7 +193,7 @@ def processArguments():
 		description=__doc__,
 		formatter_class=argparse.RawDescriptionHelpFormatter,
 	)
-	argparser.add_argument("--m", type=str, default="missing",
+	argparser.add_argument("--mode", type=str, default="missing",
 						   help="missing : send alert when too much missing data; "
                                 "sign : send alert when incorrect signs")
 
@@ -204,7 +204,7 @@ def main():
 
     argparser = processArguments()
     args = argparser.parse_args()
-    mode = args.m
+    mode = args.mode
 
     cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
