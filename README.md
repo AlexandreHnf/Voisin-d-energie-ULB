@@ -168,30 +168,56 @@ In this section, we describe how to use the different scripts and with the right
 Here are the list of all the executable scripts aswell as their arguments : 
 
 
-syncRawFluksoData.py --mode automatic
+* sync raw flukso data : The script automatically get the new Flukso data using the tmpo API and store it in Cassandra. 
+  ```sh
+  syncRawFluksoData.py --mode automatic
+  ```
 
-preprocessFluksoSensors.py 
-    create_table + table_name (access, sensors_config, raw, power, raw_missing, group)
-    new_config 
-    login_config
-    group_captions
+* preprocess Flukso sensors : The script contains a lot of different functions that are meant to be used before the raw data syncing. 
+  
+  ```sh
+  preprocessFluksoSensors.py --task TASK --table_name TABLE_NAME
+  ```
+  * The --task argument allows us to choose between different tasks. TASK : 
+  
+    1. _create_table_ : Allows to create new table in cassandra. It requires the --table_name argument TABLE_NAME:
+       1. **access** : table that contains the users login information (login id, group ids)
+       2. **sensors_config** : table that contains the sensors configurations (home_id, sensor id, sensor token, flukso id, signs, ..) 
+       3. **raw** : table that contains the raw flukso data 
+       4. **power** : table that contains power data based on the raw data : consumption, production and total
+       5. **raw_missing** : table that contains timestamps for missing data for each sensor from the previous synchronization query
+       6. **group** : table that contains groups ids along with their captions
+    2. _new_config_ : write new configuration to the **sensors_config** table 
+    3. _login_config_ : write new login info to the **access** table
+    4. _group_captions_ : write new group captions info to the **group** table
+  
+  * Remark : the tasks _2_, _3_ and _4_ depend on 1 specific Excel file that has to be defined in the **flukso_config** directory and its name must be : **Configuration.xlsx**. This file contains 3 tabs : 
+    * Export_InstallationSensors : all homes and sensors info
+    * Export_Access : All login ids and associated group ids
+    * InstallationCaptions : All group ids along with their captions (descriptions)
 
-alerts.py --m 
-    missing
-    sign
+<br />
 
+* Alerts : The script sends alert per email if it detects some unusual behaviour in the system
+  ```sh
+  alerts.py --mode MODE
+  ```
+  * The --mode argument is the behaviour we want to monitor for potential alerts. MODE : 
+    1. _missing_ : Check if the number of missing data in the past is ok.
+    2. _sign_ : Check if the signs are correct in power data. It can be incorrect/incoherent if : 
+       * we see negative consumption values
+       * we see positive production values
+       * we see photovoltaic values during the night
 
-
-_For more examples, please refer to the [Documentation](https://example.com)_
 
 <p align="right">(<a href="#top">back to top</a>)</p>
-
 
 
 
 <!-- CONTRIBUTING -->
 ## Contributing
 
+TODO 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
