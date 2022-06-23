@@ -10,6 +10,8 @@ Script to fetch Fluksometer data using the tmpo protocol and
     - export it as a CSV file.
     - visualize it (time series)
 
+This script may be obsolete.
+
 Input
 -----
 This script requires to have a file named `sensors.csv` or `updated_sensors.csv` in the "sensors/" directory.

@@ -4,6 +4,12 @@ __author__ = "Alexandre Heneffe"
 __license__ = "MIT"
 __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
+
+""" 
+Estimates the database size using csv files. 
+This script may be obsolete.
+"""
+
 import fluksoVisualization as fv
 import os
 import json

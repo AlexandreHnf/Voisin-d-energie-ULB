@@ -5,6 +5,11 @@ __license__ = "MIT"
 __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 
+""" 
+this script may be obsolete.
+"""
+
+
 from constants import *
 
 import pandas as pd

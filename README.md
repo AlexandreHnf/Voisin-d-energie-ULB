@@ -7,10 +7,10 @@
 <br />
 <div align="center">
 
-<h3 align="center">Projet "Voisin d'énergie"</h3>
+<h3 align="center">"Voisin d'énergie"</h3>
 
   <p align="center">
-    Projet en collaboration avec l'Université Libre de Bruxelles - Laboratoire "IRIDIA"
+    Project made in collaboration with ULB (Université Libre de Bruxelles) - IRIDIA laboratory, Innoviris, IGEAT, BinHôme, Energy4Commons and BEAMS.
     <br />
     <a href="https://wiki.voisinsenergie.agorakit.org/"><strong>Wifi de Voisin d'énergie</strong></a>
     <br />
@@ -22,7 +22,7 @@
 
 <!-- TABLE OF CONTENTS -->
 <details>
-  <summary>Table des matières</summary>
+  <summary>Table of contents</summary>
   <ol>
     <li>
       <a href="#about-the-project">About the Project</a>
