@@ -133,18 +133,21 @@ dmypy.json
 literature/
 output/
 sensors/
+production/requirements_frontend
 
 # FRONTEND uneccesary files
-webapp/error_logs.txt
-webapp/logs.txt
-webapp/node_modules/.bin/
-webapp/csv_dump/
-webapp/screenshots_interface/
+src/vde_frontend/.directory
+src/vde_frontend/error_logs.txt
+src/vde_frontend/logs.txt
+src/vde_frontend/node_modules/
+src/vde_frontend/package-lock.json
+src/vde_frontend/package.json
+src/vde_frontend/local/
 
 # BACKEND uneccesary files
-src/vde_backend/Flukso/__pycache__/
-src/vde_backend/Flukso/.directory
-src/vde_backend/Flukso/.tmpo/
-src/vde_backend/Flukso/cassandra_serv_credentials.json
-src/vde_backend/Flukso/sftp_credentials.json
-src/vde_backend/Flukso/local_scripts/
+src/vde_backend/__pycache__/
+src/vde_backend/.directory
+src/vde_backend/.tmpo/
+src/vde_backend/cassandra_serv_credentials.json
+src/vde_backend/sftp_credentials.json
+src/vde_backend/local_scripts/
