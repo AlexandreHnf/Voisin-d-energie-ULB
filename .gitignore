@@ -130,9 +130,11 @@ dmypy.json
 
 # uneccessary files&directories to push : 
 .idea/
+.directory
 literature/
 output/
 sensors/
+logs/
 systemd/local_tests/
 
 # FRONTEND uneccesary files
