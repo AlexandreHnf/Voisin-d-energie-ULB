@@ -143,3 +143,9 @@ tmpo.sqlite3
 webapp/error_logs.txt
 webapp/logs.txt
 webapp/node_modules/.bin/
+
+src/vde_backend/Flukso/__pycache__/
+src/vde_backend/Flukso/.directory
+src/vde_backend/Flukso/.tmpo/
+src/vde_backend/Flukso/cassandra_serv_credentials.json
+src/vde_backend/Flukso/sftp_credentials.json

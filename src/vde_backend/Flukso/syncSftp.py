@@ -1,5 +1,5 @@
 __title__ = "syncSftp"
-__version__ = "0.0.1"
+__version__ = "1.0.0"
 __author__ = "Alexandre Heneffe"
 __license__ = "MIT"
 __copyright__ = "Copyright 2022 Alexandre Heneffe"
@@ -48,9 +48,8 @@ import paramiko
 # ==============================================================================
 
 
-LOCAL_PATH = 						"output/fluksoData/sftp_data/"
-SFTP_CREDENTIALS_FILE = 			"sftp_credentials.json"
-LOG_FILE_SFTP = 					"output/fluksoData/sftp_data/logs_sftp.log"
+LOCAL_PATH = 						"../../../output/fluksoData/sftp_data/"
+LOG_FILE_SFTP = 					"../../../output/fluksoData/sftp_data/logs_sftp.log"
 
 SEND_TO_SFTP = 						False
 DELETE_LOCAL_FILES = 				True

@@ -1,5 +1,5 @@
 __title__ = "Constants"
-__version__ = "0.0.1"
+__version__ = "1.0.0"
 __author__ = "Alexandre Heneffe"
 __license__ = "MIT"
 __copyright__ = "Copyright 2022 Alexandre Heneffe"
@@ -7,24 +7,27 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 # =========================== FILE PATHS ====================================
 # files paths
-FLUKSO_TECHNICAL_FILE =                 "flukso_config/Configuration.xlsx"
+FLUKSO_TECHNICAL_FILE =                 "../../../flukso_config/Configuration.xlsx"
 
-UPDATED_FLUKSO_TECHNICAL_FILE =         "sensors/updated_sensors.csv"
-COMPACT_SENSOR_FILE =                   "sensors/sensors_technical.csv"
-PHASE_TO_MODIF_FILE =                   "sensors/phases_to_modify.txt"
-# SENSOR_FILE =                           "sensors/sensors.csv"
-UPDATED_SENSORS_FILE =                  "sensors/updated_sensors.csv"
+UPDATED_FLUKSO_TECHNICAL_FILE =         "../../../sensors/updated_sensors.csv"
+COMPACT_SENSOR_FILE =                   "../../../sensors/sensors_technical.csv"
+PHASE_TO_MODIF_FILE =                   "../../../sensors/phases_to_modify.txt"
+# SENSOR_FILE =                           "../../../sensors/sensors.csv"
+UPDATED_SENSORS_FILE =                  "../../../sensors/updated_sensors.csv"
 
-OUTPUT_FILE =                           'output/fluksoData/'
+OUTPUT_FILE =                           '../../../output/fluksoData/'
 
-GROUPS_FILE =                           "sensors/grouped_homes_sensors.txt"
+GROUPS_FILE =                           "../../../sensors/grouped_homes_sensors.txt"
 
-IDS_FILE =                              "sensors/ids.json"
-GIDS_FILE =                             "sensors/grp_ids.json"
+IDS_FILE =                              "../../../sensors/ids.json"
+GIDS_FILE =                             "../../../sensors/grp_ids.json"
 
 TMPO_FILE = 							""
 
-LOG_FILE = 								"logs/backend_logs.log"
+LOG_FILE = 								"../../../logs/backend_logs.log"
+
+CASSANDRA_CREDENTIALS_FILE = 			'cassandra_serv_credentials.json'
+SFTP_CREDENTIALS_FILE = 				'sftp_credentials.json'
 
 
 # ========================== COMPUTATIONS =====================================
@@ -40,7 +43,7 @@ LAST_TS_DAYS =                          2  # days
 # "since" default value for the earliest timestamp of a flukso
 # normally since = 0, but for testing, we put since = 4min
 FROM_FIRST_TS_STATUS = 					"local"
-FROM_FIRST_TS =                         "4min" 
+FROM_FIRST_TS =                         "2min" 
 
 # nb lines to insert per batch insert when inserting in cassandra table
 INSERTS_PER_BATCH =                     11000
@@ -49,7 +52,6 @@ INSERTS_PER_BATCH =                     11000
 # =========================== CASSANDRA =======================================
 # cassandra authentication
 CASSANDRA_AUTH_MODE = 					'local'
-CASSANDRA_CREDENTIALS_FILE = 			'cassandra_serv_credentials.json'
 
 # cassandra keyspaces
 CASSANDRA_KEYSPACE =                    "flukso" 
