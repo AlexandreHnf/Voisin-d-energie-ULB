@@ -7,7 +7,7 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 # =========================== FILE PATHS ====================================
 # files paths
-FLUKSO_TECHNICAL_FILE =                 "../../../flukso_config/Configuration.xlsx"
+FLUKSO_TECHNICAL_FILE =                 "flukso_config/Configuration.xlsx"
 
 UPDATED_FLUKSO_TECHNICAL_FILE =         "../../../sensors/updated_sensors.csv"
 COMPACT_SENSOR_FILE =                   "../../../sensors/sensors_technical.csv"

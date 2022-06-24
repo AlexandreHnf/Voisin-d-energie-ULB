@@ -154,3 +154,4 @@ src/vde_backend/cassandra_serv_credentials.json
 src/vde_backend/sftp_credentials.json
 src/vde_backend/local_scripts/
 src/vde_backend/RTU_local/
+src/vde_backend/flukso_config/
