@@ -54,14 +54,14 @@ def getInstallationsIds(flukso_ids, fluksos):
 	return installation_id_col
 
 
-def getCompactSensorDF():
+def getCompactSensorDF(config_file_path):
 	"""
 	read the excel sheet containing the flukso ids, the sensors ids, the tokens
 	and compact them into a simpler usable csv file
 	columns : home_id, phase, flukso_id, sensor_id, token, net, con, pro
 	"""
-	print("Config file : ", FLUKSO_TECHNICAL_FILE)
-	sensors_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Export_InstallationSensors")
+	print("Config file : ", config_file_path)
+	sensors_df = pd.read_excel(config_file_path, sheet_name="Export_InstallationSensors")
 	compact_df = pd.DataFrame(columns=["home_id",
 									   "phase",
 									   "flukso_id",
@@ -194,11 +194,11 @@ def writeGroupsFromFluksoIDs():
 	-> save them in a txt file
 	format : 1 line = 1 group = home_id1, home_id2, ... 
 	"""
-	installation_ids_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Flukso")
-	available_fluksos = set(pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Sensors")["FlmId"])
+	installation_ids_df = pd.read_excel(FLUKSO_CONFIG_FILE, sheet_name="Flukso")
+	available_fluksos = set(pd.read_excel(FLUKSO_CONFIG_FILE, sheet_name="Sensors")["FlmId"])
 	fluksos = getFluksosDic(installation_ids_df)
 
-	groups_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Groups")
+	groups_df = pd.read_excel(FLUKSO_CONFIG_FILE, sheet_name="Groups")
 	nb_groups = len(set(groups_df["GroupId"]))
 
 	with open(GROUPS_FILE, "w") as gf:
@@ -220,7 +220,7 @@ def writeGroupsConfigCassandra(cassandra_session, table_name, now):
 	write groups config data in cassandra table 
 	1 row = all the installations ids of a group (home ids)
 	"""
-	groups_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Groups")
+	groups_df = pd.read_excel(FLUKSO_CONFIG_FILE, sheet_name="Groups")
 	nb_groups = len(set(groups_df["GroupId"]))
 
 	cols = ["insertion_time", "group_id", "homes"]
@@ -245,7 +245,7 @@ def writeGroupsFromInstallationsIds():
 	csv file
 	1 row = all the installations ids of a group
 	"""
-	groups_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Groups")
+	groups_df = pd.read_excel(FLUKSO_CONFIG_FILE, sheet_name="Groups")
 	nb_groups = len(set(groups_df["GroupId"]))
 
 	with open(GROUPS_FILE, "w") as gf:
@@ -267,56 +267,13 @@ def saveToCsv(df, filename):
 # ==========================================================================
 
 
-def correctPhaseSigns(sensors_df=None):
-	"""
-	functions to modify the signs of different phases (defined in a txt file of the form
-	installation_ID:phase1,phase2...)
-	and write the corrected content in another csv file
-	"""
-	to_modif = {}
-	with open(PHASE_TO_MODIF_FILE) as f:
-		for lign in f:
-			l = lign.split(":")
-			to_modif[l[0]] = l[1].strip().split(",")
-
-	print(to_modif)
-
-	# -----------------------------------------------------------------------
-
-	# reading the csv file
-	# if sensors_df is None:
-	#     sensors_df = pd.read_csv(COMPACT_SENSOR_FILE)
-
-	for i in range(len(sensors_df)):
-		hid = sensors_df.loc[i, "home_id"]
-		if hid in to_modif:
-			phase = sensors_df.loc[i, "phase"]
-			if ("-" in phase and phase[:-1] in to_modif[hid]) or (phase in to_modif[hid]):
-				# change phase name
-				if phase[-1] == "-":
-					sensors_df.loc[i, "phase"] = phase[:-1]
-				elif phase[-1] != "-":
-					sensors_df.loc[i, "phase"] = phase + "-"
-				# change net sign
-				sensors_df.loc[i, "net"] = -1 * sensors_df.loc[i, "net"]
-				# change con sign
-				sensors_df.loc[i, "con"] = -1 * sensors_df.loc[i, "con"]
-				# change pro sign
-				sensors_df.loc[i, "pro"] = -1 * sensors_df.loc[i, "pro"]
-
-	# writing into the file
-	# sensors_df.to_csv(UPDATED_FLUKSO_TECHNICAL_FILE, index=False)
-
-	return sensors_df
-
-
-def getInstallationCaptions():
+def getInstallationCaptions(config_file_path):
 	""" 
 	get a dictionary with
 	key : installation id (login id = home id) => generally a group
 	value : caption, description
 	"""
-	captions_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="InstallationCaptions")
+	captions_df = pd.read_excel(config_file_path, sheet_name="InstallationCaptions")
 	captions = {}
 	for i in captions_df.index:
 		captions[captions_df.iloc[i]["InstallationId"]] = captions_df.iloc[i]["Caption"]
@@ -324,11 +281,11 @@ def getInstallationCaptions():
 	return captions
 
 
-def writeAccessDataCassandra(cassandra_session, table_name):
+def writeAccessDataCassandra(cassandra_session, config_file_path, table_name):
 	""" 
 	write access data to cassandra (login ids)
 	"""
-	login_df = pd.read_excel(FLUKSO_TECHNICAL_FILE, sheet_name="Export_Access")
+	login_df = pd.read_excel(config_file_path, sheet_name="Export_Access")
 	by_login = login_df.groupby("Login")
 
 	col_names = ["login", "installations"]
@@ -340,11 +297,11 @@ def writeAccessDataCassandra(cassandra_session, table_name):
 	print("Successfully inserted access data in table : {}".format(table_name))
 
 
-def writeGroupCaptionsToCassandra(cassandra_session, table_name):
+def writeGroupCaptionsToCassandra(cassandra_session, config_file_path, table_name):
 	""" 
 	write groups (installation ids) with their captions
 	"""
-	captions = getInstallationCaptions()
+	captions = getInstallationCaptions(config_file_path)
 
 	col_names = ["installation_id", "caption"]
 
@@ -457,39 +414,32 @@ def createRawMissingTable(cassandra_session, table_name):
 # ==========================================================================
 
 
-def saveHomeIds(new_config_df):
+def processConfig(cassandra_session, config_file_path, new_config_df, now):
 	""" 
-	Take the compact df of the form "home_id,phase,flukso_id,sensor_id,token,net,con,pro"
-	and save the ids for each home :
-	[{hid: home_id1, phases: [flukso_id1_phase1, ..., flukso_id1_phaseN]}, 
-	 {hid: home_id2, phases: [...]}, ...}
+	Given a compact dataframe with a configuration, write
+	the right data to Cassandra 
+	- config in config table
+	- login info in access table
+	- group captions in group table
 	"""
-	ids = {}
-	for hid, phase, fid, sid, t, n, c, p in new_config_df.values:
-		if hid not in ids:
-			ids[hid] = ["{}_{}".format(fid, phase)]
-		else:
-			ids[hid].append("{}_{}".format(fid, phase))
 
-	print(ids)
+	# first, create tables if necessary
+	createTableAccess(cassandra_session, "sensors_config")
+	createTableAccess(cassandra_session, "access")
+	createTableAccess(cassandra_session, "group")
 
-	with open(IDS_FILE, "w") as f:
-		json.dump(ids, f, indent = 4, sort_keys=True)
+	# then, compare new config with previous configs and recompute data if necessary
+	print("> Checking for data to recompute... ")
+	recomputeData(cassandra_session, new_config_df, now)
+	# > fill config tables using excel configuration file
+	print("> Writing new config in cassandra...")
+	writeSensorsConfigCassandra(cassandra_session, new_config_df, now)
 
+	# write login and group ids to 'access' cassandra table
+	writeAccessDataCassandra(cassandra_session, config_file_path, "access")
 
-def saveGroupsIds():
-	""" 
-	Save groups ids in a json file 
-	{"group1": [home_id1, home_id2, ...], ...}
-	"""
-	groups_ids = {} 
-	with open(GROUPS_FILE) as f:
-		lines = f.readlines()
-		for i, line in enumerate(lines):
-			groups_ids["group" + str(i+1)] = line.strip().split(",")
-
-	with open(GIDS_FILE, "w") as f:
-		json.dump(groups_ids, f, indent = 4, sort_keys=True)
+	# write group captions to 'group' cassandra table 
+	writeGroupCaptionsToCassandra(cassandra_session, config_file_path, "group")
 
 
 # ==========================================================================
@@ -501,14 +451,9 @@ def processArguments():
 		formatter_class=argparse.RawDescriptionHelpFormatter,
 	)
 
-	argparser.add_argument("--table_name", type=str, default="",
-						   help="access, sensors_config, raw, power, raw_missing, group")
+	argparser.add_argument("--config", type=str, default="",
+						   help="Path to the config excel file")
 
-	argparser.add_argument("--task", type=str, default="new_config",
-						   help="create_table : create new table in cassandra : requires --table_name; "
-						   		"new_config : write new config to cassandra; "
-                                "login_config : write login info to cassandra; "
-								"group_captions : write group captions to cassandra; ")
 
 	return argparser
 
@@ -517,48 +462,18 @@ def main():
 	# > arguments
 	argparser = processArguments()
 	args = argparser.parse_args()
-	task = args.task
-	table_name = args.table_name
+	config_path = args.config
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	# > get the useful flukso sensors data in a compact csv
-	new_config_df = getCompactSensorDF()
+	new_config_df = getCompactSensorDF(config_path)
 	print("nb sensors : ", len(new_config_df))
 
 	now = pd.Timestamp.now()
-
-	if task == "create_table":
-		# > create cassandra tables
-		if table_name == "access":
-			createTableAccess(cassandra_session, "access") 						# access
-		elif table_name == "sensors_config":
-			createTableSensorConfig(cassandra_session, "sensors_config")		# sensors config
-		elif table_name == "raw":
-			createRawFluksoTable(cassandra_session, "raw")						# raw
-		elif table_name == "power":
-			createPowerTable(cassandra_session, "power")						# power
-		elif table_name == "raw_missing":
-			createRawMissingTable(cassandra_session, "raw_missing")				# raw_missing
-		elif table_name == "group":
-			createTableGroup(cassandra_session, "group")
 	
-	elif task == "new_config":
-		# first compare new config with previous configs and recompute data if necessary
-		print("> Checking for data to recompute... ")
-		recomputeData(cassandra_session, new_config_df, now)
+	processConfig(cassandra_session, config_path, new_config_df, now)
 
-		# > fill config tables using excel configuration file
-		print("> Writing new config in cassandra...")
-		writeSensorsConfigCassandra(cassandra_session, new_config_df, now)
-
-	elif task == "login_config":
-		# write login and group ids to 'access' cassandra table
-		writeAccessDataCassandra(cassandra_session, "access")
-	
-	elif task == "group_captions":
-		# write group captions to 'group' cassandra table 
-		writeGroupCaptionsToCassandra(cassandra_session, "group")
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ Script to fetch Fluksometer data using the tmpo protocol and
 from home import *
 from constants import *
 import pyToCassandra as ptc
+from preprocessFluksoSensors import createRawFluksoTable, createPowerTable, createRawMissingTable
 from sensorConfig import Configuration
 from utils import *
 import computePower as cp
@@ -562,7 +563,7 @@ def processArguments():
 	return argparser
 
 
-def sync(mode, since, to):
+def sync(cassandra_session, mode, since, to):
 	logging.info("======================================================================")
 	logging.info("======================================================================")
 	begin = time.time()
@@ -576,7 +577,6 @@ def sync(mode, since, to):
 	# =============================================================
 
 	# > Configurations
-	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	current_config_id, all_sensors_configs = getCurrentSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
 
@@ -642,7 +642,15 @@ def main():
 	since = args.since
 	to = args.to
 
-	sync(mode, since, to)
+	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+
+	# first, create tables if needed : 
+	createRawFluksoTable(cassandra_session, "raw")
+	createRawMissingTable(cassandra_session, "raw_missing")
+	createPowerTable(cassandra_session, "power")
+
+	# then, sync new data in Cassandra
+	sync(cassandra_session, mode, since, to)
 
 
 if __name__ == "__main__":

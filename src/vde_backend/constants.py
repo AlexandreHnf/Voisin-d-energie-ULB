@@ -6,26 +6,19 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 
 # =========================== FILE PATHS ====================================
-# files paths
-FLUKSO_TECHNICAL_FILE =                 "flukso_config/Configuration.xlsx"
+# configuration path
+FLUKSO_CONFIG_FILE =                 	"flukso_config/Configuration1.xlsx"
 
-UPDATED_FLUKSO_TECHNICAL_FILE =         "../../../sensors/updated_sensors.csv"
-COMPACT_SENSOR_FILE =                   "../../../sensors/sensors_technical.csv"
-PHASE_TO_MODIF_FILE =                   "../../../sensors/phases_to_modify.txt"
-# SENSOR_FILE =                           "../../../sensors/sensors.csv"
+# local
 UPDATED_SENSORS_FILE =                  "../../../sensors/updated_sensors.csv"
-
-OUTPUT_FILE =                           '../../../output/fluksoData/'
-
-GROUPS_FILE =                           "../../../sensors/grouped_homes_sensors.txt"
-
-IDS_FILE =                              "../../../sensors/ids.json"
-GIDS_FILE =                             "../../../sensors/grp_ids.json"
+OUTPUT_FILE =                           'local_scripts/output/fluksoData/'
+GROUPS_FILE =                           "local_scripts/sensors/grouped_homes_sensors.txt"
 
 TMPO_FILE = 							""
 
 LOG_FILE = 								"../../../logs/backend_logs.log"
 
+# credentials
 CASSANDRA_CREDENTIALS_FILE = 			'cassandra_serv_credentials.json'
 SFTP_CREDENTIALS_FILE = 				'sftp_credentials.json'
 

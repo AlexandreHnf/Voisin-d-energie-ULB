@@ -136,6 +136,7 @@ output/
 sensors/
 logs/
 systemd/local_tests/
+requirements.txt
 
 # FRONTEND uneccesary files
 src/vde_frontend/.directory

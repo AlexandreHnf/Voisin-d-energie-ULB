@@ -224,7 +224,7 @@ def recomputePowerData(cassandra_session, prev_config_id, new_config, homes, now
 		homes = list(config_by_home.groups.keys())
 
 	for hid in homes:
-		print(hid)
+		# print(hid)
 		sensors_df = config_by_home.get_group(hid)  # new config
 
 		# first select all dates registered with this config for this home
@@ -232,7 +232,7 @@ def recomputePowerData(cassandra_session, prev_config_id, new_config, homes, now
 		# then, for each day, recompute data and store it in the database (overwrite existing data)
 		for date in all_dates:
 
-			print(date)
+			# print(date)
 			# get raw data from previous config
 			home_rawdata = getHomeRawData(cassandra_session, sensors_df, date, prev_config_id)
 
