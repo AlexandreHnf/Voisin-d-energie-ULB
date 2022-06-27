@@ -450,7 +450,7 @@ def processArguments():
 		formatter_class=argparse.RawDescriptionHelpFormatter,
 	)
 
-	argparser.add_argument("--config", type=str, default="",
+	argparser.add_argument("config", type=str, default="",
 						   help="Path to the config excel file")
 
 
@@ -465,7 +465,7 @@ def main():
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
-	# > get the useful flukso sensors data in a compact csv
+	# > get the useful flukso sensors data in a compact dataframe
 	new_config_df = getCompactSensorDF(config_path)
 	print("nb sensors : ", len(new_config_df))
 

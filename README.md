@@ -149,7 +149,7 @@ List of packages to install (Ubuntu) :
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-In this section, we describe how to use the different scripts and with the right arguments.
+In this section, we describe how to use the different scripts.
 
 ### Prerequisite
 1. First, start Cassandra service
@@ -168,33 +168,30 @@ In this section, we describe how to use the different scripts and with the right
 Here are the list of all the executable scripts aswell as their arguments : 
 
 
-* sync raw flukso data : The script automatically get the new Flukso data using the tmpo API and store it in Cassandra. 
+* sync raw flukso data : The script automatically get the new Flukso data using the tmpo API and store it in Cassandra. No need to specify any arguments.
   ```sh
-  syncRawFluksoData.py --mode automatic
+  syncRawFluksoData.py
   ```
 
-* preprocess Flukso sensors : The script contains a lot of different functions that are meant to be used before the raw data syncing. 
+* preprocess Flukso sensors : The script contains a lot of different functions that are meant to be used before the raw data syncing. The script allows, among others, to create the neccessary Cassandra tables, as well as inserting the new data in them. However, those functions are automatically triggered using one command : 
   
   ```sh
-  preprocessFluksoSensors.py --task TASK --table_name TABLE_NAME
+  preprocessFluksoSensors.py --config CONFIG_FILENAME
   ```
-  * The --task argument allows us to choose between different tasks. TASK : 
-  
-    1. _create_table_ : Allows to create new table in cassandra. It requires the --table_name argument TABLE_NAME:
-       1. **access** : table that contains the users login information (login id, group ids)
-       2. **sensors_config** : table that contains the sensors configurations (home_id, sensor id, sensor token, flukso id, signs, ..) 
-       3. **raw** : table that contains the raw flukso data 
-       4. **power** : table that contains power data based on the raw data : consumption, production and total
-       5. **raw_missing** : table that contains timestamps for missing data for each sensor from the previous synchronization query
-       6. **group** : table that contains groups ids along with their captions
-    2. _new_config_ : write new configuration to the **sensors_config** table 
-    3. _login_config_ : write new login info to the **access** table
-    4. _group_captions_ : write new group captions info to the **group** table
-  
-  * Remark : the tasks _2_, _3_ and _4_ depend on 1 specific Excel file that has to be defined in the **flukso_config** directory and its name must be : **Configuration.xlsx**. This file contains 3 tabs : 
-    * Export_InstallationSensors : all homes and sensors info
-    * Export_Access : All login ids and associated group ids
-    * InstallationCaptions : All group ids along with their captions (descriptions)
+  * The --config argument allows to specify a config file name path. The configuration file must be an Excel file containing those 3 tabs : 
+	1. **Export_InstallationSensors** : All flukso info : 
+		* Installation ID, 
+		* Start date, 
+		* Flukso ID, 
+		* Phase name, 
+		* Network factor, 
+		* Production factor, 
+		* Consumption factor, 
+		* Sensor ID, 
+		* Sensor Token
+	2. **Export_Access** : All login IDS along with their corresponding installation IDs (group ids they belong to).
+	3. **InstallationCaptions** : All installation IDs along with their captions (One sentence describing the nature of the group).
+
 
 <br />
 
