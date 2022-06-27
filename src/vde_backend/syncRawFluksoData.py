@@ -14,7 +14,6 @@ Script to fetch Fluksometer data using the tmpo protocol and
 from home import *
 from constants import *
 import pyToCassandra as ptc
-from preprocessFluksoSensors import createRawFluksoTable, createPowerTable, createRawMissingTable
 from sensorConfig import Configuration
 from utils import *
 import computePower as cp
@@ -52,6 +51,54 @@ logging.basicConfig(level = setupLogLevel(),
 					format = "{asctime} {levelname:<8} {message}", style='{',
 					handlers=logging_handlers
 					)
+
+# ====================================================================================
+# Cassandra table creation
+# ==========================================================================
+
+
+def createRawFluksoTable(cassandra_session, table_name):
+	""" 
+	compact df : home_id,phase,flukso_id,sensor_id,token,net,con,pro
+	create a cassandra table for the raw flukso data : 
+		columns : flukso_sensor_id, day, timestamp, insertion_time, config_id, power_value 
+	"""
+
+	columns = ["sensor_id TEXT", 
+			   "day TEXT", 
+			   "ts TIMESTAMP", 
+			   "insertion_time TIMESTAMP", 
+			   "config_id TIMESTAMP",
+			   "power FLOAT"]
+	ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, columns, ["sensor_id, day"], ["ts"], {"ts":"ASC"})
+
+
+def createPowerTable(cassandra_session, table_name):
+
+	power_cols = ["home_id TEXT", 
+				  "day TEXT", 
+				  "ts TIMESTAMP", 
+				  "P_cons FLOAT", 
+				  "P_prod FLOAT", 
+				  "P_tot FLOAT", 
+				  "insertion_time TIMESTAMP",
+				  "config_id TIMESTAMP",]
+	ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, power_cols, ["home_id, day"], ["ts"], {"ts":"ASC"})
+
+
+def createRawMissingTable(cassandra_session, table_name):
+	""" 
+	Raw missing table contains timestamps range where there is missing data
+	from a specific query given a specific configuration of the sensors 
+	"""
+
+	cols = ["sensor_id TEXT", 
+			"config_id TIMESTAMP",
+			"start_ts TIMESTAMP",
+			"end_ts TIMESTAMP"]
+	ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, 
+					["sensor_id, config_id"], ["start_ts"], {"start_ts":"ASC"})
+
 
 # ====================================================================================
 

@@ -176,9 +176,9 @@ Here are the list of all the executable scripts aswell as their arguments :
 * preprocess Flukso sensors : The script contains a lot of different functions that are meant to be used before the raw data syncing. The script allows, among others, to create the neccessary Cassandra tables, as well as inserting the new data in them. However, those functions are automatically triggered using one command : 
   
   ```sh
-  preprocessFluksoSensors.py --config CONFIG_FILENAME
+  preprocessFluksoSensors.py [config]
   ```
-  * The --config argument allows to specify a config file name path. The configuration file must be an Excel file containing those 3 tabs : 
+  * The _config_ argument allows to specify a config file path. The configuration file must be an Excel file containing those 3 tabs : 
 	1. **Export_InstallationSensors** : All flukso info : 
 		* Installation ID, 
 		* Start date, 
@@ -200,7 +200,7 @@ Here are the list of all the executable scripts aswell as their arguments :
   alerts.py --mode MODE
   ```
   * The --mode argument is the behaviour we want to monitor for potential alerts. MODE : 
-    1. _missing_ : Check if the number of missing data in the past is ok.
+    1. _missing_ (default): Check if the number of missing data in the past is ok.
     2. _sign_ : Check if the signs are correct in power data. It can be incorrect/incoherent if : 
        * we see negative consumption values
        * we see positive production values
