@@ -7,19 +7,19 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 # =========================== FILE PATHS ====================================
 # configuration path
-FLUKSO_CONFIG_FILE =                 	"flukso_config/Configuration1.xlsx"
+FLUKSO_CONFIG_FILE =                 	"/opt/vde/flukso_config/Configuration.xlsx"
 
 # local
 OUTPUT_FILE =                           'local_scripts/output/fluksoData/'
 GROUPS_FILE =                           "local_scripts/sensors/grouped_homes_sensors.txt"
 
-TMPO_FILE = 							""
+TMPO_FILE = 							"/opt/vde/"
 
-LOG_FILE = 								"logs/backend_logs.log"
+LOG_FILE = 								"/var/log/vde/logs.log"
 
 # credentials
-CASSANDRA_CREDENTIALS_FILE = 			'cassandra_serv_credentials.json'
-SFTP_CREDENTIALS_FILE = 				'sftp_credentials.json'
+CASSANDRA_CREDENTIALS_FILE = 			'/opt/vde/cassandra_serv_credentials.json'
+SFTP_CREDENTIALS_FILE = 				'/opt/vde/sftp_credentials.json'
 
 
 # ========================== COMPUTATIONS =====================================
@@ -33,7 +33,7 @@ LIMIT_TIMING_RAW =                      2  # days
 LAST_TS_DAYS =                          2  # days
 
 # "since" default value for the earliest timestamp of a flukso
-FROM_FIRST_TS_STATUS = 					"local"
+FROM_FIRST_TS_STATUS = 					"server"
 # default first timestamp origin : chosen arbitrarily. Ex : since 4min or since 1 days, ...
 FROM_FIRST_TS =                         "4min"
 
@@ -43,7 +43,7 @@ INSERTS_PER_BATCH =                     11000
 
 # =========================== CASSANDRA =======================================
 # cassandra authentication
-CASSANDRA_AUTH_MODE = 					'local'
+CASSANDRA_AUTH_MODE = 					'server'
 
 # cassandra keyspaces
 CASSANDRA_KEYSPACE =                    "flukso" 
