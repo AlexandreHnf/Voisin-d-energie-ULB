@@ -5,16 +5,19 @@ __license__ = "MIT"
 __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 
+# standard library
+import argparse
+
+# 3rd party packages
 import pandas as pd
-import numpy as np
-from constants import FLUKSO_CONFIG_FILE, TBL_SENSORS_CONFIG, CASSANDRA_KEYSPACE
+
+# local source
+from constants import FLUKSO_CONFIG_FILE, GROUPS_FILE, TBL_SENSORS_CONFIG, CASSANDRA_KEYSPACE
 import pyToCassandra as ptc
 from sensorConfig import Configuration
-import computePower as cp
-import json
-import sys
-from utils import * 
-import argparse
+from computePower import recomputePowerData
+from utils import getAllRegisteredConfigs
+
 
 
 # ==========================================================================
@@ -168,7 +171,7 @@ def recomputeData(cassandra_session, new_config_df, now):
 		print("homes to recompute : ", changed_homes)
 
 		# recompute those homes
-		cp.recomputePowerData(cassandra_session, prev_config_id, new_config, changed_homes, now)
+		recomputePowerData(cassandra_session, prev_config_id, new_config, changed_homes, now)
 
 
 def writeSensorsConfigCassandra(cassandra_session, new_config_df, now):

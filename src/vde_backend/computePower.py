@@ -5,14 +5,17 @@ __license__ = "MIT"
 __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 
+
+# standard library
+
+# 3rd party packages
+import logging
+import pandas as pd
+
+# local source
 from constants import CASSANDRA_KEYSPACE, INSERTS_PER_BATCH, TBL_POWER, TBL_RAW
 import pyToCassandra as ptc
-from utils import *
-from sensorConfig import Configuration
-import logging
-
-import copy
-import pandas as pd
+from utils import getDatesBetween, getLastRegisteredConfig
 
 
 # ====================================================================================

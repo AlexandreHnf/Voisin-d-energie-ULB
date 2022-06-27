@@ -5,11 +5,16 @@ __license__ = "MIT"
 __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 
-from utils import * 
+
+# standard library
+
+# 3rd party packages
 import pandas as pd
 import numpy as np
 
-import tmpo
+# local sources
+from utils import * 
+
 
 class Sensor: 
     def __init__(self, session, flukso_id, sensor_id, since_timing, to_timing):

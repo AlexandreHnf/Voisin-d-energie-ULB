@@ -206,7 +206,17 @@ Here are the list of all the executable scripts aswell as their arguments :
        * we see positive production values
        * we see photovoltaic values during the night
 
+<br />
 
+* **Remark** : All the scripts are using constants that are defined in the _constants.py_ file. However, this file is a symbolic link to another file, which can either be _constants_dev.py_ (development) or _constants_prod.py_ (production) depending on the environment. The repository only contains the production version of the constants file. To obtain the development version, we have to proceed like this : 
+	1. Copy the _constants_prod.py_ file in the same directory
+	2. Change the constants according to the system (paths, ...)
+	3. Create a symbolic link to _constants.py_
+		```sh
+		sudo ln -s constants_prod.py constants.py
+		```
+
+<br />
 
 
 <!-- LICENSE -->

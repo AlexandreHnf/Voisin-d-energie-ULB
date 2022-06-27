@@ -5,13 +5,17 @@ __license__ = "MIT"
 __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 
-from cassandra.cluster import Cluster
-from cassandra.auth import PlainTextAuthProvider
-import pandas as pd
-from constants import CASSANDRA_AUTH_MODE, CASSANDRA_CREDENTIALS_FILE, SERVER_BACKEND_IP
+# standard library
 import json
 
+# 3rd party packages
+import pandas as pd
 import logging
+from cassandra.cluster import Cluster
+from cassandra.auth import PlainTextAuthProvider
+
+# local source
+from constants import CASSANDRA_AUTH_MODE, CASSANDRA_CREDENTIALS_FILE, SERVER_BACKEND_IP
 
 
 def getRightFormat(values):

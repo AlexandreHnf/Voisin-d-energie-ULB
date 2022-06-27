@@ -5,19 +5,24 @@ __license__ = "MIT"
 __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 
-import pandas as pd
-import numpy as np
+# standard library
 import os
 import math
+from datetime import date, timedelta, datetime
+
+# 3rd party packages
+import pandas as pd
+import numpy as np
+import logging
+
+# local sources
 from constants import CASSANDRA_KEYSPACE, FREQ, GROUPS_FILE, LAST_TS_DAYS, LOG_LEVEL, \
 						TBL_SENSORS_CONFIG
 from sensorConfig import Configuration
-from datetime import date, timedelta, datetime
-import logging
-
 import pyToCassandra as ptc
 
-import logging
+
+# ========================================================================================
 
 
 

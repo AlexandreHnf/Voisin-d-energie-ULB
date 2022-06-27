@@ -5,12 +5,15 @@ __license__ = "MIT"
 __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 
-from utils import getLocalTimestampsIndex, toEpochs
-from sensor import *
+# standard library
 
+# 3rd party packages
 import pandas as pd
 import numpy as np
 import logging
+
+# local sources
+from utils import energy2power, getLocalTimestampsIndex, getSpecificSerie
 
 
 class Home:

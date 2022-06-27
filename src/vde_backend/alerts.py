@@ -14,15 +14,17 @@ Script to trigger an alert whenever something went wrong in the power data
         - if we see photovoltaic values during the night
 """
 
-from constants import *
-import pyToCassandra as ptc
-from utils import *
-from sensorConfig import Configuration
+# standard library
+import argparse
 
-import logging
+# 3rd party packages
 import pandas as pd
 from datetime import timedelta
-import argparse
+
+# local source
+import pyToCassandra as ptc
+from utils import getLastRegisteredConfig
+from constants import TBL_POWER, CASSANDRA_KEYSPACE
 
 # from google.oauth2 import service_account
 # from goggleapiclient.discovery import build

@@ -156,3 +156,5 @@ src/vde_backend/local_scripts/
 src/vde_backend/RTU_local/
 src/vde_backend/flukso_config/
 src/vde_backend/logs/
+src/vde_backend/constants.py
+src/vde_backend/constants_dev.py

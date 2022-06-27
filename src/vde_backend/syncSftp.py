@@ -30,19 +30,24 @@ Constraints :
 """
 
 
-from constants import *
-import pyToCassandra as ptc
-from utils import *
-from sensorConfig import Configuration
-
-import logging
-import pandas as pd
+# standard library
 from datetime import timedelta
 import json
 import os
 import argparse
 
+# 3rd party packages
+import logging
+import pandas as pd
+
 import paramiko
+
+# local sources
+from constants import CASSANDRA_KEYSPACE, TBL_POWER, TBL_SENSORS_CONFIG
+import pyToCassandra as ptc
+from utils import getDatesBetween, setupLogLevel  
+from sensorConfig import Configuration
+
 
 
 # ==============================================================================

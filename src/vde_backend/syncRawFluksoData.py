@@ -11,34 +11,25 @@ Script to fetch Fluksometer data using the tmpo protocol and
 - save the raw data in Cassandra database
 """
 
-from home import *
-from constants import FROM_FIRST_TS, FROM_FIRST_TS_STATUS, INSERTS_PER_BATCH, \
-						LIMIT_TIMING_RAW, LOG_FILE, LOG_VERBOSE, OUTPUT_FILE, TBL_RAW, \
-						FREQ, TBL_RAW_MISSING, TMPO_FILE
-import pyToCassandra as ptc
-from sensorConfig import Configuration
-from utils import *
-import computePower as cp
-from sensor import *
 
-import argparse
+# standard library
+from datetime import timedelta
 import os
+import time
 
+from threading import Thread
+
+# 3rd party packages
 import pandas as pd
 import numpy as np
 import tmpo
-import time
-from threading import Thread
-
-# Hide warnings :
-import urllib3
-import warnings
-
-# security warning & Future warning
-warnings.simplefilter('ignore', urllib3.exceptions.SecurityWarning)
-warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import logging
+
+from vde_backend.utils import convertTimezone, getCurrentSensorsConfigCassandra, \
+								getIntermediateTimings, getLastXDates, getProgDir, \
+								getTimeSpent, getTiming, isEarlier, read_sensor_info, \
+								setInitSeconds
 
 logging.getLogger("tmpo").setLevel(logging.ERROR)
 logging.getLogger("requests").setLevel(logging.ERROR)
@@ -48,6 +39,27 @@ logging_handlers = [logging.FileHandler(LOG_FILE)]
 if LOG_VERBOSE:
 	logging_handlers.append(logging.StreamHandler())
 
+
+# Hide warnings :
+import urllib3
+import warnings
+
+# security warning & Future warning
+warnings.simplefilter('ignore', urllib3.exceptions.SecurityWarning)
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+
+# local sources
+from home import Home
+from constants import CASSANDRA_KEYSPACE, FROM_FIRST_TS, FROM_FIRST_TS_STATUS, INSERTS_PER_BATCH, \
+						LIMIT_TIMING_RAW, LOG_FILE, LOG_VERBOSE, OUTPUT_FILE, TBL_RAW, \
+						FREQ, TBL_RAW_MISSING, TBL_SENSORS_CONFIG, TMPO_FILE
+
+import pyToCassandra as ptc
+from sensorConfig import Configuration
+from computePower import saveHomePowerDataToCassandra
+from sensor import Sensor, setupLogLevel
+
 # Create and configure logger
 logging.basicConfig(level = setupLogLevel(),
 					format = "{asctime} {levelname:<8} {message}", style='{',
@@ -56,7 +68,7 @@ logging.basicConfig(level = setupLogLevel(),
 
 # ====================================================================================
 # Cassandra table creation
-# ==========================================================================
+# ====================================================================================
 
 
 def createRawFluksoTable(cassandra_session, table_name):
@@ -522,7 +534,7 @@ def processHomes(cassandra_session, tmpo_session, config, timings, now):
 				t2.start()
 
 				# save power flukso data in cassandra
-				t3 = Thread(target = cp.saveHomePowerDataToCassandra, args = (cassandra_session, home, config))
+				t3 = Thread(target = saveHomePowerDataToCassandra, args = (cassandra_session, home, config))
 				threads.append(t3)
 				t3.start()
 
