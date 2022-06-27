@@ -7,7 +7,7 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 import pandas as pd
 import numpy as np
-from constants import *
+from constants import FLUKSO_CONFIG_FILE, TBL_SENSORS_CONFIG, CASSANDRA_KEYSPACE
 import pyToCassandra as ptc
 from sensorConfig import Configuration
 import computePower as cp

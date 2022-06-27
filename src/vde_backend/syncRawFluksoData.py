@@ -12,7 +12,9 @@ Script to fetch Fluksometer data using the tmpo protocol and
 """
 
 from home import *
-from constants import *
+from constants import FROM_FIRST_TS, FROM_FIRST_TS_STATUS, INSERTS_PER_BATCH, \
+						LIMIT_TIMING_RAW, LOG_FILE, LOG_VERBOSE, OUTPUT_FILE, TBL_RAW, \
+						FREQ, TBL_RAW_MISSING, TMPO_FILE
 import pyToCassandra as ptc
 from sensorConfig import Configuration
 from utils import *

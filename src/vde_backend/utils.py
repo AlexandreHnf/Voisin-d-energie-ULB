@@ -9,7 +9,8 @@ import pandas as pd
 import numpy as np
 import os
 import math
-from constants import *
+from constants import CASSANDRA_KEYSPACE, FREQ, GROUPS_FILE, LAST_TS_DAYS, LOG_LEVEL, \
+						TBL_SENSORS_CONFIG
 from sensorConfig import Configuration
 from datetime import date, timedelta, datetime
 import logging

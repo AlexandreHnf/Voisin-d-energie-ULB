@@ -5,7 +5,6 @@ __license__ = "MIT"
 __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 
-from constants import * 
 from utils import * 
 import pandas as pd
 import numpy as np

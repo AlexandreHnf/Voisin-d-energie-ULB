@@ -5,7 +5,7 @@ __license__ = "MIT"
 __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 
-from constants import *
+from constants import CASSANDRA_KEYSPACE, INSERTS_PER_BATCH, TBL_POWER, TBL_RAW
 import pyToCassandra as ptc
 from utils import *
 from sensorConfig import Configuration
@@ -13,6 +13,7 @@ import logging
 
 import copy
 import pandas as pd
+
 
 # ====================================================================================
 # called by syncRawFluksoData.py just after writing raw data to cassandra
@@ -58,44 +59,6 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config):
 		logging.debug("   OK : power data saved.")
 	except:
 		logging.critial("Exception occured in 'saveHomePowerDataToCassandra' : {}".format(hid), exc_info=True)
-
-
-def savePowerDataToCassandra(cassandra_session, homes, config, table_name):
-	""" 
-	save power flukso data to cassandra : P_cons, P_prod, P_tot
-	- homes : Home objects 
-		=> contains cons_prod_df : timestamp, P_cons, P_prod, P_tot
-	"""
-	logging.info("saving in Cassandra...   => table : {}".format(table_name))
-
-	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
-	config_id = str(config.getConfigID())[:19] + "Z"
-	for hid, home in homes.items():
-		# logging.debug(hid)
-		cons_prod_df = home.getConsProdDF()
-		cons_prod_df['date'] = cons_prod_df.apply(lambda row: str(row.name.date()), axis=1) # add date column
-		by_day_df = cons_prod_df.groupby("date")  # group by date
-
-		col_names = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot", "insertion_time", "config_id"]
-		for date, date_rows in by_day_df:  # loop through each group (each date group)
-
-			insert_queries = ""
-			nb_inserts = 0
-			for timestamp, row in date_rows.iterrows():
-				# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
-				ts = str(timestamp)[:19] + "Z"
-				values = [hid, date, ts] + list(row)[:-1] + [insertion_time, config_id]  # [:-1] to avoid date column
-				insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, table_name, col_names, values)
-
-				if (nb_inserts+1) % INSERTS_PER_BATCH == 0:
-					ptc.batch_insert(cassandra_session, insert_queries)
-					insert_queries = ""
-
-				nb_inserts+=1
-		
-			ptc.batch_insert(cassandra_session, insert_queries)
-	
-	logging.info("Successfully saved power data in cassandra : table {}".format(table_name))
 
 
 # =====================================================================================
@@ -239,7 +202,7 @@ def recomputePowerData(cassandra_session, prev_config_id, new_config, homes, now
 			# recompute power data with new config info : consumption, production, total
 			home_powers = getHomeConsumptionProductionDf(home_rawdata, hid, sensors_df)
 
-			# save (overwrite) to cassandra table  # TODO : change to 'power'
+			# save (overwrite) to cassandra table
 			if len(home_powers) > 0:
 				saveRecomputedPowersToCassandra(cassandra_session, prev_config_id, home_powers, "power")
 

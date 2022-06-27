@@ -5,7 +5,7 @@ After=multi-user.target
 [Service]
 Type=simple
 Restart=no
-ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/syncRawFluksoData.py" --mode automatic
+ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/src/vde_backend/syncRawFluksoData.py"
 
 [Install]
 WantedBy=multi-user.target

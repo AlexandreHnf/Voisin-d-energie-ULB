@@ -112,15 +112,13 @@ def checkMissing2(cassandra_session, sensor_id, table_name):
 
 def checkSigns(cassandra_session, home_id, date, table_name):
     """ 
-    Check if the signs are coherent in power data based on 3 criterion : 
+    Check if the signs are coherent in power data based on 2 criterion : 
     Signs are incorrect if :
-    - photovoltaic active during the night
     - negative consumption values
     - positive production values
     """
     home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name)
 
-    # TODO : third condition : using config
     ok = True
     info = {}
     if len(home_df) > 0:

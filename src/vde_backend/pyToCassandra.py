@@ -8,7 +8,7 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
 import pandas as pd
-from constants import * 
+from constants import CASSANDRA_AUTH_MODE, CASSANDRA_CREDENTIALS_FILE, SERVER_BACKEND_IP
 import json
 
 import logging

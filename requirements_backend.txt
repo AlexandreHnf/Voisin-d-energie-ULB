@@ -1,0 +1,16 @@
+cassandra-driver==3.25.0
+cffi==1.15.0
+cryptography==36.0.1
+distlib==0.3.4
+filelock==3.6.0
+futures==3.0.5
+geomet==0.2.1.post1
+platformdirs==2.5.1
+pycparser==2.21
+pyOpenSSL==21.0.0
+requests==2.22.0
+requests-futures==1.0.0
+tmpo==0.2.10
+pandas==0.25.3
+numpy==1.17.4
+xlrd==1.1.0
