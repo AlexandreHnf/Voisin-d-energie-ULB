@@ -182,7 +182,7 @@ def writeSensorsConfigCassandra(cassandra_session, new_config_df, now):
 		values = [insertion_time] + list(row)
 		ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, TBL_SENSORS_CONFIG, col_names, values)
 
-	print("Successfully inserted sensors config in table : {}".format(TBL_SENSORS_CONFIG))
+	print("Successfully inserted sensors config in table '{}'".format(TBL_SENSORS_CONFIG))
 
 
 # ==========================================================================
@@ -236,7 +236,7 @@ def writeGroupsConfigCassandra(cassandra_session, table_name, now):
 		values = [insertion_time, str(i+1), home_ids]
 		ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, values)
 
-	print("Successfully inserted groups stats in table : {}".format(table_name))
+	print("Successfully inserted groups stats in table '{}'".format(table_name))
 
 
 def writeGroupsFromInstallationsIds():
@@ -294,7 +294,7 @@ def writeAccessDataCassandra(cassandra_session, config_file_path, table_name):
 		values = [login_id, list(installation_ids["InstallationId"])]
 		ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 
-	print("Successfully inserted access data in table : {}".format(table_name))
+	print("Successfully inserted access data in table '{}'".format(table_name))
 
 
 def writeGroupCaptionsToCassandra(cassandra_session, config_file_path, table_name):
@@ -311,7 +311,7 @@ def writeGroupCaptionsToCassandra(cassandra_session, config_file_path, table_nam
 
 		ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, col_names, values)
 	
-	print("Successfully inserted group captions in table : {}".format(table_name))
+	print("Successfully inserted group captions in table '{}'".format(table_name))
 
 
 # ==========================================================================
@@ -353,8 +353,7 @@ def createTableAccess(cassandra_session, table_name):
 	access, installations
 	"""
 	cols = ["login TEXT", 
-			"installations LIST<TEXT>",
-			"caption TEXT"]
+			"installations LIST<TEXT>"]
 	ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, ["login"], [], {})
 
 
@@ -423,10 +422,10 @@ def processConfig(cassandra_session, config_file_path, new_config_df, now):
 	- group captions in group table
 	"""
 
-	# first, create tables if necessary
-	createTableAccess(cassandra_session, "sensors_config")
+	# first, create tables if necessary (if they do not already exist)
+	createTableSensorConfig(cassandra_session, "sensors_config")
 	createTableAccess(cassandra_session, "access")
-	createTableAccess(cassandra_session, "group")
+	createTableGroup(cassandra_session, "group")
 
 	# then, compare new config with previous configs and recompute data if necessary
 	print("> Checking for data to recompute... ")

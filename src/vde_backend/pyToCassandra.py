@@ -133,9 +133,9 @@ def createTable(session, keyspace, table_name, columns, primary_keys, clustering
 					getClusteringKeyStr(clustering_keys),
 					getOrdering(ordering))
 
-	logging.info("===>  create table query : " + query)
+	# logging.info("===>  create table query : " + query)
 	session.execute(query) 
-	logging.info("successfully created table " + table_name)
+	# logging.info("successfully created table " + table_name)
 
 
 def pandas_factory(colnames, rows):

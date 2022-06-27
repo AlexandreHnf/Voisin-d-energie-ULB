@@ -10,13 +10,12 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 FLUKSO_CONFIG_FILE =                 	"flukso_config/Configuration1.xlsx"
 
 # local
-UPDATED_SENSORS_FILE =                  "../../../sensors/updated_sensors.csv"
 OUTPUT_FILE =                           'local_scripts/output/fluksoData/'
 GROUPS_FILE =                           "local_scripts/sensors/grouped_homes_sensors.txt"
 
 TMPO_FILE = 							""
 
-LOG_FILE = 								"../../../logs/backend_logs.log"
+LOG_FILE = 								"logs/backend_logs.log"
 
 # credentials
 CASSANDRA_CREDENTIALS_FILE = 			'cassandra_serv_credentials.json'
@@ -34,9 +33,9 @@ LIMIT_TIMING_RAW =                      2  # days
 LAST_TS_DAYS =                          2  # days
 
 # "since" default value for the earliest timestamp of a flukso
-# normally since = 0, but for testing, we put since = 4min
 FROM_FIRST_TS_STATUS = 					"local"
-FROM_FIRST_TS =                         "1days" 
+# default first timestamp origin : chosen arbitrarily. Ex : since 4min or since 1 days, ...
+FROM_FIRST_TS =                         "4min"
 
 # nb lines to insert per batch insert when inserting in cassandra table
 INSERTS_PER_BATCH =                     11000

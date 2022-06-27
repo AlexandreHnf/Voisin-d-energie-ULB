@@ -443,7 +443,7 @@ def saveHomeRawToCassandra(cassandra_session, home, config, timings):
 
 # ====================================================================================
 
-def processHomes(cassandra_session, tmpo_session, config, timings, start_timing, to_timing, now):
+def processHomes(cassandra_session, tmpo_session, config, timings, now):
 	# for each home
 	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
 		saved_sensors = {}  # for missing data, to check if sensors missing data already saved
@@ -531,39 +531,16 @@ def showProcessingTimes(configs, begin, setup_time, config_timers):
 	logging.info("> Total Processing time : {}.".format(getTimeSpent(begin, time.time())))
 
 
-def processArguments():
+def createTables(cassandra_session):
 	"""
-	process arguments 
-	argument : manual or automatic
-	TODO : refactor manual mode or remove it, because it is obsolete now
-	"""
-	argparser = argparse.ArgumentParser(
-		description=__doc__,
-		formatter_class=argparse.RawDescriptionHelpFormatter,
-	)
-	argparser.add_argument("--mode", type=str, default="manual",
-						   help="Manual : set --since --to parameters; "
-								"Automatic : no parameters to provide")
-
-	argparser.add_argument("--since",
-						   type=str,
-						   default="",
-						   help="Period to query until now, e.g. "
-								"'30days', "
-								"'1hours', "
-								"'20min',"
-								"'s2021-12-06-16-30-00', etc. Defaults to all data.")
-
-	argparser.add_argument("--to",
-						   type=str,
-						   default="",
-						   help="Query a defined interval, e.g. "
-								"'2021-10-29-00-00-00>2021-10-29-23-59-52'")
-
-	return argparser
+	create the necessary tables for the flukso data synchronization
+	""" 
+	createRawFluksoTable(cassandra_session, "raw")
+	createRawMissingTable(cassandra_session, "raw_missing")
+	createPowerTable(cassandra_session, "power")
 
 
-def sync(cassandra_session, mode, since, to):
+def sync(cassandra_session):
 	logging.info("======================================================================")
 	logging.info("======================================================================")
 	begin = time.time()
@@ -571,21 +548,15 @@ def sync(cassandra_session, mode, since, to):
 	# > timings
 	now = pd.Timestamp.now(tz="UTC").replace(microsecond=0)  # remove microseconds for simplicity
 	now_local = pd.Timestamp.now().replace(microsecond=0)  # default tz = CET, unaware timestamp
-	start_timing = setInitSeconds(getTiming(since, now))  # UTC
-	to_timing = setInitSeconds(getTiming(to, now))  # UTC
 
 	# =============================================================
 
 	# > Configurations
-
 	current_config_id, all_sensors_configs = getCurrentSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
 
 	missing_data = getMissingRaw(cassandra_session, TBL_RAW_MISSING)
 	configs = getNeededConfigs(all_sensors_configs, missing_data, current_config_id)
 
-	logging.info("Mode : {}".format(mode))
-	logging.info("start timing : {} (CET) => {} (UTC)".format(since, start_timing))
-	logging.info("to timing    : {} (CET) => {} (UTC)".format(to, to_timing))
 	logging.info("now (CET) : " + str(now_local))
 	logging.info("Number of configs : " + str(len(configs)))
 
@@ -624,7 +595,8 @@ def sync(cassandra_session, mode, since, to):
 		logging.info("Generating homes data, getting Flukso data and save in Cassandra...")
 		logging.info("==================================================")
 
-		processHomes(cassandra_session, tmpo_session, config, timings, start_timing, to_timing, now)
+		# STEP 2 : process all homes data, and save in database
+		processHomes(cassandra_session, tmpo_session, config, timings, now)
 
 		config_timers[config_id]["homes"] = time.time()
 
@@ -635,22 +607,13 @@ def sync(cassandra_session, mode, since, to):
 
 def main():
 
-	# > arguments
-	argparser = processArguments()
-	args = argparser.parse_args()
-	mode = args.mode
-	since = args.since
-	to = args.to
-
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	# first, create tables if needed : 
-	createRawFluksoTable(cassandra_session, "raw")
-	createRawMissingTable(cassandra_session, "raw_missing")
-	createPowerTable(cassandra_session, "power")
+	createTables(cassandra_session)
 
 	# then, sync new data in Cassandra
-	sync(cassandra_session, mode, since, to)
+	sync(cassandra_session)
 
 
 if __name__ == "__main__":
