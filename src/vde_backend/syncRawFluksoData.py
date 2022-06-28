@@ -26,18 +26,10 @@ import tmpo
 
 import logging
 
-from vde_backend.utils import convertTimezone, getCurrentSensorsConfigCassandra, \
+from utils import convertTimezone, getCurrentSensorsConfigCassandra, \
 								getIntermediateTimings, getLastXDates, getProgDir, \
 								getTimeSpent, getTiming, isEarlier, read_sensor_info, \
 								setInitSeconds
-
-logging.getLogger("tmpo").setLevel(logging.ERROR)
-logging.getLogger("requests").setLevel(logging.ERROR)
-logging.getLogger("urllib3").setLevel(logging.ERROR)
-
-logging_handlers = [logging.FileHandler(LOG_FILE)]
-if LOG_VERBOSE:
-	logging_handlers.append(logging.StreamHandler())
 
 
 # Hide warnings :
@@ -61,6 +53,14 @@ from computePower import saveHomePowerDataToCassandra
 from sensor import Sensor, setupLogLevel
 
 # Create and configure logger
+logging.getLogger("tmpo").setLevel(logging.ERROR)
+logging.getLogger("requests").setLevel(logging.ERROR)
+logging.getLogger("urllib3").setLevel(logging.ERROR)
+
+logging_handlers = [logging.FileHandler(LOG_FILE)]
+if LOG_VERBOSE:
+	logging_handlers.append(logging.StreamHandler())
+
 logging.basicConfig(level = setupLogLevel(),
 					format = "{asctime} {levelname:<8} {message}", style='{',
 					handlers=logging_handlers

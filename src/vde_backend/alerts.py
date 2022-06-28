@@ -47,6 +47,7 @@ def getMailText(problem_title, legend, to_alert, date):
 
 def sendMail():
 
+    # TODO : only send mail if there is an alert containing issues
     pass 
 
 
@@ -188,6 +189,16 @@ def getYesterday(now):
     return yesterday
 
 
+def writeMailToFile(mail_content, filename):
+    """ 
+    Write mail content to a simple txt file
+    """
+    with open(filename, 'w') as f:
+        f.write(mail_content)
+
+
+# ========================================================================================
+
 def processArguments():
 	"""
 	process arguments 
@@ -214,21 +225,23 @@ def main():
 
     last_config = getLastRegisteredConfig(cassandra_session)
     now = pd.Timestamp.now()
-    # yesterday = getYesterday(now)  # TODO : handle multiple past dates
-    yesterday = "2022-06-14"
+    yesterday = getYesterday(now)  # TODO : handle multiple past dates
     print("yesterday : ", yesterday)
 
     if mode == "missing":
         to_alert = getHomesWithMissingData(cassandra_session, last_config, yesterday)
-        legend = "{'home id': percentage of missing data for 1 day, ...}"
-        txt = getMailText("There is missing data", legend, to_alert, yesterday)
-        print(txt)
+        legend = "'home id' > percentage of missing data for 1 day"
+        mail_content = getMailText("There is missing data", legend, to_alert, yesterday)
+        print(mail_content)
+        writeMailToFile(mail_content, "alert_missing.txt")
     elif mode == "sign":
         to_alert = getHomesWithIncorrectSigns(cassandra_session, last_config, yesterday)
-        legend = "{'home id ': {'config id : ': {'cons_neg = is there any negative consumption values ?', \
-                                    'prod_pos = is there any positive production values ?'}...}...}"
-        txt = getMailText("There are incorrect signs", legend, to_alert, yesterday)
-        print(txt)
+        legend = "'home id ' > {'config id (insertion time): ': \n"
+        legend += "{'cons_neg = is there any negative consumption values ?', \n"
+        legend += "'prod_pos = is there any positive production values ?'}}"
+        mail_content = getMailText("There are incorrect signs", legend, to_alert, yesterday)
+        print(mail_content)
+        writeMailToFile(mail_content, "alert_signs.txt")
 
     sendMail()
 

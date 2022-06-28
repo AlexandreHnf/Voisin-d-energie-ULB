@@ -158,3 +158,4 @@ src/vde_backend/flukso_config/
 src/vde_backend/logs/
 src/vde_backend/constants.py
 src/vde_backend/constants_dev.py
+src/vde_backend/errors/
