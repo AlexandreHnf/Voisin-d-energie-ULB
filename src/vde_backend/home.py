@@ -189,19 +189,15 @@ class Home:
 		# convert all timestamps to local timezone (CET)
 		local_timestamps = getLocalTimestampsIndex(raw_df)
 
-		# raw_df.index = [tps.ceil(freq="U", ambiguous='NaT') for tps in local_timestamps]
 		raw_df.index = [tps for tps in local_timestamps]
 		self.len_raw = len(raw_df.index)
-		# logging.debug("len: " + str(len(raw_df.index)))
-
-		# if self.home_id == "ECHASC":
-		# 	print("raw_df", raw_df.head(30))
 
 		raw_df.fillna(0, inplace=True)
 		
-		raw_df.drop(local_timestamps[0], inplace=True)  # drop first row because NaN after conversion
+		if len(local_timestamps) > 1:
+			raw_df.drop(local_timestamps[0], inplace=True)  # drop first row because NaN after conversion
 
-		raw_df = raw_df.round(1)  # round with 2 decimals
+			raw_df = raw_df.round(1)  # round with 2 decimals
 
 		return raw_df
 

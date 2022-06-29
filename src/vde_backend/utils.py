@@ -9,6 +9,7 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 import os
 import math
 from datetime import date, timedelta, datetime
+from tracemalloc import start
 
 # 3rd party packages
 import pandas as pd
@@ -220,9 +221,6 @@ def energy2power(energy_df):
 	"""
 	# logging.info(energy_df.head(10))
 	power_df = energy_df.diff() * 1000
-	# power_df.drop(first_ts, inplace=True)  # drop first row because no data after conversion
-	# replace all negative values by 0, power can't be negative
-	# power_df[power_df < 0] = 0  
 	power_df.fillna(0, inplace=True)
 	
 	power_df = power_df.resample(str(FREQ[0]) + FREQ[1]).mean()
@@ -243,12 +241,14 @@ def getIntermediateTimings(start_ts, end_ts):
 	- interval duration = 1 day
 	"""
 	intermediate_timings = [start_ts]
-	nb_days = (end_ts - start_ts).days
+	nb_days = 0
+	if end_ts is not None and start_ts is not None:
+		nb_days = (end_ts - start_ts).days
 	current_ts = start_ts
 	for _ in range(nb_days):
 		current_ts += timedelta(days = 1)
 		intermediate_timings.append(current_ts)
-	if end_ts != current_ts:
+	if end_ts != current_ts and end_ts is not None:
 		intermediate_timings.append(end_ts)
 
 	return nb_days, intermediate_timings
