@@ -12,7 +12,7 @@ import argparse
 import pandas as pd
 
 # local source
-from constants import FLUKSO_CONFIG_FILE, GROUPS_FILE, TBL_SENSORS_CONFIG, CASSANDRA_KEYSPACE
+from constants import TBL_SENSORS_CONFIG, CASSANDRA_KEYSPACE
 import pyToCassandra as ptc
 from sensorConfig import Configuration
 from computePower import recomputePowerData
@@ -186,85 +186,6 @@ def writeSensorsConfigCassandra(cassandra_session, new_config_df, now):
 		ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, TBL_SENSORS_CONFIG, col_names, values)
 
 	print("Successfully inserted sensors config in table '{}'".format(TBL_SENSORS_CONFIG))
-
-
-# ==========================================================================
-
-
-def writeGroupsFromFluksoIDs():
-	"""
-	get the list of installations IDs based on the flukso sensors ID of a group
-	-> save them in a txt file
-	format : 1 line = 1 group = home_id1, home_id2, ... 
-	"""
-	installation_ids_df = pd.read_excel(FLUKSO_CONFIG_FILE, sheet_name="Flukso")
-	available_fluksos = set(pd.read_excel(FLUKSO_CONFIG_FILE, sheet_name="Sensors")["FlmId"])
-	fluksos = getFluksosDic(installation_ids_df)
-
-	groups_df = pd.read_excel(FLUKSO_CONFIG_FILE, sheet_name="Groups")
-	nb_groups = len(set(groups_df["GroupId"]))
-
-	with open(GROUPS_FILE, "w") as gf:
-		for i in range(nb_groups):
-			group = ""
-			grp_df = groups_df.loc[groups_df["GroupId"] == i+1]  # get group i
-			for flukso in grp_df["FlmId"]:
-				if flukso in available_fluksos:
-					install_id = fluksos[flukso]
-					# print(flukso, install_id)
-					if install_id not in group:
-						group += install_id + ","
-
-			gf.write(group[:-1] + "\n")  # -1 to remove the last ","
-
-
-def writeGroupsConfigCassandra(cassandra_session, table_name, now):
-	""" 
-	write groups config data in cassandra table 
-	1 row = all the installations ids of a group (home ids)
-	"""
-	groups_df = pd.read_excel(FLUKSO_CONFIG_FILE, sheet_name="Groups")
-	nb_groups = len(set(groups_df["GroupId"]))
-
-	cols = ["insertion_time", "group_id", "homes"]
-	insertion_time = str(now)[:19] + "Z"
-
-	for i in range(nb_groups):
-		home_ids = []
-		grp_df = groups_df.loc[groups_df["GroupId"] == i+1]  # get group i
-		for install_id in grp_df["InstalationId"]:
-			if install_id not in home_ids:
-				home_ids.append(install_id)
-
-		values = [insertion_time, str(i+1), home_ids]
-		ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, values)
-
-	print("Successfully inserted groups stats in table '{}'".format(table_name))
-
-
-def writeGroupsFromInstallationsIds():
-	"""
-	get the list of installations IDs from the excel file and save them into a simple
-	csv file
-	1 row = all the installations ids of a group
-	"""
-	groups_df = pd.read_excel(FLUKSO_CONFIG_FILE, sheet_name="Groups")
-	nb_groups = len(set(groups_df["GroupId"]))
-
-	with open(GROUPS_FILE, "w") as gf:
-		for i in range(nb_groups):
-			group = ""
-			grp_df = groups_df.loc[groups_df["GroupId"] == i+1]  # get group i
-			for install_id in grp_df["InstalationId"]:
-				if install_id not in group:
-					group += install_id + ","
-
-			# print(group[:-1])
-			gf.write(group[:-1] + "\n")  # -1 to remove the last ","
-
-
-def saveToCsv(df, filename):
-	df.to_csv(filename, index=None, header=True)
 
 
 # ==========================================================================

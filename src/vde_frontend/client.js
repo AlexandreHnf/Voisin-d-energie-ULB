@@ -456,6 +456,8 @@ function getEnergy(powers_data, tot_power) {
   if (isNaN(Q_tot)) {
     Q_tot = 0;
   }
+  Q_tot = Math.round(Q_tot);
+  console.log(Q_tot);
 
 	return Q_tot;
 }
