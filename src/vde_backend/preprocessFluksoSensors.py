@@ -7,20 +7,34 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 # standard library
 import argparse
+import sys
 
 # 3rd party packages
 import pandas as pd
 
 # local source
-from constants import TBL_SENSORS_CONFIG, CASSANDRA_KEYSPACE
+from constants import TBL_SENSORS_CONFIG, CASSANDRA_KEYSPACE, CONFIG_SENSORS_TAB, CONFIG_ACCESS_TAB, CONFIG_CAPTIONS_TAB
 import pyToCassandra as ptc
 from sensorConfig import Configuration
 from computePower import recomputePowerData
 from utils import getAllRegisteredConfigs
 
 
-
 # ==========================================================================
+
+
+def getConfigDf(config_file_path, sheet_name):
+	""" 
+	given a config file (excel), and a sheet name within this file, 
+	return a dataframe with the data
+	"""
+	try:
+		data_df = pd.read_excel(config_file_path, sheet_name=sheet_name)
+		return data_df
+	except Exception as e:
+		print("Error when trying to read excel file : {}. Please provide a valid Configuration file.".format(config_file_path))
+		print("Exception : {}".format(str(e)))
+		sys.exit(1)
 
 
 def getFluksosDic(installation_ids_df):
@@ -64,7 +78,7 @@ def getCompactSensorDF(config_file_path):
 	columns : home_id, phase, flukso_id, sensor_id, token, net, con, pro
 	"""
 	print("Config file : ", config_file_path)
-	sensors_df = pd.read_excel(config_file_path, sheet_name="Export_InstallationSensors")
+	sensors_df = getConfigDf(config_file_path, CONFIG_SENSORS_TAB)
 	compact_df = pd.DataFrame(columns=["home_id",
 									   "phase",
 									   "flukso_id",
@@ -197,7 +211,7 @@ def getInstallationCaptions(config_file_path):
 	key : installation id (login id = home id) => generally a group
 	value : caption, description
 	"""
-	captions_df = pd.read_excel(config_file_path, sheet_name="InstallationCaptions")
+	captions_df = getConfigDf(config_file_path, CONFIG_CAPTIONS_TAB)
 	captions = {}
 	for i in captions_df.index:
 		captions[captions_df.iloc[i]["InstallationId"]] = captions_df.iloc[i]["Caption"]
@@ -209,7 +223,7 @@ def writeAccessDataCassandra(cassandra_session, config_file_path, table_name):
 	""" 
 	write access data to cassandra (login ids)
 	"""
-	login_df = pd.read_excel(config_file_path, sheet_name="Export_Access")
+	login_df = getConfigDf(config_file_path, CONFIG_ACCESS_TAB)
 	by_login = login_df.groupby("Login")
 
 	col_names = ["login", "installations"]

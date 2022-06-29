@@ -161,7 +161,11 @@ In this section, we describe how to use the different scripts.
    cqlsh
    use flukso;
    ```
-3. execute any script using the instructions below : 
+3. Execute any script using the instructions below : 
+4. Always make sure to stop cassandra service when we are done using it. It is very important.
+   ```sh
+   sudo service cassandra stop
+   ```
 
 ### Scripts
 

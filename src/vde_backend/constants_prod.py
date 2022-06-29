@@ -10,6 +10,11 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 # local
 OUTPUT_FILE =                           'local_scripts/output/fluksoData/'
 
+# Config file tabs
+CONFIG_SENSORS_TAB =                    "Export_InstallationSensors"
+CONFIG_ACCESS_TAB =                     "Export_Access"
+CONFIG_CAPTIONS_TAB =                   "InstallationCaptions"
+
 TMPO_FILE = 							"/opt/vde/"
 
 LOG_FILE = 								"/var/log/vde/logs.log"
