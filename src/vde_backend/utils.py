@@ -16,7 +16,7 @@ import numpy as np
 import logging
 
 # local sources
-from constants import CASSANDRA_KEYSPACE, FREQ, GROUPS_FILE, LAST_TS_DAYS, LOG_LEVEL, \
+from constants import CASSANDRA_KEYSPACE, FREQ, LAST_TS_DAYS, LOG_LEVEL, \
 						TBL_SENSORS_CONFIG
 from sensorConfig import Configuration
 import pyToCassandra as ptc
@@ -103,19 +103,6 @@ def getAllRegisteredConfigs(cassandra_session):
 			configs.append(Configuration(config_id, config.set_index("sensor_id")))
 
 	return configs
-
-
-def getFLuksoGroups():
-    """
-    returns Groups with format : [[home_ID1, home_ID2], [home_ID3, home_ID4], ...]
-    """
-    groups = []
-    with open(GROUPS_FILE) as f:
-        lines = f.readlines()
-        for line in lines:
-            groups.append(line.strip().split(","))
-
-    return groups
 
 
 def setInitSeconds(ts):
