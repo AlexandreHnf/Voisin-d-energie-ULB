@@ -6,12 +6,14 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 
 # =========================== FILE PATHS ====================================
-# configuration path
-FLUKSO_CONFIG_FILE =                 	"/opt/vde/flukso_config/Configuration.xlsx"
 
 # local
 OUTPUT_FILE =                           'local_scripts/output/fluksoData/'
-GROUPS_FILE =                           "local_scripts/sensors/grouped_homes_sensors.txt"
+
+# Config file tabs
+CONFIG_SENSORS_TAB =                    "Export_InstallationSensors"
+CONFIG_ACCESS_TAB =                     "Export_Access"
+CONFIG_CAPTIONS_TAB =                   "InstallationCaptions"
 
 TMPO_FILE = 							"/opt/vde/"
 

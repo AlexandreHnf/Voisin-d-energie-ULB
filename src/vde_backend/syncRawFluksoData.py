@@ -26,18 +26,10 @@ import tmpo
 
 import logging
 
-from vde_backend.utils import convertTimezone, getCurrentSensorsConfigCassandra, \
+from utils import convertTimezone, getCurrentSensorsConfigCassandra, \
 								getIntermediateTimings, getLastXDates, getProgDir, \
 								getTimeSpent, getTiming, isEarlier, read_sensor_info, \
 								setInitSeconds
-
-logging.getLogger("tmpo").setLevel(logging.ERROR)
-logging.getLogger("requests").setLevel(logging.ERROR)
-logging.getLogger("urllib3").setLevel(logging.ERROR)
-
-logging_handlers = [logging.FileHandler(LOG_FILE)]
-if LOG_VERBOSE:
-	logging_handlers.append(logging.StreamHandler())
 
 
 # Hide warnings :
@@ -61,6 +53,14 @@ from computePower import saveHomePowerDataToCassandra
 from sensor import Sensor, setupLogLevel
 
 # Create and configure logger
+logging.getLogger("tmpo").setLevel(logging.ERROR)
+logging.getLogger("requests").setLevel(logging.ERROR)
+logging.getLogger("urllib3").setLevel(logging.ERROR)
+
+logging_handlers = [logging.FileHandler(LOG_FILE)]
+if LOG_VERBOSE:
+	logging_handlers.append(logging.StreamHandler())
+
 logging.basicConfig(level = setupLogLevel(),
 					format = "{asctime} {levelname:<8} {message}", style='{',
 					handlers=logging_handlers
@@ -243,8 +243,6 @@ def getInitialTimestamp(tmpo_session, sid, now):
 		if initial_ts_tmpo is not None:
 			initial_ts = initial_ts_tmpo.tz_localize(None)
 
-	# logging.debug("{} first ts = {} : {}".format(sid, initial_ts, initial_ts.tz))
-
 	return initial_ts
 
 
@@ -340,8 +338,8 @@ def generateHome(tmpo_session, hid, home_sensors, since_timing, to_timing):
 	"""
 	sensors = []  # list of Sensor objects
 
-	logging.info("  -> {} > {} ({} min.)".format(since_timing, to_timing,
-								round((to_timing - since_timing).total_seconds() / 60.0, 2)))
+	duration_min = round((to_timing - since_timing).total_seconds() / 60.0, 2)
+	logging.info("  -> {} > {} ({} min.)".format(since_timing, to_timing, duration_min))
 
 	for sid, row in home_sensors.iterrows():
 		sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
@@ -407,7 +405,6 @@ def getFluksoData(sensor_file, path=""):
 		path = getProgDir()
 
 	sensors = read_sensor_info(path, sensor_file)
-	# logging.info(sensors.head(5))
 	tmpo_session = tmpo.Session(path)
 	for hid, hn, sid, tk, n, c, p in sensors.values:
 		tmpo_session.add(sid, tk)
@@ -456,7 +453,7 @@ def saveHomeMissingData(cassandra_session, config, to_timing, home, saved_sensor
 		logging.debug("   OK : missing raw data saved.")
 	
 	except:
-		logging.critial("Exception occured in 'saveHomeMissingData' : {} ".format(hid), exc_info=True)
+		logging.critical("Exception occured in 'saveHomeMissingData' : {} ".format(hid), exc_info=True)
 
 
 def saveHomeRawToCassandra(cassandra_session, home, config, timings):
@@ -504,6 +501,30 @@ def saveHomeRawToCassandra(cassandra_session, home, config, timings):
 
 # ====================================================================================
 
+def displayHomeInfo(home_id, timings, nb_days):
+	""" 
+	Display some info during the execution of a query for logging. Can be activated by
+	turning the logging mode to 'INFO' 
+	> home id | start timestamp > end timestamp (nb days > nb minutes)
+		-> date 1 start timestamp > date 1 end timestamp (nb minutes)
+			- nb raw data, nb NaN data, total nb NaN data
+		-> date 2 start timestamp > date 2 end timestamp (nb minutes)
+			- ...
+		-> ...
+	"""
+
+	start_ts = timings[home_id]["start_ts"]
+	end_ts = timings[home_id]["end_ts"]
+	duration_min = 0
+	if start_ts is not None and end_ts is not None:
+		duration_min = round((end_ts - start_ts).total_seconds() / 60.0, 2)
+	if duration_min > 0:
+		logging.info("> {} | {} > {} ({} days > {} min.)".format(home_id, 
+					start_ts, end_ts, nb_days, duration_min))
+	else:
+		logging.info("> {} | no data to recover".format(home_id))
+
+
 def processHomes(cassandra_session, tmpo_session, config, timings, now):
 	# for each home
 	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
@@ -511,9 +532,7 @@ def processHomes(cassandra_session, tmpo_session, config, timings, now):
 		if timings[hid]["start_ts"] is not None:  # if home has a start timestamp
 			nb_days, intermediate_timings = getIntermediateTimings(timings[hid]["start_ts"], timings[hid]["end_ts"])
 			
-			logging.info("> {} | {} > {} ({} days > {} min.)".format(hid, timings[hid]["start_ts"], timings[hid]["end_ts"],
-								nb_days, 
-								round((timings[hid]["end_ts"] - timings[hid]["start_ts"]).total_seconds() / 60.0, 2)))
+			displayHomeInfo(hid, timings, nb_days)
 
 			for i in range(len(intermediate_timings)-1):  # query day by day
 				start_timing = intermediate_timings[i]
@@ -647,7 +666,6 @@ def sync(cassandra_session):
 			missing = missing_data.get_group(config_id).set_index("sensor_id")
 		timings = getTimings(tmpo_session, cassandra_session, config, current_config_id, missing, 
 							TBL_RAW_MISSING, now_local)
-		# logging.info(timings)
 		config_timers[config_id]["timing"] = time.time()
 
 		# =========================================================

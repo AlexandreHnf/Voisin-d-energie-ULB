@@ -26,16 +26,17 @@ import pyToCassandra as ptc
 from utils import getLastRegisteredConfig
 from constants import TBL_POWER, CASSANDRA_KEYSPACE
 
-# from google.oauth2 import service_account
-# from goggleapiclient.discovery import build
+
+SIGN_THRESHOLD = 15
+MISSING_ALERT_THRESHOLD = 10
 
 
-
-def getMailText(problem_title, legend, to_alert, date):
+def getMailText(problem_title, threshold, legend, to_alert, date):
     """ 
     create a alert txt with specific details (to send a mail)
     """
     txt = "- Alert - {} \n".format(problem_title)
+    txt += "- Threshold : {} \n".format(threshold)
     txt += "- Legend : {} \n".format(legend)
     txt += "- Date : {} \n".format(date)
     txt += "------------------------------------------------------\n"
@@ -45,8 +46,9 @@ def getMailText(problem_title, legend, to_alert, date):
     return txt 
 
 
-def sendMail():
+def sendMail(mail_filename):
 
+    # TODO : only send mail if there is an alert containing issues
     pass 
 
 
@@ -126,13 +128,16 @@ def checkSigns(cassandra_session, home_id, date, table_name):
     if len(home_df) > 0:
         for config_id, power_df in home_df.groupby("config_id"):
             # print(power_df.head(1))
-            cons_neg = (power_df["p_cons"] < 0).any()
-            prod_pos = (power_df["p_prod"] > 0).any()
+            cons_neg = (power_df["p_cons"] < SIGN_THRESHOLD).any()
+            prod_pos = (power_df["p_prod"] > SIGN_THRESHOLD).any()
+            maxi = home_df.max()
+            mini = home_df.min()
             
             if cons_neg or prod_pos:
                 # print("cons_neg : {}, prod_pos : {}".format(cons_neg, prod_pos))
                 ok = False
-                info[str(config_id)] = {"cons_neg": cons_neg, "prod_pos": prod_pos}
+                info[str(config_id)] = {"cons_neg": {"status": cons_neg, "max": maxi["p_cons"], "min": mini["p_cons"]}, \
+                                        "prod_pos": {"status": prod_pos, "max": maxi["p_prod"], "min": mini["p_prod"]}}
 
     # print(info)
     return ok, info
@@ -143,7 +148,7 @@ def getHomesWithMissingData(cassandra_session, config, yesterday):
     For each home, check if power data has a lot of missing data, 
     if the percentage of missing data is non negligeable, we send an alert by email
     """
-    MISSING_ALERT_THRESHOLD = 1
+    
     to_alert = {}
     ids = config.getIds()
     for home_id, sensor_ids in ids.items():
@@ -155,7 +160,7 @@ def getHomesWithMissingData(cassandra_session, config, yesterday):
             percentage = (100 * nb_zeros) / tot_len
         # print("nb 0 : {}, tot len : {}, {}%".format(nb_zeros, tot_len, percentage))
         if percentage >= MISSING_ALERT_THRESHOLD:  # if at least 80% of the rows are 0s, then alert
-            to_alert[home_id] = percentage 
+            to_alert[home_id] = round(percentage, 1) 
     
     # print(to_alert)
     return to_alert
@@ -188,6 +193,16 @@ def getYesterday(now):
     return yesterday
 
 
+def writeMailToFile(mail_content, filename):
+    """ 
+    Write mail content to a simple txt file
+    """
+    with open(filename, 'w') as f:
+        f.write(mail_content)
+
+
+# ========================================================================================
+
 def processArguments():
 	"""
 	process arguments 
@@ -214,23 +229,29 @@ def main():
 
     last_config = getLastRegisteredConfig(cassandra_session)
     now = pd.Timestamp.now()
-    # yesterday = getYesterday(now)  # TODO : handle multiple past dates
-    yesterday = "2022-06-14"
+    yesterday = getYesterday(now)  # TODO : handle multiple past dates
     print("yesterday : ", yesterday)
 
     if mode == "missing":
         to_alert = getHomesWithMissingData(cassandra_session, last_config, yesterday)
-        legend = "{'home id': percentage of missing data for 1 day, ...}"
-        txt = getMailText("There is missing data", legend, to_alert, yesterday)
-        print(txt)
+        if len(to_alert) > 0:
+            threshold = "{} %".format(MISSING_ALERT_THRESHOLD)
+            legend = "'home id' > percentage of missing data for 1 day"
+            mail_content = getMailText("There is missing data", threshold, legend, to_alert, yesterday)
+            print(mail_content)
+            writeMailToFile(mail_content, "alert_missing.txt")
+            sendMail("alert_missing.txt")
     elif mode == "sign":
         to_alert = getHomesWithIncorrectSigns(cassandra_session, last_config, yesterday)
-        legend = "{'home id ': {'config id : ': {'cons_neg = is there any negative consumption values ?', \
-                                    'prod_pos = is there any positive production values ?'}...}...}"
-        txt = getMailText("There are incorrect signs", legend, to_alert, yesterday)
-        print(txt)
-
-    sendMail()
+        if len(to_alert) > 0:
+            threshold = "> {} ".format(SIGN_THRESHOLD)
+            legend = "'home id ' > {'config id (insertion time): ': \n"
+            legend += "{'cons_neg = is there any negative consumption values ?', \n"
+            legend += "'prod_pos = is there any positive production values ?'}}"
+            mail_content = getMailText("There are incorrect signs", threshold, legend, to_alert, yesterday)
+            print(mail_content)
+            writeMailToFile(mail_content, "alert_signs.txt")
+            sendMail("alert_signs.txt")
 
 
 
