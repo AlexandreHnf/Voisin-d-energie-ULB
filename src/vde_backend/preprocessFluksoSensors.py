@@ -13,7 +13,13 @@ import sys
 import pandas as pd
 
 # local source
-from constants import TBL_SENSORS_CONFIG, CASSANDRA_KEYSPACE, CONFIG_SENSORS_TAB, CONFIG_ACCESS_TAB, CONFIG_CAPTIONS_TAB
+from constants import (
+	TBL_SENSORS_CONFIG, 
+	CASSANDRA_KEYSPACE, 
+	CONFIG_SENSORS_TAB, 
+	CONFIG_ACCESS_TAB, 
+	CONFIG_CAPTIONS_TAB
+)
 import pyToCassandra as ptc
 from sensorConfig import Configuration
 from computePower import recomputePowerData

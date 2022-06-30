@@ -15,7 +15,11 @@ from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
 
 # local source
-from constants import CASSANDRA_AUTH_MODE, CASSANDRA_CREDENTIALS_FILE, SERVER_BACKEND_IP
+from constants import (
+	CASSANDRA_AUTH_MODE, 
+	CASSANDRA_CREDENTIALS_FILE, 
+	SERVER_BACKEND_IP
+)
 
 
 def getRightFormat(values):

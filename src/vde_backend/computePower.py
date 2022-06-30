@@ -13,9 +13,17 @@ import logging
 import pandas as pd
 
 # local source
-from constants import CASSANDRA_KEYSPACE, INSERTS_PER_BATCH, TBL_POWER, TBL_RAW
+from constants import (
+	CASSANDRA_KEYSPACE, 
+	INSERTS_PER_BATCH, 
+	TBL_POWER, 
+	TBL_RAW
+)
 import pyToCassandra as ptc
-from utils import getDatesBetween, getLastRegisteredConfig
+from utils import (
+	getDatesBetween, 
+	getLastRegisteredConfig
+)
 
 
 # ====================================================================================

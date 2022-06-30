@@ -26,10 +26,18 @@ import tmpo
 
 import logging
 
-from utils import convertTimezone, getCurrentSensorsConfigCassandra, \
-								getIntermediateTimings, getLastXDates, getProgDir, \
-								getTimeSpent, getTiming, isEarlier, read_sensor_info, \
-								setInitSeconds
+from utils import (
+	convertTimezone, 
+	getCurrentSensorsConfigCassandra, 
+	getIntermediateTimings, 
+	getLastXDates, 
+	getProgDir, 
+	getTimeSpent, 
+	getTiming, 
+	isEarlier, 
+	read_sensor_info, 
+	setInitSeconds
+)
 
 
 # Hide warnings :
@@ -43,9 +51,22 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # local sources
 from home import Home
-from constants import CASSANDRA_KEYSPACE, FROM_FIRST_TS, FROM_FIRST_TS_STATUS, INSERTS_PER_BATCH, \
-						LIMIT_TIMING_RAW, LOG_FILE, LOG_VERBOSE, OUTPUT_FILE, TBL_RAW, \
-						FREQ, TBL_RAW_MISSING, TBL_SENSORS_CONFIG, TMPO_FILE
+from constants import (
+	CASSANDRA_KEYSPACE, 
+	FROM_FIRST_TS, 
+	FROM_FIRST_TS_STATUS, 
+	INSERTS_PER_BATCH, 
+	LIMIT_TIMING_RAW,
+	LOG_FILE, 
+	LOG_VERBOSE, 
+	OUTPUT_FILE, 
+	TBL_RAW, 
+	FREQ, 
+	TBL_RAW_MISSING, 
+	TBL_SENSORS_CONFIG, 
+	TMPO_FILE
+)
+
 
 import pyToCassandra as ptc
 from sensorConfig import Configuration
@@ -132,7 +153,7 @@ def getLastRegisteredTimestamp(cassandra_session, table_name, sensor_id):
 	more robust but much slower
 	"""
 	# get last date available for this home
-	where_clause = "sensor_id = {}".format("'"+sensor_id+"'")
+	where_clause = "sensor_id = '{}'".format(sensor_id)
 	cols = ["sensor_id", "day"]
 	dates_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, where_clause, "ALLOW FILTERING", "", "DISTINCT")
 

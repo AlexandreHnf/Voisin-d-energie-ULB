@@ -17,8 +17,13 @@ import numpy as np
 import logging
 
 # local sources
-from constants import CASSANDRA_KEYSPACE, FREQ, LAST_TS_DAYS, LOG_LEVEL, \
-						TBL_SENSORS_CONFIG
+from constants import (
+	CASSANDRA_KEYSPACE, 
+	FREQ, 
+	LAST_TS_DAYS, 
+	LOG_LEVEL,
+	TBL_SENSORS_CONFIG
+)
 from sensorConfig import Configuration
 import pyToCassandra as ptc
 
@@ -76,7 +81,7 @@ def getLastRegisteredConfig(cassandra_session):
 		CASSANDRA_KEYSPACE,
 		TBL_SENSORS_CONFIG,
 		["*"],
-		"'insertion_time' = {}".format(last_config_id),
+		"insertion_time = '{}.000000+0000'".format(last_config_id),
 		"ALLOW FILTERING",
 		""
 	)
@@ -277,11 +282,9 @@ def setupLogLevel():
 
 
 def main():
-	# start_ts = pd.Timestamp('2022-05-01 08:12:00')
-	start_ts = pd.Timestamp('2022-05-07 08:16:00')
-	end_ts = pd.Timestamp('2022-05-08 08:16:00')
-	nb_days, it = getIntermediateTimings(start_ts, end_ts)
-	print(it)
+	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
+	config = getLastRegisteredConfig(cassandra_session)
+	print(config.getSensorsConfig())
 
 if __name__ == '__main__':
 	main()

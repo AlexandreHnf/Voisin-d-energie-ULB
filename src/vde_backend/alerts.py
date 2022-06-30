@@ -24,7 +24,10 @@ from datetime import timedelta
 # local source
 import pyToCassandra as ptc
 from utils import getLastRegisteredConfig
-from constants import TBL_POWER, CASSANDRA_KEYSPACE
+from constants import (
+	TBL_POWER, 
+	CASSANDRA_KEYSPACE
+)
 
 
 SIGN_THRESHOLD = 15
