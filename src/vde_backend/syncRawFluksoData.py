@@ -27,15 +27,12 @@ import tmpo
 import logging
 
 from utils import (
-	convertTimezone, 
-	getCurrentSensorsConfigCassandra, 
-	getIntermediateTimings, 
-	getLastXDates, 
-	getProgDir, 
-	getTimeSpent, 
-	getTiming, 
-	isEarlier, 
-	read_sensor_info, 
+	getLastRegisteredConfig,
+	getLastXDates,
+	getProgDir,
+	getTimeSpent,
+	isEarlier,
+	read_sensor_info,
 	setInitSeconds
 )
 
@@ -190,21 +187,6 @@ def getDefaultTiming(cassandra_session, sensor_id):
 
 # ====================================================================================
 
-
-def getMissingRaw(cassandra_session, table_name):
-	"""
-	get the missing raw data timings
-	- for each sensor config, we get for each sensor the first timestamp with missing data (null)
-	and the last timestamp with missing data based on the previous performed query
-	"""
-
-	all_missing_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, "*", "", "", "")
-	# group by config id (id = insertion time)
-	by_config_df = all_missing_df.groupby("config_id")  # keys sorted by default
-
-	return by_config_df
-
-
 def getNeededConfigs(all_sensors_configs, missing_data, cur_sconfig):
 	"""
 	From the missing data table, deduce the configurations to use
@@ -231,79 +213,64 @@ def getInitialTimestamp(tmpo_session, sid, now):
 	get the first ever registered timestamp for a sensor using tmpo Session
 	if no such timestamp (None), return an arbitrary timing (ex: since 4min)
 
-	return a timestamp with UTC timezone
+	return a timestamp in local timezone
 	"""
-	initial_ts = setInitSeconds(getTiming(FROM_FIRST_TS, now))
-
+	initial_ts = now if FROM_FIRST_TS is None else FROM_FIRST_TS
 	if FROM_FIRST_TS_STATUS == "server":
 		initial_ts_tmpo = tmpo_session.first_timestamp(sid)
 
 		if initial_ts_tmpo is not None:
-			initial_ts = initial_ts_tmpo.tz_localize(None)
+			initial_ts = initial_ts_tmpo.tz_convert("CET")
 
 	return initial_ts
 
 
-def getSensorTimings(tmpo_session, cassandra_session, missing_data, timings, home_id, sid, config, current_config_id, now):
+def getSensorTimings(tmpo_session, cassandra_session, missing_data, home_id, sid, now):
 	"""
-	For each sensor, we get start timing and the end timing, forming the interval of time
-	we have to query to tmpo
+	For each sensor, we get start timing, forming the interval of time we have to
+    query to tmpo
 	- The start timing is either based on the missing data table, or the initial timestamp 
 	of the sensor if no missing data registered, or simply the default timing (the last
 	registered timestamp in raw data table)
 
-	if no missing data, and not the current config : 
-		we simply do not put timings for the sensor = None
-
 	return a starting timestamp with CET timezone 
-		or None if no starting timestamp and end timestamp
+		or None if no starting timestamp
 	"""
-	dt = getDefaultTiming(cassandra_session, sid)
 	sensor_start_ts = None
 	if missing_data.index.contains(sid):  # if there is missing data for this sensor
 		start_ts = missing_data.loc[sid]["start_ts"] - timedelta(seconds=FREQ[0])  # CET timezone (-4sec to avoid losing first ts)
-		end_ts = missing_data.loc[sid]["end_ts"]  # CET timezone
-
 		sensor_start_ts = start_ts  # sensor start timing = missing data first timestamp
-
-		if timings[home_id]["end_ts"] is None:
-			# end timing is the same for each sensor of this home, so take the first one
-			timings[home_id]["end_ts"] = end_ts.tz_localize("CET").tz_convert("UTC")
-
 	else:  # if no missing data for this sensor
 		default_timing = getDefaultTiming(cassandra_session, sid)  # None or tz-naive CET
-		if config.getConfigID() == current_config_id:  # if current config
-			if default_timing is None:  # if no raw data registered for this sensor yet
-				# we take all data from its first timestamp
-				initial_ts = getInitialTimestamp(tmpo_session, sid, now)
-				sensor_start_ts = initial_ts
-			else:
-				sensor_start_ts = default_timing
-		# if not the current config, then no data to recover from this sensor : no timings
+		if default_timing is None:  # if no raw data registered for this sensor yet
+			# we take all data from its first timestamp
+			initial_ts = getInitialTimestamp(tmpo_session, sid, now)
+			sensor_start_ts = initial_ts
+		else:
+			sensor_start_ts = default_timing
 
 	return sensor_start_ts
 
 
-def getTimings(tmpo_session, cassandra_session, config, current_config_id, missing_data, table_name, now):
+def getTimings(tmpo_session, cassandra_session, config, missing_data, now):
 	"""
 	For each home, get the start timing for the query based on the missing data table
 	(containing for each sensor the first timestamp with missing data from the previous query)
 	if no timestamp available yet for this sensor, we get the first ever timestamp available
 	for the Flukso sensor with tmpo API
 
-	default_timing = last registered timestamp for a home : UTC tz
-	'now' : no tz, but CET by default
+	default_timing = last registered timestamp for a home : CET tz
+	'now' : CET by default
 	"""
 	timings = {}
 	try: 
 		ids = config.getIds()
 		for home_id, sensors_ids in ids.items():
 			# start_ts = earliest timestamp among all sensors of this home
-			timings[home_id] = {"start_ts": now, "end_ts": None, "sensors": {}}
+			timings[home_id] = {"start_ts": now, "end_ts": now, "sensors": {}}
 
 			for sid in sensors_ids:  # for each sensor of this home
-				sensor_start_ts = getSensorTimings(tmpo_session, cassandra_session, missing_data, timings, 
-													home_id, sid, config, current_config_id, now)
+				sensor_start_ts = getSensorTimings(tmpo_session, cassandra_session, missing_data, home_id, sid, now)
 
 				# if 'start_ts' is older (in the past) than the current start_ts
 				if sensor_start_ts is not None and isEarlier(sensor_start_ts, timings[home_id]["start_ts"]):
@@ -313,14 +280,9 @@ def getTimings(tmpo_session, cassandra_session, config, current_config_id, missi
 					sensor_start_ts = sensor_start_ts.tz_localize("CET") # ensures a CET timezone
 				timings[home_id]["sensors"][sid] = sensor_start_ts  # CET
 
-			# convert to UTC timezone for the tmpo query
-			timings[home_id]["start_ts"] = timings[home_id]["start_ts"].tz_localize("CET").tz_convert("UTC")
-
 			if timings[home_id]["start_ts"] is now:  # no data to recover from this home 
 				timings[home_id]["start_ts"] = None
-			
-			if config.getConfigID() == current_config_id:
-				timings[home_id]["end_ts"] = setInitSeconds(now).tz_localize("CET").tz_convert("UTC")
+
 	except:
 		logging.critical("Exception occured in 'getTimings' : ", exc_info=True)
 
@@ -422,9 +384,8 @@ def saveHomeMissingData(cassandra_session, config, to_timing, home, saved_sensor
 	hid = home.getHomeID()
 	logging.debug("- saving in Cassandra: {} ... ".format(TBL_RAW_MISSING))
 
-	try: 
-		to_timing = convertTimezone(to_timing, "CET")  # now
-		config_id = str(config.getConfigID())[:19] + "Z"
+	try:
+		config_id = config.getConfigID().isoformat()
 
 		col_names = ["sensor_id", "config_id", "start_ts", "end_ts"]
 		
@@ -433,13 +394,13 @@ def saveHomeMissingData(cassandra_session, config, to_timing, home, saved_sensor
 			sensors_ids = inc_power_df.columns
 			for sid in sensors_ids:
 				if saved_sensors.get(sid, None) is None:  # if no missing data saved for this sensor yet
-					end_ts = str(to_timing)[:19] + "Z"
+					end_ts = to_timing.isoformat()
 					if inc_power_df[sid].isnull().values.any():  # if the column contains null
 						for i, timestamp in enumerate(inc_power_df.index):
 							# if valid timestamp
 							if (to_timing - timestamp).days < LIMIT_TIMING_RAW:  # X days from now max
 								# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
-								start_ts = str(timestamp)[:19] + "Z"
+								start_ts = timestamp.isoformat()
 								if np.isnan(inc_power_df[sid][i]):
 									values = [sid, config_id, start_ts, end_ts]
 									# logging.info("{} | start : {}, end = {}", config_id, start_ts, end_ts)
@@ -464,8 +425,8 @@ def saveHomeRawToCassandra(cassandra_session, home, config, timings):
 	logging.debug("- saving in Cassandra: {} ...".format(TBL_RAW))
 
 	try: 
-		insertion_time = str(pd.Timestamp.now())[:19] + "Z"
-		config_id = str(config.getConfigID())[:19] + "Z"
+		insertion_time = pd.Timestamp.now(tz="CET").isoformat()
+		config_id = config.getConfigID().isoformat()
 
 		power_df = home.getRawDF()
 		power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1)  # add date column
@@ -480,7 +441,7 @@ def saveHomeRawToCassandra(cassandra_session, home, config, timings):
 				for i, timestamp in enumerate(date_rows[sid].index):
 					# if the timestamp > the sensor's defined start timing
 					if isEarlier(timings[hid]["sensors"][sid], timestamp):
-						ts = str(timestamp)[:19] + "Z"
+						ts = timestamp.isoformat()
 						power = date_rows[sid][i]
 						values = [sid, date, ts, insertion_time, config_id, power]
 						insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, TBL_RAW, col_names, values)
@@ -527,9 +488,13 @@ def processHomes(cassandra_session, tmpo_session, config, timings, now):
 	# for each home
 	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
 		saved_sensors = {}  # for missing data, to check if sensors missing data already saved
-		if timings[hid]["start_ts"] is not None:  # if home has a start timestamp
-			nb_days, intermediate_timings = getIntermediateTimings(timings[hid]["start_ts"], timings[hid]["end_ts"])
-			
+		if timings[hid]["start_ts"] is not None and timings[hid]["end_ts"] is not None:  # if home has a start timestamp
+			intermediate_timings = pd.date_range(
+                timings[hid]["start_ts"],
+                timings[hid]["end_ts"],
+                freq="1D"
+            )
+			nb_days = len(intermediate_timings)
 			displayHomeInfo(hid, timings, nb_days)
 
 			for i in range(len(intermediate_timings)-1):  # query day by day
@@ -624,8 +589,7 @@ def sync(cassandra_session):
 	begin = time.time()
 	
 	# > timings
-	now = pd.Timestamp.now(tz="UTC").replace(microsecond=0)  # remove microseconds for simplicity
-	now_local = pd.Timestamp.now().replace(microsecond=0)  # default tz = CET, unaware timestamp
+	now = pd.Timestamp.now(tz="CET").replace(microsecond=0)  # remove microseconds for simplicity
 
 	# =============================================================
 

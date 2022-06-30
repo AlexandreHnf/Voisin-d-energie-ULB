@@ -57,7 +57,6 @@ class Home:
 		return self.raw_df
 
 	def getIncompletePowerDF(self):
-		# with UTC timezones
 		return self.incomplete_raw_df
 
 	def getConsProdDF(self):
@@ -136,9 +135,6 @@ class Home:
 
 		for sensor in self.sensors:
 			s = sensor.getSerie()
-			# if self.since_timing == 0:
-			#     first_unix_ts = list(s.index)[0]
-			#     self.since_timing = pd.Timestamp(datetime.datetime.fromtimestamp(first_unix_ts)).tz_localize("UTC")
 			data_dfs.append(s)
 
 		return data_dfs
@@ -179,14 +175,8 @@ class Home:
 
 		incomplete_raw_df.index = pd.DatetimeIndex(incomplete_raw_df.index, name="time")
 		# convert all timestamps to local timezone (CET)
-		local_timestamps = getLocalTimestampsIndex(incomplete_raw_df)
-		incomplete_raw_df.index = [tps for tps in local_timestamps]
-		
-		# if self.home_id == "ECHASC":
-		# 	print("incomplete_raw_df", incomplete_raw_df.head(30))
-
+		incomplete_raw_df.index = getLocalTimestampsIndex(incomplete_raw_df)
 		return incomplete_raw_df
-		
 
 	def createFluksoRawDF(self):
 		"""
@@ -205,13 +195,9 @@ class Home:
 		# timestamps column
 		raw_df.index = pd.DatetimeIndex(raw_df.index, name="time", ambiguous='NaT')
 		# convert all timestamps to local timezone (CET)
-		local_timestamps = getLocalTimestampsIndex(raw_df)
-
-		raw_df.index = [tps for tps in local_timestamps]
+		raw_df.index = getLocalTimestampsIndex(raw_df)
 		self.len_raw = len(raw_df.index)
-
 		raw_df.fillna(0, inplace=True)
-		
 		if len(local_timestamps) > 1:
 			raw_df.drop(local_timestamps[0], inplace=True)  # drop first row because NaN after conversion
 

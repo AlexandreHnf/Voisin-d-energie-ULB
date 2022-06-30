@@ -111,51 +111,6 @@ def getAllRegisteredConfigs(cassandra_session):
 	return configs
 
 
-def setInitSeconds(ts):
-	""" 
-	SS = 00 if M even, 04 if odd
-	"""
-	minute = ts.minute
-	sec = "00"
-	if minute % 2 != 0: # odd
-		sec = "04"
-	ts = ts.replace(second=int(sec))
-	return ts
-
-
-def getTiming(t, now):
-	"""
-	get the timestamp of the "since"
-	since = "Xdays" or "Xhours" or "Xmin" or a specific date : "sYYYY-MM-DD-H-M-S"
-	return format : YY-MM-DD H-M-S UTC
-	return a timestamp with UTC timezone
-	"""
-	timing = 0
-	if t:
-		if t[0] == "s":
-			e = t[1:].split("-")
-			timing = pd.Timestamp(year=int(e[0]), month=int(e[1]), day=int(e[2]),
-								  hour=int(e[3]), minute=int(e[4]), second=int(e[5]), 
-								  tz="CET").tz_convert("UTC")
-		else:  # since x min, x hours, x days...
-			# logging.info("time delta : " + pd.Timedelta(t))
-			timing = now - pd.Timedelta(t)
-	else:
-		timing = now  # now
-
-	# logging.info("timing : " + timing)
-	return timing
-
-
-def convertTimezone(ts, timezone):
-	""" 
-	Convert a timestamp timezone to another 
-	ex:  CET > UTC or UTC > CET
-	We assume the timestamp is already aware
-	"""
-	return ts.tz_convert(timezone)
-
-
 def getDatesBetween(start_date, end_date):
 	""" 
 	get the list of dates between 2 given dates
@@ -227,25 +182,6 @@ def getTimeSpent(time_begin, time_end):
 	return timedelta(seconds=time_end - time_begin)
 
 
-def getIntermediateTimings(start_ts, end_ts):
-	""" 
-	Given 2 timestamps, generate the intermediate timings
-	- interval duration = 1 day
-	"""
-	intermediate_timings = [start_ts]
-	nb_days = 0
-	if end_ts is not None and start_ts is not None:
-		nb_days = (end_ts - start_ts).days
-	current_ts = start_ts
-	for _ in range(nb_days):
-		current_ts += timedelta(days = 1)
-		intermediate_timings.append(current_ts)
-	if end_ts != current_ts and end_ts is not None:
-		intermediate_timings.append(end_ts)
-
-	return nb_days, intermediate_timings
-
-
 def setupLogLevel():
 	""" 
 	set logging level based on a constant
@@ -272,6 +208,7 @@ def main():
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 	config = getLastRegisteredConfig(cassandra_session)
 	print(config.getSensorsConfig())
+
 
 if __name__ == '__main__':
 	main()
