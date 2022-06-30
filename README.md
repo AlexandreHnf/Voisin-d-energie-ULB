@@ -130,6 +130,10 @@ List of packages to install (Ubuntu) :
     ```sh
     sudo -H pip3 install cassandra-driver
     ```
+* mail 
+	```sh
+	sudo apt install mailutils
+	```
 
 #### Cassandra
     
