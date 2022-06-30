@@ -83,37 +83,6 @@ def checkMissing(cassandra_session, home_id, date, table_name):
     return count_zero, len(home_df)
 
 
-def checkMissing2(cassandra_session, sensor_id, table_name):
-    """ 
-    Check if there are a lot of missing data for each sensors of a home
-    If the number of missing rows exceeds a certain threshold, then we send an alert by mail
-    ex : 24 hours of missing data
-    Assumption : we take the last configuration into consideration
-    Obsolete : too specific with sensor ids, doesn't apply to a whole home. 
-    """
-    alert = False 
-    where_clause = "sensor_id = '{}'".format(sensor_id)
-    cols = ["sensor_id", "config_id", "start_ts", "end_ts"]
-    missing_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, where_clause, "ALLOW FILTERING", "") 
-
-    if len(missing_df) > 0:
-        by_config = missing_df.groupby("config_id")
-        tot_missing_duration = 0
-        for config_id, missing in by_config:
-            # get the duration between the start and end timestamp
-            start_ts = missing.iloc[0]["start_ts"]
-            end_ts = missing.iloc[0]["end_ts"]
-            duration = round((end_ts - start_ts).total_seconds() / 3600.0, 2)  # in hours
-            print("{} > {} -> {} = {} hours".format(sensor_id, start_ts, end_ts, duration))
-            tot_missing_duration += duration 
-
-        # if last_ts - start_ts > threshold : alert
-        if tot_missing_duration >= 20:  # if above 20 hours
-            alert = True
-
-    return alert
-
-
 def checkSigns(cassandra_session, home_id, date, table_name):
     """ 
     Check if the signs are coherent in power data based on 2 criterion : 

@@ -64,23 +64,23 @@ def getCurrentSensorsConfigCassandra(cassandra_session, table_name):
 
 
 def getLastRegisteredConfig(cassandra_session):
-	""" 
-	Get the last registered config based on insertion time
-
-	POTENTIAL ISSUE : if the whole config table does not fit in memory
-		-> possible solution : select distinct insertion_time, home_id, sensor_id to reduce the nb of queried lines
 	"""
-	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, TBL_SENSORS_CONFIG,
-									["*"], "", "", "").groupby("insertion_time")
-	
-	config = None
-	if len(all_configs_df) > 0:
-		config_ids = list(all_configs_df.groups.keys())  # keys sorted by default
-		# print(config_ids)
+	Get the last registered config based on insertion time
+	"""
+	first_row = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, TBL_SENSORS_CONFIG,
+									["insertion_time"], "", "", "LIMIT 1")
 
-		last_config_id = config_ids[-1]
-		config = Configuration(last_config_id, all_configs_df.get_group(last_config_id).set_index("sensor_id"))
-
+	last_config_id = first_row.iat[0,0]
+	config_df = ptc.selectQuery(
+		cassandra_session,
+		CASSANDRA_KEYSPACE,
+		TBL_SENSORS_CONFIG,
+		["*"],
+		"'insertion_time' = {}".format(last_config_id),
+		"ALLOW FILTERING",
+		""
+	)
+	config = Configuration(last_config_id, config_df.set_index("sensor_id"))
 	return config
 
 
@@ -180,16 +180,16 @@ def getLastXDates():
 
 
 def getLocalTimestampsIndex(df):
-    """
-    set timestamps to local timezone
-    """
+	"""
+	set timestamps to local timezone
+	"""
 
-    # NAIVE
-    if df.index.tzinfo is None or df.index.tzinfo.utcoffset(df.index) is None:
-        # first convert to aware timestamp, then local
-        return df.index.tz_localize("CET", ambiguous='NaT').tz_convert("CET")
-    else: # if already aware timestamp
-        return df.index.tz_convert("CET")
+	# NAIVE
+	if df.index.tzinfo is None or df.index.tzinfo.utcoffset(df.index) is None:
+		# first convert to aware timestamp, then local
+		return df.index.tz_localize("CET", ambiguous='NaT').tz_convert("CET")
+	else: # if already aware timestamp
+		return df.index.tz_convert("CET")
 
 
 def toEpochs(time):

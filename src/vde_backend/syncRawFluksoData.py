@@ -118,29 +118,6 @@ def createRawMissingTable(cassandra_session, table_name):
 
 
 def getLastRegisteredTimestamp(cassandra_session, table_name, sensor_id):
-	"""
-	get the last registered timestamp of the raw table
-	- None if no timestamp in the table
-
-	We assume that if there is data in raw table, each sensor can have different last timestmaps
-	registered. 
-	Assume the raw table is created
-	"""
-
-	dates = ["'" + d + "'" for d in getLastXDates()]
-	ts_df = None
-	for date in dates:
-		where_clause = "sensor_id = '{}' AND day = {} ORDER BY ts DESC".format(
-			sensor_id, date)
-		ts_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name,
-								["ts"], where_clause, "ALLOW FILTERING", "LIMIT 1")
-		if len(ts_df) > 0:
-			return ts_df
-
-	return ts_df
-
-
-def getLastRegisteredTimestamp2(cassandra_session, table_name, sensor_id):
 	""" 
 	get the last registered timestamp of the raw table
 	- None if no timestamp in the table
@@ -152,7 +129,7 @@ def getLastRegisteredTimestamp2(cassandra_session, table_name, sensor_id):
 	technique : first get the last registered date for the sensor, then
 	query the last timestamp of this day for this sensor.
 
-	more robust function than 'getLastRegisteredTimestamp' hereabove, but much slower
+	more robust but much slower
 	"""
 	# get last date available for this home
 	where_clause = "sensor_id = {}".format("'"+sensor_id+"'")
@@ -183,7 +160,7 @@ def getDefaultTiming(cassandra_session, sensor_id):
 	will be defined later by 'getTimings' function based on the configuration)
 	"""
 	# get last registered timestamp in raw table
-	last_timestamp = getLastRegisteredTimestamp2(cassandra_session, TBL_RAW, sensor_id)
+	last_timestamp = getLastRegisteredTimestamp(cassandra_session, TBL_RAW, sensor_id)
 	if last_timestamp is not None:  # != None
 		return last_timestamp.iloc[0]['ts']
 	else:  # if no registered timestamp in raw table yet
