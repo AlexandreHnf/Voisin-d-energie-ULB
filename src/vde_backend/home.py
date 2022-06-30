@@ -20,6 +20,20 @@ from utils import (
 )
 
 
+def getLocalTimestampsIndex(df):
+	"""
+	set timestamps to local timezone
+	"""
+
+	# NAIVE
+	if df.index.tzinfo is None or df.index.tzinfo.utcoffset(df.index) is None:
+		# first convert to aware timestamp, then local
+		return df.index.tz_localize("CET", ambiguous='NaT').tz_convert("CET")
+	else: # if already aware timestamp
+		return df.index.tz_convert("CET")
+>>>>>>> adfa3c4 (refactor(backend): move timestamp conversion function from utils to home.)
+
+
 class Home:
 
 	def __init__(self, sensors_info, since_timing, to_timing, home_id, sensors):

@@ -184,19 +184,6 @@ def getLastXDates():
 	return dates
 
 
-def getLocalTimestampsIndex(df):
-	"""
-	set timestamps to local timezone
-	"""
-
-	# NAIVE
-	if df.index.tzinfo is None or df.index.tzinfo.utcoffset(df.index) is None:
-		# first convert to aware timestamp, then local
-		return df.index.tz_localize("CET", ambiguous='NaT').tz_convert("CET")
-	else: # if already aware timestamp
-		return df.index.tz_convert("CET")
-
-
 def toEpochs(time):
 	return int(math.floor(time.value / 1e9))
 
