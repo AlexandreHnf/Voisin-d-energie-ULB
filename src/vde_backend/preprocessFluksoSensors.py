@@ -271,7 +271,7 @@ def createTableSensorConfig(cassandra_session, table_name):
 			"con FLOAT", 
 			"pro FLOAT"]
 	ptc.createTable(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, 
-		["insertion_time, home_id, sensor_id"], [], {})
+		["home_id, sensor_id"], ["insertion_time"], {"insertion_time": "DESC"})
 
 
 def createTableGroupsConfig(cassandra_session, table_name):
