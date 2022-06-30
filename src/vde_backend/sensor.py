@@ -15,14 +15,26 @@ import numpy as np
 from utils import getSpecificSerie
 
 
+def setInitSeconds(ts):
+    """
+    SS = 00 if M even, 04 if odd
+    """
+    minute = ts.minute
+    sec = "00"
+    if minute % 2 != 0: # odd
+        sec = "04"
+    ts = ts.replace(second=int(sec))
+    return ts
+
+
 class Sensor: 
     def __init__(self, session, flukso_id, sensor_id, since_timing, to_timing):
         self.session = session 
         self.flukso_id = flukso_id
         self.sensor_id = sensor_id
 
-        self.since_timing = since_timing
-        self.to_timing = to_timing
+        self.since_timing = setInitSeconds(since_timing.tz_convert("UTC"))
+        self.to_timing = setInitSeconds(to_timing.tz_convert("UTC"))
 
     def getFluksoID(self):
         return self.flukso_id
@@ -39,12 +51,6 @@ class Sensor:
 
         len_dff = len(dff.index)
         if len(dff.index) == 0:
-            # print("{} > 0".format(self.sensor_id))
             dff = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
-        # print("{} - {} : {}, {}".format(self.flukso_id, self.sensor_id, len_dff, dff.index[0]))
-
-        # print("{} : {} sec freq".format(self.sensor_id, (dff.index[1] - dff.index[0]).seconds))
-
         return dff
 
-    

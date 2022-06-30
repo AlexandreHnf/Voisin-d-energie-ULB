@@ -199,7 +199,7 @@ def writeSensorsConfigCassandra(cassandra_session, new_config_df, now):
 	write sensors config to cassandra table 
 	"""
 	col_names = ["insertion_time", "home_id", "phase", "flukso_id", "sensor_id", "sensor_token", "net", "con", "pro"]
-	insertion_time = str(now)[:19] + "Z"
+	insertion_time = now.isoformat()
 
 	for _, row in new_config_df.iterrows():
 		values = [insertion_time] + list(row)
@@ -328,9 +328,6 @@ def processConfig(cassandra_session, config_file_path, new_config_df, now):
 	createTableAccess(cassandra_session, "access")
 	createTableGroup(cassandra_session, "group")
 
-	# then, compare new config with previous configs and recompute data if necessary
-	print("> Checking for data to recompute... ")
-	recomputeData(cassandra_session, new_config_df, now)
 	# > fill config tables using excel configuration file
 	print("> Writing new config in cassandra...")
 	writeSensorsConfigCassandra(cassandra_session, new_config_df, now)
@@ -370,9 +367,13 @@ def main():
 	new_config_df = getCompactSensorDF(config_path)
 	print("nb sensors : ", len(new_config_df))
 
-	now = pd.Timestamp.now()
+	# Define the current time once for consistency of the insert time between tables.
+	now = pd.Timestamp.now(tz="CET")
 	
 	processConfig(cassandra_session, config_path, new_config_df, now)
+	# then, compare new config with previous configs and recompute data if necessary
+	print("> Checking for data to recompute... ")
+	recomputeData(cassandra_session, new_config_df, now)
 
 
 

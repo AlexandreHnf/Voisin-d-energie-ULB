@@ -41,8 +41,8 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config):
 	logging.debug("- saving in Cassandra: {} ...".format(TBL_POWER))
 
 	try: 
-		insertion_time = str(pd.Timestamp.now())[:19] + "Z"
-		config_id = str(config.getConfigID())[:19] + "Z"
+		insertion_time = pd.Timestamp.now(tz="CET").isoformat()
+		config_id = config.getConfigID().isoformat()
 
 		cons_prod_df = home.getConsProdDF()
 		cons_prod_df['date'] = cons_prod_df.apply(lambda row: str(row.name.date()), axis=1) # add date column
@@ -54,8 +54,8 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config):
 			insert_queries = ""
 			nb_inserts = 0
 			for timestamp, row in date_rows.iterrows():
-				# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
-				ts = str(timestamp)[:19] + "Z"
+				# save timestamp with CET local timezone, ISO format.
+				ts = timestamp.isoformat()
 				values = [hid, date, ts] + list(row)[:-1] + [insertion_time, config_id]  # [:-1] to avoid date column
 				insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, TBL_POWER, col_names, values)
 
@@ -145,8 +145,8 @@ def saveRecomputedPowersToCassandra(cassandra_session, prev_config_id, cons_prod
 	We assume that the data is of 1 specific date. 
 	"""
 
-	config_id = str(prev_config_id)[:19] + "Z"
-	insertion_time = str(pd.Timestamp.now())[:19] + "Z"
+	config_id = prev_config_id.isoformat()
+	insertion_time = pd.Timestamp.now(tz="CET").isoformat()
 	col_names = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot", "config_id", "insertion_time"]
 
 	insert_queries = ""
