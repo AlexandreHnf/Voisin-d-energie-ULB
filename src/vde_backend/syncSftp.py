@@ -66,10 +66,12 @@ VERBOSE = 							True
 logging_handlers = [logging.FileHandler(LOG_FILE_SFTP)]
 
 # Create and configure logger
-logging.basicConfig(level = setupLogLevel(),
-					format = "{asctime} {levelname:<8} {message}", style='{',
-					handlers=logging_handlers
-					)
+logging.basicConfig(
+	level = setupLogLevel(),
+	format = "{asctime} {levelname:<8} {message}",
+	style='{',
+	handlers=logging_handlers
+)
 
 
 def getdateToQuery(now):
@@ -118,8 +120,15 @@ def getLastRegisteredConfig(cassandra_session, table_name):
 	""" 
 	Get the last registered config based on insertion time
 	"""
-	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name,
-									["*"], "", "", "").groupby("insertion_time")
+	all_configs_df = ptc.selectQuery(
+		cassandra_session, 
+		CASSANDRA_KEYSPACE, 
+		table_name,
+		["*"], 
+		"", 
+		"", 
+		""
+	).groupby("insertion_time")
 	
 	config = None
 	if len(all_configs_df) > 0:
@@ -127,7 +136,10 @@ def getLastRegisteredConfig(cassandra_session, table_name):
 		# print(config_ids)
 
 		last_config_id = config_ids[-1]
-		config = Configuration(last_config_id, all_configs_df.get_group(last_config_id).set_index("sensor_id"))
+		config = Configuration(
+			last_config_id, 
+			all_configs_df.get_group(last_config_id).set_index("sensor_id")
+		)
 
 	return config		
 
@@ -141,8 +153,24 @@ def getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, tabl
 
 	ts_clause = "ts {} '{} 12:00:00.000000+0000'".format(moment, date)  # all data before of after noon
 	where_clause = "home_id = {} and day = '{}' and {}".format("'"+home_id+"'", date, ts_clause)
-	cols = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot"]
-	home_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, where_clause, "ALLOW FILTERING", "")
+	cols = [
+		"home_id", 
+		"day", 
+		"ts", 
+		"p_cons", 
+		"p_prod", 
+		"p_tot"
+	]
+
+	home_df = ptc.selectQuery(
+		cassandra_session, 
+		CASSANDRA_KEYSPACE, 
+		table_name, 
+		cols, 
+		where_clause, 
+		"ALLOW FILTERING", 
+		""
+	)
 
 	return home_df
 
@@ -159,8 +187,24 @@ def getHomesPowerDataFromCassandra(cassandra_session, config, date, moment, tabl
 	for home_id in ids.keys():
 		ts_clause = "ts {} '{} 12:00:00.000000+0000'".format(moment, date)  # all data before of after noon
 		where_clause = "home_id = {} and day = '{}' and {}".format("'"+home_id+"'", date, ts_clause)
-		cols = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot"]
-		home_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, where_clause, "ALLOW FILTERING", "")
+		cols = [
+			"home_id", 
+			"day", 
+			"ts", 
+			"p_cons", 
+			"p_prod", 
+			"p_tot"
+		]
+
+		home_df = ptc.selectQuery(
+			cassandra_session, 
+			CASSANDRA_KEYSPACE, 
+			table_name, 
+			cols, 
+			where_clause, 
+			"ALLOW FILTERING", 
+			""
+		)
 
 		homes_powerdata[home_id] = home_df
 
@@ -185,9 +229,16 @@ def getSFTPsession(sftp_info):
 	connect to the sftp server
 	"""
 
-	transport = paramiko.Transport((sftp_info["host"], sftp_info["port"]))
+	transport = paramiko.Transport((
+		sftp_info["host"], 
+		sftp_info["port"]
+	))
 
-	transport.connect(username = sftp_info["username"], password = sftp_info["password"])
+	transport.connect(
+		username = sftp_info["username"], 
+		password = sftp_info["password"]
+	)
+
 	sftp = paramiko.SFTPClient.from_transport(transport)
 
 	return sftp
@@ -274,14 +325,21 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	# get first date available for this home TODO : use limit 1 to be more efficient
 	where_clause = "home_id = {}".format("'"+home_id+"'")
 	cols = ["home_id", "day"]
-	result_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, where_clause, "ALLOW FILTERING", "", "DISTINCT")
+	result_df = ptc.selectQuery(
+		cassandra_session, 
+		CASSANDRA_KEYSPACE, 
+		table_name, 
+		cols, 
+		where_clause, 
+		"ALLOW FILTERING", 
+		"", 
+		"DISTINCT"
+	)
 
 	all_dates = []
 	if len(result_df) > 0:
 		first_date = pd.Timestamp(list(result_df.groupby('day').groups.keys())[0])
 		del result_df
-		# print("first date : ", first_date)
-		# logging.info("first date : " + first_date)
 
 		all_dates = getDatesBetween(first_date, now)
 
@@ -313,7 +371,13 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 				if VERBOSE:
 					print(csv_filename)
 					logging.info(csv_filename)
-				home_data = getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, TBL_POWER)
+				home_data = getHomePowerDataFromCassandra(
+					cassandra_session, 
+					home_id, 
+					date, 
+					moment, 
+					TBL_POWER
+				)
 				
 				saveDataToCsv(home_data.set_index("home_id"), csv_filename)  # first save csv locally
 				if SEND_TO_SFTP:
@@ -334,8 +398,12 @@ def processArguments():
 		description=__doc__,
 		formatter_class=argparse.RawDescriptionHelpFormatter,
 	)
-	argparser.add_argument("--c", type=str, default="sftp_credentials.json",
-						   help="sftp config file")
+	argparser.add_argument(
+		"--c", 
+		type=str, 
+		default="sftp_credentials.json",
+		help="sftp config file"
+	)
 
 	return argparser
 
@@ -365,16 +433,17 @@ def main():
 		print("moment now : ", moment_now)
 		logging.info("moment now : " + moment_now)
 
-	# temporary (for testing purpose)
-	# default_date = "2022-05-30"
-	# moment = AM
-	# moment_now = PM
-	# now = pd.Timestamp("2022-05-31 10:00:00")
- 
-	# sftp_filenames = listFilesSFTP()
 
-
-	processAllHomes(cassandra_session, sftp_session, config, default_date, moment, moment_now, now, sftp_info)
+	processAllHomes(
+		cassandra_session, 
+		sftp_session, 
+		config, 
+		default_date, 
+		moment, 
+		moment_now, 
+		now, 
+		sftp_info
+	)
 
 
 if __name__ == "__main__":

@@ -8,8 +8,7 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 # standard library
 import os
 import math
-from datetime import date, timedelta, datetime
-from tracemalloc import start
+from datetime import timedelta
 
 # 3rd party packages
 import pandas as pd
@@ -20,10 +19,10 @@ import logging
 from constants import (
 	CASSANDRA_KEYSPACE, 
 	FREQ, 
-	LAST_TS_DAYS, 
 	LOG_LEVEL,
 	TBL_SENSORS_CONFIG
 )
+
 from sensorConfig import Configuration
 import pyToCassandra as ptc
 
@@ -44,7 +43,11 @@ def read_sensor_info(path, sensor_file):
 	read csv file of sensors data
 	"""
 	path += sensor_file
-	sensors = pd.read_csv(path, header=0, index_col=1)
+	sensors = pd.read_csv(
+		path, 
+		header=0, 
+		index_col=1
+	)
 	return sensors
 	
 
@@ -52,8 +55,15 @@ def getLastRegisteredConfig(cassandra_session):
 	"""
 	Get the last registered config based on insertion time
 	"""
-	first_row = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, TBL_SENSORS_CONFIG,
-									["insertion_time"], "", "", "LIMIT 1")
+	first_row = ptc.selectQuery(
+		cassandra_session, 
+		CASSANDRA_KEYSPACE,
+		TBL_SENSORS_CONFIG,
+		["insertion_time"], 
+		"", 
+		"", 
+		"LIMIT 1"
+	)
 
 	last_config_id = first_row.iat[0,0]
 	config_df = ptc.selectQuery(
@@ -77,14 +87,19 @@ def getAllRegisteredConfigs(cassandra_session):
 	POTENTIAL ISSUE : if the whole config table does not fit in memory
 		-> possible solution : select distinct insertion_time, home_id, sensor_id to reduce the nb of queried lines
 	"""
-	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, TBL_SENSORS_CONFIG,
-									["*"], "", "", "")
+	all_configs_df = ptc.selectQuery(
+		cassandra_session, 
+		CASSANDRA_KEYSPACE, 
+		TBL_SENSORS_CONFIG,
+		["*"], 
+		"", 
+		"", 
+		""
+	)
 
 	configs = []
 	if len(all_configs_df) > 0:
 		for config_id, config in all_configs_df.groupby("insertion_time"):
-			# print("config ", config_id)
-			# print(config)
 
 			configs.append(Configuration(config_id, config.set_index("sensor_id")))
 
@@ -95,7 +110,12 @@ def getDatesBetween(start_date, end_date):
 	""" 
 	get the list of dates between 2 given dates
 	"""
-	d = pd.date_range(start_date.date(), end_date.date()-timedelta(days=1), freq='d')
+	d = pd.date_range(
+		start_date.date(), 
+		end_date.date()-timedelta(days=1), 
+		freq='d'
+	)
+
 	dates = []
 	for ts in d:
 		dates.append(str(ts.date()))
@@ -116,13 +136,19 @@ def isEarlier(ts1, ts2):
 
 
 def getSpecificSerie(value, since_timing, to_timing):
+	""" 
+	Get a pandas series between 2 defined timestamps 
+	and filled with predefined values
+	"""
 
 	period = (to_timing - since_timing).total_seconds() / FREQ[0]
-	# logging.info("s : {}, t : {}, to : {}, period : {}".format(self.since_timing, self.to_timing, to, period))
-	values = pd.date_range(since_timing, periods=period, freq=str(FREQ[0]) + FREQ[1])
-	# logging.info("datetime range : " + values)
+	values = pd.date_range(
+		since_timing, 
+		periods=period, 
+		freq=str(FREQ[0]) + FREQ[1]
+	)
+
 	values_series = pd.Series(int(period) * [value], values)
-	# logging.info(since_timing, values_series.index[0])
 
 	return values_series
 

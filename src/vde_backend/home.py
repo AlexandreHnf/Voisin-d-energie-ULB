@@ -31,7 +31,6 @@ def getLocalTimestampsIndex(df):
 		return df.index.tz_localize("CET", ambiguous='NaT').tz_convert("CET")
 	else: # if already aware timestamp
 		return df.index.tz_convert("CET")
->>>>>>> adfa3c4 (refactor(backend): move timestamp conversion function from utils to home.)
 
 
 class Home:
@@ -195,7 +194,8 @@ class Home:
 		# timestamps column
 		raw_df.index = pd.DatetimeIndex(raw_df.index, name="time", ambiguous='NaT')
 		# convert all timestamps to local timezone (CET)
-		raw_df.index = getLocalTimestampsIndex(raw_df)
+		local_timestamps = getLocalTimestampsIndex(raw_df)
+		raw_df.index = local_timestamps
 		self.len_raw = len(raw_df.index)
 		raw_df.fillna(0, inplace=True)
 		if len(local_timestamps) > 1:
@@ -212,9 +212,11 @@ class Home:
 		P_net = P_prod + P_cons
 		cons_prod_df : timestamp, P_cons, P_prod, P_tot
 		"""
-		cons_prod_df = pd.DataFrame([[0, 0, 0] for _ in range(len(self.raw_df))],
-									self.raw_df.index,
-									["P_cons", "P_prod", "P_tot"])
+		cons_prod_df = pd.DataFrame(
+			[[0, 0, 0] for _ in range(len(self.raw_df))],
+			self.raw_df.index,
+			["P_cons", "P_prod", "P_tot"]
+		)
 
 		for i, sid in enumerate(self.sensors_config.index):
 			p = self.sensors_config.loc[sid]["pro"]
@@ -243,7 +245,9 @@ class Home:
 		# print(len(self.raw_df), len(raw_df))
 
 		if not self.home_id in self.raw_df.columns[0]:
-			self.raw_df = self.raw_df.rename(self.getColNamesWithID(self.raw_df, self.home_id), axis=1)
+			self.raw_df = self.raw_df.rename(
+				self.getColNamesWithID(self.raw_df, self.home_id), axis=1
+			)
 		raw_df = raw_df.rename(self.getColNamesWithID(raw_df, home_id), axis=1)
 		self.raw_df = self.raw_df.join(raw_df)
 

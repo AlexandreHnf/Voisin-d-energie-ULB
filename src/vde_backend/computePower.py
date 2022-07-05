@@ -48,7 +48,16 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config):
 		cons_prod_df['date'] = cons_prod_df.apply(lambda row: str(row.name.date()), axis=1) # add date column
 		by_day_df = cons_prod_df.groupby("date")  # group by date
 
-		col_names = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot", "insertion_time", "config_id"]
+		col_names = [
+			"home_id", 
+			"day", 
+			"ts", 
+			"p_cons", 
+			"p_prod", 
+			"p_tot", 
+			"insertion_time", 
+			"config_id"
+		]
 		for date, date_rows in by_day_df:  # loop through each group (each date group)
 
 			insert_queries = ""
@@ -57,7 +66,12 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config):
 				# save timestamp with CET local timezone, ISO format.
 				ts = timestamp.isoformat()
 				values = [hid, date, ts] + list(row)[:-1] + [insertion_time, config_id]  # [:-1] to avoid date column
-				insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, TBL_POWER, col_names, values)
+				insert_queries += ptc.getInsertQuery(
+					CASSANDRA_KEYSPACE, 
+					TBL_POWER, 
+					col_names, 
+					values
+				)
 
 				if (nb_inserts+1) % INSERTS_PER_BATCH == 0:
 					ptc.batch_insert(cassandra_session, insert_queries)
@@ -88,8 +102,15 @@ def getHomeRawData(cassandra_session, sensors_df, day):
 
 	for sid in sensors_df.index:
 		where_clause = "sensor_id = '{}' and day = '{}'".format(sid, day)
-		raw_data_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, TBL_RAW,
-								["*"], where_clause, "ALLOW FILTERING", "")
+		raw_data_df = ptc.selectQuery(
+			cassandra_session, 
+			CASSANDRA_KEYSPACE, 
+			TBL_RAW,
+			["*"], 
+			where_clause, 
+			"ALLOW FILTERING", 
+			""
+		)
 
 		home_rawdata[sid] = raw_data_df
 
@@ -146,7 +167,16 @@ def saveRecomputedPowersToCassandra(cassandra_session, prev_config_id, cons_prod
 	"""
 	config_id = prev_config_id.isoformat()
 	insertion_time = pd.Timestamp.now(tz="CET").isoformat()
-	col_names = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot", "config_id", "insertion_time"]
+	col_names = [
+		"home_id", 
+		"day", 
+		"ts", 
+		"p_cons", 
+		"p_prod", 
+		"p_tot", 
+		"config_id", 
+		"insertion_time"
+	]
 	insert_queries = ""
 	nb_inserts = 0
 	for _, row in cons_prod_df.iterrows():
@@ -154,7 +184,12 @@ def saveRecomputedPowersToCassandra(cassandra_session, prev_config_id, cons_prod
 		values[2] = values[2].isoformat() # timestamp (ts)
 		values.append(config_id)
 		values.append(insertion_time)
-		insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, TBL_POWER, col_names, values)
+		insert_queries += ptc.getInsertQuery(
+			CASSANDRA_KEYSPACE, 
+			TBL_POWER, 
+			col_names, 
+			values
+		)
 		if (nb_inserts+1) % INSERTS_PER_BATCH == 0:
 			ptc.batch_insert(cassandra_session, insert_queries)
 			insert_queries = ""

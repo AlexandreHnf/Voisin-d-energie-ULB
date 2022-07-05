@@ -46,11 +46,15 @@ def getRightFormat(values):
 def createKeyspace(session, keyspace_name, replication_class, replication_factor):
 	""" 
 	Create a new keyspace in the Cassandra database
+
+	command : CREATE KEYSPACE <keyspace> WITH REPLICATION = 
+				{'class': <replication_class>, 'replication_factor': <replication_factor>}
 	"""
-	# to create a new keyspace : 
-	keyspace_query = "CREATE KEYSPACE {} WITH REPLICATION = \
-					{'class' : {}, 'replication_factor': {}};"\
-					.format(keyspace_name, replication_class, replication_factor)
+	# to create a new keyspace :
+	keyspace_query = "CREATE KEYSPACE {} ".format(keyspace_name)
+	keyspace_query += "WITH REPLICATION = "
+	keyspace_query += "{'class' : {}, ".format(replication_class)
+	keyspace_query += "'replication_factor': {}};".format(replication_factor)	
 
 	session.execute(keyspace_query)
 
@@ -69,9 +73,15 @@ def deleteRows(session, keyspace, table_name):
 def insert(session, keyspace, table, columns, values):
 	""" 
 	Insert a new row in the table
+
+	command : INSERT INTO <keyspace>.<table> (<columns>) VALUES (<values>);
 	"""
-	query = "INSERT INTO {}.{} ({}) VALUES ({});" \
-					.format(keyspace, table, ",".join(columns), ",".join(getRightFormat(values)))
+	
+	query = "INSERT INTO {}".format(keyspace)
+	query += ".{} ".format(table)
+	query += "({}) ".format(",".join(columns))
+	query += "VALUES ({});".format(",".join(getRightFormat(values)))
+
 	# logging.info("===> insert query :" + query)
 	session.execute(query)
 
@@ -79,9 +89,17 @@ def insert(session, keyspace, table, columns, values):
 def getInsertQuery(keyspace, table, columns, values):
 	""" 
 	Get the prepared statement for an insert query
+
+	command : INSERT INTO <keyspace>.<table> (<columns>) VALUES (<values>);
 	"""
-	return "INSERT INTO {}.{} ({}) VALUES ({});" \
-					.format(keyspace, table, ",".join(columns), ",".join(getRightFormat(values)))
+
+	query = "INSERT INTO {}".format(keyspace)
+	query += ".{} ".format(table)
+	query += "({}) ".format(",".join(columns))
+	query += "VALUES ({});".format(",".join(getRightFormat(values)))
+
+	return query
+
 
 
 def batch_insert(session, inserts):
@@ -132,14 +150,18 @@ def createTable(session, keyspace, table_name, columns, primary_keys, clustering
 	""" 
 	Create a new table in the database 
 	columns = [column name type, ...]
+
+	command : CREATE TABLE IF NOT EXISTS <keyspace>.<table_name> 
+				(<columns>, PRIMARY KEY (<primary keys><clustering keys>)) <ordering>;
 	"""
 	# create a new table : 
-	query = "CREATE TABLE IF NOT EXISTS {}.{} \
-					({}, PRIMARY KEY ({}{})) {};" \
-					.format(keyspace, table_name, ",".join(columns), 
-					getCompoundKeyStr(primary_keys),
-					getClusteringKeyStr(clustering_keys),
-					getOrdering(ordering))
+
+	query = "CREATE TABLE IF NOT EXISTS {}".format(keyspace)
+	query += ".{} ".format(table_name)
+	query += "({}, ".format(",".join(columns))
+	query += "PRIMARY KEY ({}".format(getCompoundKeyStr(primary_keys))
+	query += "{})) ".format(getClusteringKeyStr(clustering_keys))
+	query += "{};".format(ordering)
 
 	# logging.info("===>  create table query : " + query)
 	session.execute(query) 
@@ -151,6 +173,7 @@ def pandas_factory(colnames, rows):
 	used by 'selectResToDf'
 	"""
 	return pd.DataFrame(rows, columns=colnames)
+
 
 def selectResToDf(session, query):
 	""" 
@@ -169,16 +192,23 @@ def selectResToDf(session, query):
 def selectQuery(session, keyspace, table, columns, where_clause, allow_filtering, limit, distinct=""):
 	""" 
 	columns = * or a list of columns
-	SELECT <> FROM <> WHERE <> ... ALLOW FILTERING
+
+	command : SELECT <distinct> <columns> FROM <keyspace>.<table_name> 
+				WHERE <where_clause> <LIMIT> <ALLOW FILTERING>;
 	"""
 
 	where = ""
 	if len(where_clause) > 0:
 		where = "WHERE"
 	
-	query = "SELECT {} {} FROM {}.{} {} {} {} {};".format(
-		distinct, ",".join(columns), keyspace, table, where, where_clause, limit, allow_filtering
-	)
+	query = "SELECT {} ".format(distinct)
+	query += "{} ".format(",".join(columns))
+	query += "FROM {}".format(keyspace)
+	query += ".{} ".format(table)
+	query += "{} ".format(where)
+	query += "{} ".format(where_clause)
+	query += "{} ".format(limit)
+	query += "{};".format(allow_filtering)
 
 	# logging.info("===> select query : " + query)
 	rows = selectResToDf(session, query)
@@ -207,7 +237,11 @@ def connectToCluster(keyspace):
 					username=cred["username"], 
 					password=cred["password"]
 				)
-				cluster = Cluster([SERVER_BACKEND_IP], port=9042, auth_provider=auth_provider)
+				cluster = Cluster(
+					[SERVER_BACKEND_IP], 
+					port=9042, 
+					auth_provider=auth_provider
+				)
 
 		# connect to the keyspace or create one if it doesn't exist
 		session = cluster.connect(keyspace)
@@ -219,10 +253,6 @@ def connectToCluster(keyspace):
 
 def main():
 	session = connectToCluster("test")
-
-	# createKeyspace(session, "test", "SimpleStrategy", "1")
-
-	logging.info("Insertion done.")
 
 
 if __name__ == "__main__":

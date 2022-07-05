@@ -6,42 +6,42 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 
 class Configuration:
-    def __init__(self, config_id, sconfig_df):
-        self.config_id = config_id          # config insertion date
-        self.sconfig_df = sconfig_df        # dataframe with the whole config
+	def __init__(self, config_id, sconfig_df):
+		self.config_id = config_id          # config insertion date
+		self.sconfig_df = sconfig_df        # dataframe with the whole config
 
-        self.ids = self.getHomeSensors()    # all home ids (installation ids)
+		self.ids = self.getHomeSensors()    # all home ids (installation ids)
 
-    def getNbHomes(self):
-        return len(self.ids)
+	def getNbHomes(self):
+		return len(self.ids)
 
-    def getConfigID(self):
-        return self.config_id
+	def getConfigID(self):
+		return self.config_id
 
-    def getFirstSensorId(self):
-        """ 
-        Get the first sensor id of the list of sensors
-        -> useful when all sensors of a home share the same property for ex.
-        """
-        return self.ids[list(self.ids.keys())[0]][0]
+	def getFirstSensorId(self):
+		""" 
+		Get the first sensor id of the list of sensors
+		-> useful when all sensors of a home share the same property for ex.
+		"""
+		return self.ids[list(self.ids.keys())[0]][0]
 
-    def getSensorsConfig(self):
-        """ 
-        get a dataframe with columns : 
-        - home_id, phase, fluksid, sensor_id, sensor_token, net, con, pro
-        """
-        return self.sconfig_df
+	def getSensorsConfig(self):
+		""" 
+		get a dataframe with columns : 
+		- home_id, phase, fluksid, sensor_id, sensor_token, net, con, pro
+		"""
+		return self.sconfig_df
 
-    def getHomeSensors(self):
-        """ 
-        return a dictionary with
-        key : home id, value : list of sensor ids
-        """
-        ids = {}
-        for hid, home in self.sconfig_df.groupby("home_id"):
-            ids[hid] = list(home.index)
-        
-        return ids
+	def getHomeSensors(self):
+		""" 
+		return a dictionary with
+		key : home id, value : list of sensor ids
+		"""
+		ids = {}
+		for hid, home in self.sconfig_df.groupby("home_id"):
+			ids[hid] = list(home.index)
+		
+		return ids
 
-    def getIds(self):
-        return self.ids
+	def getIds(self):
+		return self.ids
