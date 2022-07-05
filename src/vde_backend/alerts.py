@@ -63,7 +63,7 @@ def getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name):
 	"""
 
 	where_clause = "home_id = {} and day = '{}'".format("'"+home_id+"'", date)
-	cols = ["home_id", "day", "ts", "config_id", "p_cons", "p_prod", "p_tot"]
+	cols = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot"]
 	home_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, cols, where_clause, "ALLOW FILTERING", "")
 
 	return home_df
@@ -96,22 +96,26 @@ def checkSigns(cassandra_session, home_id, date, table_name):
     home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name)
 
     ok = True
-    info = {}
     if len(home_df) > 0:
-        for config_id, power_df in home_df.groupby("config_id"):
-            # print(power_df.head(1))
-            cons_neg = (power_df["p_cons"] < SIGN_THRESHOLD).any()
-            prod_pos = (power_df["p_prod"] > SIGN_THRESHOLD).any()
-            maxi = home_df.max()
-            mini = home_df.min()
-            
-            if cons_neg or prod_pos:
-                # print("cons_neg : {}, prod_pos : {}".format(cons_neg, prod_pos))
-                ok = False
-                info[str(config_id)] = {"cons_neg": {"status": cons_neg, "max": maxi["p_cons"], "min": mini["p_cons"]}, \
-                                        "prod_pos": {"status": prod_pos, "max": maxi["p_prod"], "min": mini["p_prod"]}}
+        cons_neg = (power_df["p_cons"] < SIGN_THRESHOLD).any()
+        prod_pos = (power_df["p_prod"] > SIGN_THRESHOLD).any()
+        maxi = home_df.max()
+        mini = home_df.min()
+        if cons_neg or prod_pos:
+            ok = False
+            info = {
+                "cons_neg": {
+                    "status": cons_neg,
+                    "max": maxi["p_cons"],
+                    "min": mini["p_cons"]
+                },
+                "prod_pos": {
+                    "status": prod_pos,
+                    "max": maxi["p_prod"],
+                    "min": mini["p_prod"]
+                }
+            }
 
-    # print(info)
     return ok, info
 
 
@@ -134,7 +138,6 @@ def getHomesWithMissingData(cassandra_session, config, yesterday):
         if percentage >= MISSING_ALERT_THRESHOLD:  # if at least 80% of the rows are 0s, then alert
             to_alert[home_id] = round(percentage, 1) 
     
-    # print(to_alert)
     return to_alert
 
 
@@ -200,7 +203,7 @@ def main():
     cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
     last_config = getLastRegisteredConfig(cassandra_session)
-    now = pd.Timestamp.now()
+    now = pd.Timestamp.now(tz="CET")
     yesterday = getYesterday(now)  # TODO : handle multiple past dates
     print("yesterday : ", yesterday)
 

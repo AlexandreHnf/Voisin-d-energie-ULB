@@ -186,27 +186,6 @@ def getDefaultTiming(cassandra_session, sensor_id):
 
 # ====================================================================================
 
-def getNeededConfigs(all_sensors_configs, missing_data, cur_sconfig):
-	"""
-	From the missing data table, deduce the configurations to use
-	Return a list of Configuration objects
-	all_sensors_configs : a groupby object : 
-		keys = config ids (insertion dates), values = dataframe
-
-	return : list of Configuration objects, each object = 1 sensors config
-	"""
-	configs = []
-	needed_configs = list(missing_data.groups.keys())
-	if cur_sconfig not in needed_configs:
-		needed_configs.append(cur_sconfig)
-
-	for config_id in needed_configs:
-		config = Configuration(config_id, all_sensors_configs.get_group(config_id).set_index("sensor_id"))
-		configs.append(config)
-
-	return configs
-
-
 def getInitialTimestamp(tmpo_session, sid, now):
 	""" 
 	get the first ever registered timestamp for a sensor using tmpo Session
@@ -398,7 +377,7 @@ def saveHomeMissingData(cassandra_session, config, to_timing, home, saved_sensor
 						for i, timestamp in enumerate(inc_power_df.index):
 							# if valid timestamp
 							if (to_timing - timestamp).days < LIMIT_TIMING_RAW:  # X days from now max
-								# save timestamp with CET local timezone, format : YY-MM-DD H:M:SZ
+								# save timestamp with CET local timezone
 								start_ts = timestamp.isoformat()
 								if np.isnan(inc_power_df[sid][i]):
 									values = [sid, config_id, start_ts, end_ts]
@@ -593,14 +572,17 @@ def sync(cassandra_session):
 	# =============================================================
 
 	# > Configurations
-	current_config_id, all_sensors_configs = getCurrentSensorsConfigCassandra(cassandra_session, TBL_SENSORS_CONFIG)
-
-	missing_data = getMissingRaw(cassandra_session, TBL_RAW_MISSING)
-	configs = getNeededConfigs(all_sensors_configs, missing_data, current_config_id)
-
-	logging.info("now (CET) : " + str(now_local))
-	logging.info("Number of configs : " + str(len(configs)))
-
+	config = getLastRegisteredConfig(cassandra_session)
+	missing_data = ptc.selectQuery(
+		cassandra_session,
+		CASSANDRA_KEYSPACE,
+		table_name,
+		"*",
+		"",
+		"",
+		""
+	)
+	logging.info("now (CET) : " + str(now))
 	setup_time = time.time()
 
 	# =========================================================
@@ -608,41 +590,40 @@ def sync(cassandra_session):
 	ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, TBL_RAW_MISSING)  # truncate existing rows
 
 	config_timers = {}
+	config_id = config.getConfigID()
+	logging.info("                [CONFIG {}] : ".format(str(config_id)))
+	config_timers[config_id] = {"start": time.time()}
 
-	for config in configs:
-		config_id = config.getConfigID()
-		logging.info("                [CONFIG {}] : ".format(str(config_id)))
-		config_timers[config_id] = {"start": time.time()}
+	logging.info("Number of Homes : " + str(config.getNbHomes()))
+	logging.info("Number of Fluksos : " + str(len(set(config.getSensorsConfig().flukso_id))))
+	logging.info("Number of Fluksos sensors : " + str(len(config.getSensorsConfig())))
 
-		logging.info("Number of Homes : " + str(config.getNbHomes()))
-		logging.info("Number of Fluksos : " + str(len(set(config.getSensorsConfig().flukso_id))))
-		logging.info("Number of Fluksos sensors : " + str(len(config.getSensorsConfig())))
+	tmpo_session = getTmpoSession(config)
 
-		tmpo_session = getTmpoSession(config)
-		# testSession(sensors_config)
-
-		# STEP 1 : get start and end timings for all homes for the query
-		missing = pd.DataFrame([])
-		if config_id in missing_data.groups.keys():  # if missing table contains this config id
-			missing = missing_data.get_group(config_id).set_index("sensor_id")
-		timings = getTimings(tmpo_session, cassandra_session, config, current_config_id, missing, 
-							TBL_RAW_MISSING, now_local)
-		config_timers[config_id]["timing"] = time.time()
-
-		# =========================================================
-
-		logging.info("==================================================")
-		logging.info("Generating homes data, getting Flukso data and save in Cassandra...")
-		logging.info("==================================================")
-
-		# STEP 2 : process all homes data, and save in database
-		processHomes(cassandra_session, tmpo_session, config, timings, now)
-
-		config_timers[config_id]["homes"] = time.time()
+	# STEP 1 : get start and end timings for all homes for the query
+	timings = getTimings(
+		tmpo_session,
+		cassandra_session,
+		config,
+		missing_data,
+		now
+	)
+	config_timers[config_id]["timing"] = time.time()
 
 	# =========================================================
 
-	showProcessingTimes(configs, begin, setup_time, config_timers) 
+	logging.info("==================================================")
+	logging.info("Generating homes data, getting Flukso data and save in Cassandra...")
+	logging.info("==================================================")
+
+	# STEP 2 : process all homes data, and save in database
+	processHomes(cassandra_session, tmpo_session, config, timings, now)
+
+	config_timers[config_id]["homes"] = time.time()
+
+	# =========================================================
+
+	showProcessingTimes([config], begin, setup_time, config_timers) 
 
 
 def main():

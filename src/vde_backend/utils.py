@@ -48,26 +48,6 @@ def read_sensor_info(path, sensor_file):
 	return sensors
 	
 
-def getCurrentSensorsConfigCassandra(cassandra_session, table_name):
-	""" 
-	Get the last registered sensors configuration
-	sensors configurations columns : home ids, sensors ids, tokens, indices for each phase (net, pro, con)
-	method : get all rows of the table, groupby config id (sorted by dates) and pick the last one
-	
-	POTENTIAL ISSUE : if the whole config table does not fit in memory
-		-> possible solution : select distinct insertion_time, home_id, sensor_id to reduce the nb of queried lines
-	"""
-
-	all_configs_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name, ["*"], 
-				"", "allow filtering", "")
-	
-	by_date_df = all_configs_df.groupby("insertion_time")
-	dates = list(by_date_df.groups.keys())
-	current_config_id = dates[-1]   # last config registered
-
-	return current_config_id, by_date_df	
-
-
 def getLastRegisteredConfig(cassandra_session):
 	"""
 	Get the last registered config based on insertion time
