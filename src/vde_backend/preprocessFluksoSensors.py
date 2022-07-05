@@ -23,7 +23,7 @@ from constants import (
 import pyToCassandra as ptc
 from sensorConfig import Configuration
 from computePower import recomputePowerData
-from utils import getAllRegisteredConfigs
+from utils import getLastRegisteredConfig
 
 
 # ==========================================================================
@@ -110,88 +110,13 @@ def getCompactSensorDF(config_file_path):
 	return compact_df
 
 
-def sameSigns(home1_sensors_df, home2_sensors_df):
+def recomputeData(cassandra_session):
 	""" 
-	Given 2 configurations 1 and 2, check if for each sensor of 1, the signs are the same as in 2
-	signs : associated to production, network and consumption : -1, 0 or 1
+	Recompute the power data according to the latest configuration.
 	"""
-	res = True
-	for _, sid in enumerate(home1_sensors_df.index):
-		# print(sid)
-		p = home1_sensors_df.loc[sid]["pro"]
-		n = home1_sensors_df.loc[sid]["net"]
-		c = home1_sensors_df.loc[sid]["con"]
-		# print("p : {}, n : {}, c : {}".format(p, n, c))
-
-		found = home2_sensors_df[home2_sensors_df['sensor_id'].str.contains(sid)]
-
-		if len(found) > 0:
-			pp = home2_sensors_df.loc[home2_sensors_df["sensor_id"] == sid]["pro"].iloc[0]
-			nn = home2_sensors_df.loc[home2_sensors_df["sensor_id"] == sid]["net"].iloc[0]
-			cc = home2_sensors_df.loc[home2_sensors_df["sensor_id"] == sid]["con"].iloc[0]
-			# print("pp : {}, nn : {}, cc : {}".format(pp, nn, cc))
-
-			if not (p == pp and n == nn and c == cc):
-				res = False
-				break 
-	
-	return res 
-
-
-def sameSensorsIds(hid, home1_sensors_df, home2_sensors_df):
-	""" 
-	Check if the 2 homes have the same number of sensors and the same sensors ids.
-	"""
-	# print("---- {} ----".format(hid))
-	sid_home1 = set(home1_sensors_df.index)
-	sid_home2 = set(home2_sensors_df["sensor_id"].tolist())
-	# print("sid prev config : ", sid_home1)
-	# print("sid new config : ", sid_home2)
-	# print("same sensors ids ? ", sid_home1 == sid_home2)
-
-	return sid_home1 == sid_home2
-
-
-def getHomesToRecompute(new_config_df, previous_config):
-	""" 
-	Get the previous configuration and check for each home if 
-	- it has the same sensors ids as the new config
-		- if yes, then we check a sign has changed in one of the sensors : 
-			- if yes, then we have to recompute all power data for this home based on the raw data
-	- else : we do not need to recompute the data
-	"""
-
-	homes_modif = []
-	if previous_config is not None:
-		for hid, home1_sensors_df in previous_config.getSensorsConfig().groupby("home_id"):
-			home2_sensors_df = new_config_df.loc[new_config_df['home_id'] == hid]
-
-			# same sensors ids
-			if sameSensorsIds(hid, home1_sensors_df, home2_sensors_df):
-				# at least one sign is different
-				if not sameSigns(home1_sensors_df, home2_sensors_df):
-					homes_modif.append(hid)
-
-	return homes_modif
-
-
-def recomputeData(cassandra_session, new_config_df, now):
-	""" 
-	compare new config with all previous config, and determine which data to recompute
-	for each home
-	"""
-
-	all_configs = getAllRegisteredConfigs(cassandra_session)
-	new_config = Configuration(now, new_config_df.set_index("sensor_id"))
-
-	for i in range(len(all_configs)-1, -1, -1):
-		prev_config_id = all_configs[i].getConfigID()
-		print("config : ", prev_config_id)
-		changed_homes = getHomesToRecompute(new_config_df, all_configs[i])
-		print("homes to recompute : ", changed_homes)
-
-		# recompute those homes
-		recomputePowerData(cassandra_session, prev_config_id, new_config, changed_homes, now)
+	new_config = getLastRegisteredConfig(cassandra_session)
+	changed_homes = new_config.getSensorsConfig()["home_id"].unique()
+	recomputePowerData(cassandra_session, new_config, changed_homes)
 
 
 def writeSensorsConfigCassandra(cassandra_session, new_config_df, now):
@@ -199,7 +124,7 @@ def writeSensorsConfigCassandra(cassandra_session, new_config_df, now):
 	write sensors config to cassandra table 
 	"""
 	col_names = ["insertion_time", "home_id", "phase", "flukso_id", "sensor_id", "sensor_token", "net", "con", "pro"]
-	insertion_time = str(now)[:19] + "Z"
+	insertion_time = now.isoformat()
 
 	for _, row in new_config_df.iterrows():
 		values = [insertion_time] + list(row)
@@ -328,9 +253,6 @@ def processConfig(cassandra_session, config_file_path, new_config_df, now):
 	createTableAccess(cassandra_session, "access")
 	createTableGroup(cassandra_session, "group")
 
-	# then, compare new config with previous configs and recompute data if necessary
-	print("> Checking for data to recompute... ")
-	recomputeData(cassandra_session, new_config_df, now)
 	# > fill config tables using excel configuration file
 	print("> Writing new config in cassandra...")
 	writeSensorsConfigCassandra(cassandra_session, new_config_df, now)
@@ -370,9 +292,13 @@ def main():
 	new_config_df = getCompactSensorDF(config_path)
 	print("nb sensors : ", len(new_config_df))
 
-	now = pd.Timestamp.now()
+	# Define the current time once for consistency of the insert time between tables.
+	now = pd.Timestamp.now(tz="CET")
 	
 	processConfig(cassandra_session, config_path, new_config_df, now)
+	# then, compare new config with previous configs and recompute data if necessary
+	print("> Checking for data to recompute... ")
+	recomputeData(cassandra_session, new_config_df, now)
 
 
 
