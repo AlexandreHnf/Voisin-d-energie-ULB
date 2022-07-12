@@ -362,7 +362,6 @@ def getTmpoSession(config):
 
 	tmpo_session = tmpo.Session(path)
 	for sid, row in config.getSensorsConfig().iterrows():
-		# logging.debug("{}, {}".format(sid, row["sensor_token"]))
 		tmpo_session.add(sid, row["sensor_token"])
 
 	logging.info("> tmpo synchronization...")
@@ -371,8 +370,7 @@ def getTmpoSession(config):
 	except Exception as e:
 		logging.warning("Exception occured in tmpo sync: ", exc_info=True)
 		logging.warning("> tmpo sql file needs to be reset, or some sensors are invalid.")
-		# testSession(config)
-	logging.debug("> tmpo synchronization OK")
+	logging.info("> tmpo synchronization : OK")
 
 	return tmpo_session
 
@@ -583,12 +581,12 @@ def showProcessingTimes(configs, begin, setup_time, config_timers):
 	"""
 	Display processing time for each step of 1 query
 	"""
-	logging.info("================= Timings ===================")
+	logging.info("--------------------- Timings --------------------")
 	logging.info("> Setup time : {}.".format(getTimeSpent(begin, setup_time)))
 
 	for i, config in enumerate(configs):
 		config_id = config.getConfigID()
-		logging.info("> Config {} : {}".format(i + 1, str(config_id)))
+		logging.info("> Config : {}".format(str(config_id)))
 		t = config_timers[config_id]
 		logging.info("  > Timings : {}.".format(getTimeSpent(t["start"], t["timing"])))
 		logging.info("  > Generate homes + saving in db : {}.".format(getTimeSpent(t["timing"], t["homes"])))
@@ -606,8 +604,7 @@ def createTables(cassandra_session):
 
 
 def sync(cassandra_session):
-	logging.info("======================================================================")
-	logging.info("======================================================================")
+	logging.info("====================== Sync ======================")
 	begin = time.time()
 	
 	# > timings
@@ -626,7 +623,7 @@ def sync(cassandra_session):
 		"",
 		""
 	)
-	logging.info("now (CET) : " + str(now))
+	logging.info("- Running time (Now - CET) : 	" + str(now))
 	setup_time = time.time()
 
 	# =========================================================
@@ -635,13 +632,15 @@ def sync(cassandra_session):
 
 	config_timers = {}
 	config_id = config.getConfigID()
-	logging.info("                [CONFIG {}] : ".format(str(config_id)))
+	logging.info("- Config : {}".format(str(config_id)))
 	config_timers[config_id] = {"start": time.time()}
 
-	logging.info("Number of Homes : " + str(config.getNbHomes()))
-	logging.info("Number of Fluksos : " + str(len(set(config.getSensorsConfig().flukso_id))))
-	logging.info("Number of Fluksos sensors : " + str(len(config.getSensorsConfig())))
+	logging.info("- Number of Homes : 			" + str(config.getNbHomes()))
+	logging.info("- Number of Fluksos : 		" + str(len(set(config.getSensorsConfig().flukso_id))))
+	logging.info("- Number of Fluksos sensors : " + str(len(config.getSensorsConfig())))
+	logging.info("---------------------- Tmpo -----------------------")
 
+	# TMPO synchronization
 	tmpo_session = getTmpoSession(config)
 
 	# STEP 1 : get start and end timings for all homes for the query
@@ -656,9 +655,8 @@ def sync(cassandra_session):
 
 	# =========================================================
 
-	logging.info("==================================================")
+	logging.info("---------------------- Homes ---------------------")
 	logging.info("Generating homes data, getting Flukso data and save in Cassandra...")
-	logging.info("==================================================")
 
 	# STEP 2 : process all homes data, and save in database
 	processHomes(cassandra_session, tmpo_session, config, timings, now)
@@ -678,7 +676,7 @@ def main():
 	createTables(cassandra_session)
 
 	# then, sync new data in Cassandra
-	# sync(cassandra_session)
+	sync(cassandra_session)
 
 
 if __name__ == "__main__":
