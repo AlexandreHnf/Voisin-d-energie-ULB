@@ -161,7 +161,7 @@ def createTable(session, keyspace, table_name, columns, primary_keys, clustering
 	query += "({}, ".format(",".join(columns))
 	query += "PRIMARY KEY ({}".format(getCompoundKeyStr(primary_keys))
 	query += "{})) ".format(getClusteringKeyStr(clustering_keys))
-	query += "{};".format(ordering)
+	query += "{};".format(getOrdering(ordering))
 
 	# logging.info("===>  create table query : " + query)
 	session.execute(query) 

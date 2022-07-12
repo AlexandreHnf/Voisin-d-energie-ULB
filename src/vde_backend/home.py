@@ -15,7 +15,6 @@ import logging
 # local sources
 from utils import (
 	energy2power, 
-	getLocalTimestampsIndex, 
 	getSpecificSerie
 )
 

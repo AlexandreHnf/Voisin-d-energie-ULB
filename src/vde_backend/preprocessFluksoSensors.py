@@ -374,9 +374,10 @@ def main():
 	now = pd.Timestamp.now(tz="CET")
 	
 	processConfig(cassandra_session, config_path, new_config_df, now)
+
 	# then, compare new config with previous configs and recompute data if necessary
-	print("> Checking for data to recompute... ")
-	recomputeData(cassandra_session, new_config_df, now)
+	# print("> Recompute previous data... ")
+	# recomputeData(cassandra_session)
 
 
 

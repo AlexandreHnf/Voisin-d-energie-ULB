@@ -32,7 +32,7 @@ from utils import (
 	getTimeSpent,
 	isEarlier,
 	read_sensor_info,
-	setInitSeconds
+	setupLogLevel
 )
 
 
@@ -65,7 +65,7 @@ from constants import (
 
 import pyToCassandra as ptc
 from computePower import saveHomePowerDataToCassandra
-from sensor import Sensor, setupLogLevel
+from sensor import Sensor
 
 # Create and configure logger
 logging.getLogger("tmpo").setLevel(logging.ERROR)
@@ -678,7 +678,7 @@ def main():
 	createTables(cassandra_session)
 
 	# then, sync new data in Cassandra
-	sync(cassandra_session)
+	# sync(cassandra_session)
 
 
 if __name__ == "__main__":
