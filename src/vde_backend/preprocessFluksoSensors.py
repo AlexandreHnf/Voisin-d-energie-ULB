@@ -376,8 +376,8 @@ def main():
 	processConfig(cassandra_session, config_path, new_config_df, now)
 
 	# then, compare new config with previous configs and recompute data if necessary
-	# print("> Recompute previous data... ")
-	# recomputeData(cassandra_session)
+	print("> Recompute previous data... ")
+	recomputeData(cassandra_session)
 
 
 

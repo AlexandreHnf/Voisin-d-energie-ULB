@@ -71,7 +71,7 @@ def getLastRegisteredConfig(cassandra_session):
 		CASSANDRA_KEYSPACE,
 		TBL_SENSORS_CONFIG,
 		["*"],
-		"insertion_time = '{}.000000+0000'".format(last_config_id),
+		"insertion_time = '{}'".format(last_config_id),
 		"ALLOW FILTERING",
 		""
 	)

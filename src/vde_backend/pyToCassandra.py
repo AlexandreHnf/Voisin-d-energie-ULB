@@ -11,8 +11,10 @@ import json
 # 3rd party packages
 import pandas as pd
 import logging
+
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
+from cassandra.policies import DCAwareRoundRobinPolicy
 
 # local source
 from constants import (
@@ -228,7 +230,10 @@ def connectToCluster(keyspace):
 	try:
 		if CASSANDRA_AUTH_MODE == "local":
 			# create the cluster : connects to localhost (127.0.0.1:9042) by default
-			cluster = Cluster()
+			cluster = Cluster(
+				load_balancing_policy=DCAwareRoundRobinPolicy(local_dc='datacenter1'),
+				protocol_version=3
+			)
 		
 		elif CASSANDRA_AUTH_MODE == "server":
 			with open(CASSANDRA_CREDENTIALS_FILE) as json_file:
