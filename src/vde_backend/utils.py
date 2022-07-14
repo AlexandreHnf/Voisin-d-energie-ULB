@@ -64,14 +64,14 @@ def getLastRegisteredConfig(cassandra_session):
 		"", 
 		"LIMIT 1"
 	)
-
 	last_config_id = first_row.iat[0,0]
+	
 	config_df = ptc.selectQuery(
 		cassandra_session,
 		CASSANDRA_KEYSPACE,
 		TBL_SENSORS_CONFIG,
 		["*"],
-		"insertion_time = '{}'".format(last_config_id),
+		"insertion_time = '{}+0000'".format(last_config_id),
 		"ALLOW FILTERING",
 		""
 	)

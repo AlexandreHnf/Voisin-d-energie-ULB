@@ -18,6 +18,7 @@ import os
 import time
 
 from threading import Thread
+from turtle import home
 
 # 3rd party packages
 import pandas as pd
@@ -235,7 +236,7 @@ def getInitialTimestamp(tmpo_session, sid, now):
 
 	return a timestamp in local timezone
 	"""
-	initial_ts = now if FROM_FIRST_TS is None else FROM_FIRST_TS
+	initial_ts = now if FROM_FIRST_TS is None else (now - pd.Timedelta(FROM_FIRST_TS))
 	if FROM_FIRST_TS_STATUS == "server":
 		initial_ts_tmpo = tmpo_session.first_timestamp(sid)
 
@@ -479,7 +480,7 @@ def saveHomeRawToCassandra(cassandra_session, home, config, timings):
 
 # ====================================================================================
 
-def displayHomeInfo(home_id, timings, nb_days):
+def displayHomeInfo(home_id, start_ts, end_ts):
 	""" 
 	Display some info during the execution of a query for logging. Can be activated by
 	turning the logging mode to 'INFO' 
@@ -491,8 +492,7 @@ def displayHomeInfo(home_id, timings, nb_days):
 		-> ...
 	"""
 
-	start_ts = timings[home_id]["start_ts"]
-	end_ts = timings[home_id]["end_ts"]
+	nb_days = (end_ts - start_ts).days
 	duration_min = 0
 	if start_ts is not None and end_ts is not None:
 		duration_min = round((end_ts - start_ts).total_seconds() / 60.0, 2)
@@ -503,19 +503,31 @@ def displayHomeInfo(home_id, timings, nb_days):
 		logging.info("> {} | no data to recover".format(home_id))
 
 
+def getIntermediateTimings(start_ts, end_ts):
+	""" 
+	Given 2 timestamps, generate the intermediate timings
+	- interval duration = 1 day
+	"""
+	intermediate_timings = list(pd.date_range(
+		start_ts,
+		end_ts,
+		freq="1D"
+	))
+
+	if len(intermediate_timings) == 1 and end_ts != start_ts:
+		intermediate_timings.append(end_ts)
+
+	return intermediate_timings
+
+
 def processHomes(cassandra_session, tmpo_session, config, timings, now):
 	# for each home
 	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
 		saved_sensors = {}  # for missing data, to check if sensors missing data already saved
 		# if home has a start timestamp and a end timestamp
 		if timings[hid]["start_ts"] is not None and timings[hid]["end_ts"] is not None:
-			intermediate_timings = pd.date_range(
-				timings[hid]["start_ts"],
-				timings[hid]["end_ts"],
-				freq="1D"
-			)
-			nb_days = len(intermediate_timings)
-			displayHomeInfo(hid, timings, nb_days)
+			intermediate_timings = getIntermediateTimings(timings[hid]["start_ts"], timings[hid]["end_ts"])
+			displayHomeInfo(hid, timings[hid]["start_ts"], timings[hid]["end_ts"])
 
 			for i in range(len(intermediate_timings)-1):  # query day by day
 				start_timing = intermediate_timings[i]
@@ -612,7 +624,7 @@ def sync(cassandra_session):
 
 	# =============================================================
 
-	# > Configurations
+	# > Configuration
 	config = getLastRegisteredConfig(cassandra_session)
 	missing_data = ptc.selectQuery(
 		cassandra_session,
@@ -623,20 +635,22 @@ def sync(cassandra_session):
 		"",
 		""
 	)
-	logging.info("- Running time (Now - CET) : 	" + str(now))
+	logging.info("- Running time (Now - CET) :  " + str(now))
 	setup_time = time.time()
 
 	# =========================================================
 
 	ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, TBL_RAW_MISSING)  # truncate existing rows
 
+	# Timer
 	config_timers = {}
 	config_id = config.getConfigID()
-	logging.info("- Config : {}".format(str(config_id)))
+	logging.info("- Config :                    " + str(config_id))
 	config_timers[config_id] = {"start": time.time()}
 
-	logging.info("- Number of Homes : 			" + str(config.getNbHomes()))
-	logging.info("- Number of Fluksos : 		" + str(len(set(config.getSensorsConfig().flukso_id))))
+	# Config information
+	logging.info("- Number of Homes :           " + str(config.getNbHomes()))
+	logging.info("- Number of Fluksos :         " + str(len(set(config.getSensorsConfig().flukso_id))))
 	logging.info("- Number of Fluksos sensors : " + str(len(config.getSensorsConfig())))
 	logging.info("---------------------- Tmpo -----------------------")
 
