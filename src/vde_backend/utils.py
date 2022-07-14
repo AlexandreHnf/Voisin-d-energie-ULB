@@ -49,7 +49,19 @@ def read_sensor_info(path, sensor_file):
 		index_col=1
 	)
 	return sensors
-	
+
+
+def setInitSeconds(ts):
+	"""
+	SS = 00 if M even, 04 if odd
+	"""
+	minute = ts.minute
+	sec = "00"
+	if minute % 2 != 0: # odd
+		sec = "04"
+	ts = ts.replace(second=int(sec))
+	return ts
+
 
 def getLastRegisteredConfig(cassandra_session):
 	"""

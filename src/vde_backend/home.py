@@ -8,6 +8,7 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 # standard library
 
 # 3rd party packages
+from matplotlib.pyplot import fill
 import pandas as pd
 import numpy as np
 import logging
@@ -15,7 +16,8 @@ import logging
 # local sources
 from utils import (
 	energy2power, 
-	getSpecificSerie
+	getSpecificSerie,
+	setInitSeconds
 )
 
 
@@ -37,8 +39,8 @@ class Home:
 	def __init__(self, sensors_info, since_timing, to_timing, home_id, sensors):
 		self.sensors_config = sensors_info
 		self.sensors = sensors
-		self.since_timing = since_timing
-		self.to_timing = to_timing
+		self.since_timing = setInitSeconds(since_timing.tz_convert("UTC"))
+		self.to_timing = setInitSeconds(to_timing.tz_convert("UTC"))
 		self.home_id = home_id
 		self.columns_names = self.getColumnsNames()
 
@@ -148,8 +150,6 @@ class Home:
 		energy_df = pd.concat(data_dfs, axis=1)  # combined series
 		del data_dfs
 
-		# print(energy_df)
-
 		return energy_df
 
 
@@ -162,19 +162,22 @@ class Home:
 
 		filler = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
 		filled_df = pd.concat([self.energy_df, filler], axis=1)
+		print("len filler : ", len(filler))
 		del filler
 		filled_df.columns = self.columns_names + ["fill"]
 		filled_df = filled_df.drop(['fill'], axis=1) # remove the filler col
+		print("len energy_df : ", len(self.energy_df))
+		print("len filled df : ", len(filled_df))
 
 		incomplete_raw_df = filled_df[filled_df.isna().any(axis=1)]  # with CET timezones
 		self.nb_nan = filled_df.isna().sum().sum()  # count nb of nan in the entire df
 		self.len_nan = len(incomplete_raw_df)
-		# logging.debug("len NaN : {}, tot NaN: {}".format(len(incomplete_raw_df), self.nb_nan))
 
 		incomplete_raw_df.index = pd.DatetimeIndex(incomplete_raw_df.index, name="time")
 		# convert all timestamps to local timezone (CET)
 		incomplete_raw_df.index = getLocalTimestampsIndex(incomplete_raw_df)
 		return incomplete_raw_df
+
 
 	def createFluksoRawDF(self):
 		"""

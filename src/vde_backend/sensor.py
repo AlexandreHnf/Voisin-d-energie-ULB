@@ -12,22 +12,13 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 import numpy as np
 
 # local sources
-from utils import getSpecificSerie
+from utils import(
+	getSpecificSerie,
+	setInitSeconds
+) 
 
 
 # ===============================================================================
-
-
-def setInitSeconds(ts):
-	"""
-	SS = 00 if M even, 04 if odd
-	"""
-	minute = ts.minute
-	sec = "00"
-	if minute % 2 != 0: # odd
-		sec = "04"
-	ts = ts.replace(second=int(sec))
-	return ts
 
 
 class Sensor: 

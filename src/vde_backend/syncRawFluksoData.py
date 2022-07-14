@@ -246,7 +246,7 @@ def getInitialTimestamp(tmpo_session, sid, now):
 	return initial_ts
 
 
-def getSensorTimings(tmpo_session, cassandra_session, missing_data, home_id, sid, now):
+def getSensorTimings(tmpo_session, cassandra_session, missing_data, sid, now):
 	"""
 	For each sensor, we get start timing, forming the interval of time we have to
 	query to tmpo
@@ -291,7 +291,7 @@ def getTimings(tmpo_session, cassandra_session, config, missing_data, now):
 			timings[home_id] = {"start_ts": now, "end_ts": now, "sensors": {}}
 
 			for sid in sensors_ids:  # for each sensor of this home
-				sensor_start_ts = getSensorTimings(tmpo_session, cassandra_session, missing_data, home_id, sid, now)
+				sensor_start_ts = getSensorTimings(tmpo_session, cassandra_session, missing_data, sid, now)
 
 				# if 'start_ts' is older (in the past) than the current start_ts
 				if sensor_start_ts is not None and isEarlier(sensor_start_ts, timings[home_id]["start_ts"]):
