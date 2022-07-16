@@ -177,6 +177,17 @@ def pandas_factory(colnames, rows):
 	return pd.DataFrame(rows, columns=colnames)
 
 
+def convertColumnsTimezones(df):
+	""" 
+	Given a queried dataframe from Cassandra, convert
+	the timezone of columns containing timestamps
+	""" 
+
+	for col_name in ['ts', 'config_id', 'insertion_time', 'start_ts', 'end_ts']:
+		if col_name in df.columns:
+			df[col_name] = df[col_name].dt.tz_localize("CET").dt.tz_convert('CET')
+
+
 def selectResToDf(session, query):
 	""" 
 	process a select query and returns a pandas DataFrame
@@ -188,10 +199,11 @@ def selectResToDf(session, query):
 
 	rslt = session.execute(query, timeout=None)
 	df = rslt._current_rows
+
 	return df
 
 
-def selectQuery(session, keyspace, table, columns, where_clause, allow_filtering, limit, distinct=""):
+def selectQuery(session, keyspace, table, columns, where_clause, allow_filtering, limit, distinct="", tz="CET"):
 	""" 
 	columns = * or a list of columns
 
@@ -213,9 +225,11 @@ def selectQuery(session, keyspace, table, columns, where_clause, allow_filtering
 	query += "{};".format(allow_filtering)
 
 	# logging.info("===> select query : " + query)
-	rows = selectResToDf(session, query)
+	res_df = selectResToDf(session, query)
+	if tz == "CET" and len(res_df) > 0:
+		convertColumnsTimezones(res_df)
 
-	return rows
+	return res_df
 	
 
 # ==========================================================================

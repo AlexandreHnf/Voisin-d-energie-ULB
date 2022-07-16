@@ -74,7 +74,9 @@ def getLastRegisteredConfig(cassandra_session):
 		["insertion_time"], 
 		"", 
 		"", 
-		"LIMIT 1"
+		"LIMIT 1",
+		"",
+		"UTC"
 	)
 	last_config_id = first_row.iat[0,0]
 	

@@ -259,7 +259,8 @@ def getSensorTimings(tmpo_session, cassandra_session, missing_data, sid, now):
 	"""
 	sensor_start_ts = None
 	if missing_data.index.contains(sid):  # if there is missing data for this sensor
-		start_ts = missing_data.loc[sid]["start_ts"] - timedelta(seconds=FREQ[0])  # CET timezone (-4sec to avoid losing first ts)
+		# CET timezone (-8sec to avoid losing first ts)
+		start_ts = missing_data.loc[sid]["start_ts"] - timedelta(seconds=FREQ[0])  
 		sensor_start_ts = start_ts  # sensor start timing = missing data first timestamp
 	else:  # if no missing data for this sensor
 		default_timing = getDefaultTiming(cassandra_session, sid)  # None or tz-naive CET
@@ -523,43 +524,44 @@ def getIntermediateTimings(start_ts, end_ts):
 def processHomes(cassandra_session, tmpo_session, config, timings, now):
 	# for each home
 	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
-		saved_sensors = {}  # for missing data, to check if sensors missing data already saved
-		# if home has a start timestamp and a end timestamp
-		if timings[hid]["start_ts"] is not None and timings[hid]["end_ts"] is not None:
-			intermediate_timings = getIntermediateTimings(timings[hid]["start_ts"], timings[hid]["end_ts"])
-			displayHomeInfo(hid, timings[hid]["start_ts"], timings[hid]["end_ts"])
+		if hid in ['CDB001', 'CDB043', 'CDBA01', 'ECHASC', 'ECHBUA', 'ECHL01']:
+			saved_sensors = {}  # for missing data, to check if sensors missing data already saved
+			# if home has a start timestamp and a end timestamp
+			if timings[hid]["start_ts"] is not None and timings[hid]["end_ts"] is not None:
+				intermediate_timings = getIntermediateTimings(timings[hid]["start_ts"], timings[hid]["end_ts"])
+				displayHomeInfo(hid, timings[hid]["start_ts"], timings[hid]["end_ts"])
 
-			for i in range(len(intermediate_timings)-1):  # query day by day
-				start_timing = intermediate_timings[i]
-				to_timing = intermediate_timings[i+1]
+				for i in range(len(intermediate_timings)-1):  # query day by day
+					start_timing = intermediate_timings[i]
+					to_timing = intermediate_timings[i+1]
 
-				# generate home
-				home = generateHome(tmpo_session, hid, home_sensors, start_timing, to_timing)
+					# generate home
+					home = generateHome(tmpo_session, hid, home_sensors, start_timing, to_timing)
 
-				threads = []
-				# save raw flukso data in cassandra
-				t1 = Thread(target = saveHomeRawToCassandra, args=(cassandra_session, home, config, timings))
-				threads.append(t1)
-				t1.start()
+					threads = []
+					# save raw flukso data in cassandra
+					t1 = Thread(target = saveHomeRawToCassandra, args=(cassandra_session, home, config, timings))
+					threads.append(t1)
+					t1.start()
 
-				# save missing raw data in cassandra
-				t2 = Thread(target = saveHomeMissingData, args = (cassandra_session, config, now, home, saved_sensors))
-				threads.append(t2)
-				t2.start()
+					# save missing raw data in cassandra
+					t2 = Thread(target = saveHomeMissingData, args = (cassandra_session, config, now, home, saved_sensors))
+					threads.append(t2)
+					t2.start()
 
-				# save power flukso data in cassandra
-				t3 = Thread(target = saveHomePowerDataToCassandra, args = (cassandra_session, home, config))
-				threads.append(t3)
-				t3.start()
+					# save power flukso data in cassandra
+					t3 = Thread(target = saveHomePowerDataToCassandra, args = (cassandra_session, home, config))
+					threads.append(t3)
+					t3.start()
 
-				# wait for the threads to complete
-				for t in threads:
-					t.join()
+					# wait for the threads to complete
+					for t in threads:
+						t.join()
 
-		else:
-			logging.info("{} : No data to save".format(hid))
+			else:
+				logging.info("{} : No data to save".format(hid))
 		
-		logging.info("---------------------------------------------------------------")
+			logging.info("---------------------------------------------------------------")
 
 # ====================================================================================
 
