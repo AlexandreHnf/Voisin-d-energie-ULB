@@ -37,8 +37,11 @@ class Sensor:
 		return self.sensor_id
 
 	def getSerie(self):
+		""" 
+		# since_timing and to_timing = UTC timezone for tmpo query
+		"""
+
 		if self.to_timing == 0:
-			# since_timing = UTC timezone for tmpo query
 			dff = self.session.series(
 				self.sensor_id, 
 				head=self.since_timing
@@ -50,8 +53,8 @@ class Sensor:
 				tail=self.to_timing
 			)
 
-		len_dff = len(dff.index)
 		if len(dff.index) == 0:
 			dff = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
+			
 		return dff
 

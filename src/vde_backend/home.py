@@ -20,6 +20,8 @@ from utils import (
 	setInitSeconds
 )
 
+from constants import FREQ
+
 
 def getLocalTimestampsIndex(df):
 	"""
@@ -160,13 +162,14 @@ class Home:
 		2) get a dataframe containing all the lines with NaN values (= incomplete rows)
 		"""
 
+		energy_df = self.energy_df.resample(str(FREQ[0]) + FREQ[1]).mean() # resample to 8sec
 		filler = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
-		filled_df = pd.concat([self.energy_df, filler], axis=1)
+		filled_df = pd.concat([energy_df, filler], axis=1)
 		print("len filler : ", len(filler))
 		del filler
 		filled_df.columns = self.columns_names + ["fill"]
 		filled_df = filled_df.drop(['fill'], axis=1) # remove the filler col
-		print("len energy_df : ", len(self.energy_df))
+		print("len energy_df : ", len(energy_df))
 		print("len filled df : ", len(filled_df))
 
 		incomplete_raw_df = filled_df[filled_df.isna().any(axis=1)]  # with CET timezones
