@@ -181,11 +181,18 @@ def convertColumnsTimezones(df):
 	""" 
 	Given a queried dataframe from Cassandra, convert
 	the timezone of columns containing timestamps
+
+	We assume the timestamps in Cassandra tables are stored with
+	UTC timezone
 	""" 
 
 	for col_name in ['ts', 'config_id', 'insertion_time', 'start_ts', 'end_ts']:
 		if col_name in df.columns:
-			df[col_name] = df[col_name].dt.tz_localize("CET").dt.tz_convert('CET')
+			# first convert to UTC beause UTC saved timestamps in Cassandra comes up
+			# with no timezone. Ex: stored ts : 'YYYY-MM-DD HH:MM:SS.MMM000+0000'
+			# becomes 'YYYY-MM-DD HH:MM:SS.MMM' when queried.
+			df[col_name] = df[col_name].dt.tz_localize("UTC").dt.tz_convert('UTC')
+			df[col_name] = df[col_name].dt.tz_convert('CET')
 
 
 def selectResToDf(session, query):

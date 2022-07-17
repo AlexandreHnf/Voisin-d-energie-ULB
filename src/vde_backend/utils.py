@@ -89,6 +89,7 @@ def getLastRegisteredConfig(cassandra_session):
 		"ALLOW FILTERING",
 		""
 	)
+	# print(config_df['insertion_time'].head(5))
 	config = Configuration(last_config_id, config_df.set_index("sensor_id"))
 	return config
 

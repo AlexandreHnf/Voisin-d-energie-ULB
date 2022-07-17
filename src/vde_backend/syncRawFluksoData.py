@@ -632,11 +632,12 @@ def sync(cassandra_session):
 		cassandra_session,
 		CASSANDRA_KEYSPACE,
 		TBL_RAW_MISSING,
-		"*",
+		["*"],
 		"",
 		"",
 		""
 	)
+	# print(missing_data.head(5))
 	logging.info("- Running time (Now - CET) :  " + str(now))
 	setup_time = time.time()
 
