@@ -18,7 +18,6 @@ import os
 import time
 
 from threading import Thread
-from turtle import home
 
 # 3rd party packages
 import pandas as pd
@@ -260,7 +259,7 @@ def getSensorTimings(tmpo_session, cassandra_session, missing_data, sid, now):
 	sensor_start_ts = None
 	if missing_data.index.contains(sid):  # if there is missing data for this sensor
 		# CET timezone (-8sec to avoid losing first ts)
-		start_ts = missing_data.loc[sid]["start_ts"] - timedelta(seconds=FREQ[0])  
+		start_ts = missing_data.loc[sid]["start_ts"] - timedelta(seconds=FREQ[0]) 
 		sensor_start_ts = start_ts  # sensor start timing = missing data first timestamp
 	else:  # if no missing data for this sensor
 		default_timing = getDefaultTiming(cassandra_session, sid)  # None or tz-naive CET
@@ -524,7 +523,8 @@ def getIntermediateTimings(start_ts, end_ts):
 def processHomes(cassandra_session, tmpo_session, config, timings, now):
 	# for each home
 	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
-		if hid in ['CDB001', 'CDB043', 'CDBA01', 'ECHASC', 'ECHBUA', 'ECHL01']:
+		# if hid in ['CDB001', 'CDB043', 'CDBA01', 'ECHASC', 'ECHBUA', 'ECHL01']:
+		if hid in ['CDB001']:
 			saved_sensors = {}  # for missing data, to check if sensors missing data already saved
 			# if home has a start timestamp and a end timestamp
 			if timings[hid]["start_ts"] is not None and timings[hid]["end_ts"] is not None:
@@ -636,8 +636,8 @@ def sync(cassandra_session):
 		"",
 		"",
 		""
-	)
-	# print(missing_data.head(5))
+	).set_index("sensor_id")
+
 	logging.info("- Running time (Now - CET) :  " + str(now))
 	setup_time = time.time()
 

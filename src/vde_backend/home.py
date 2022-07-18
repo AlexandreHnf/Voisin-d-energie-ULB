@@ -8,7 +8,6 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 # standard library
 
 # 3rd party packages
-from matplotlib.pyplot import fill
 import pandas as pd
 import numpy as np
 import logging
