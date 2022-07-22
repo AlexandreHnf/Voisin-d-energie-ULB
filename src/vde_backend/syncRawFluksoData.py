@@ -189,9 +189,9 @@ def getLastRegisteredTimestamp(cassandra_session, table_name, sensor_id):
 		table_name, 
 		cols, 
 		where_clause, 
-		"ALLOW FILTERING", 
-		"", 
-		"DISTINCT"
+		limit=None,
+		allow_filtering=True,
+		distinct=True
 	)
 
 	ts_df = None
@@ -200,8 +200,14 @@ def getLastRegisteredTimestamp(cassandra_session, table_name, sensor_id):
 
 		where_clause = "sensor_id = '{}' AND day = '{}' ORDER BY ts DESC".format(
 			sensor_id, last_date)
-		ts_df = ptc.selectQuery(cassandra_session, CASSANDRA_KEYSPACE, table_name,
-								["ts"], where_clause, "ALLOW FILTERING", "LIMIT 1")
+		ts_df = ptc.selectQuery(
+			cassandra_session, 
+			CASSANDRA_KEYSPACE, 
+			table_name,
+			["ts"], 
+			where_clause, 
+			limit=1
+		)
 		if len(ts_df) > 0:
 			return ts_df
 
@@ -233,7 +239,7 @@ def getInitialTimestamp(tmpo_session, sid, now):
 	get the first ever registered timestamp for a sensor using tmpo Session
 	if no such timestamp (None), return an arbitrary timing (ex: since 4min)
 
-	return a timestamp in local timezone
+	return a timestamp in local timezone (CET)
 	"""
 	initial_ts = now if FROM_FIRST_TS is None else (now - pd.Timedelta(FROM_FIRST_TS))
 	if FROM_FIRST_TS_STATUS == "server":
@@ -258,13 +264,13 @@ def getSensorTimings(tmpo_session, cassandra_session, missing_data, sid, now):
 	"""
 	sensor_start_ts = None
 	if missing_data.index.contains(sid):  # if there is missing data for this sensor
-		# CET timezone (-8sec to avoid losing first ts)
+		# CET timezone (minus a certain offset to avoid losing first ts)
 		start_ts = missing_data.loc[sid]["start_ts"] - timedelta(seconds=FREQ[0]) 
 		sensor_start_ts = start_ts  # sensor start timing = missing data first timestamp
 	else:  # if no missing data for this sensor
 		default_timing = getDefaultTiming(cassandra_session, sid)  # None or tz-naive CET
 		if default_timing is None:  # if no raw data registered for this sensor yet
-			# we take all data from its first timestamp
+			# we take its first tmpo timestamp
 			initial_ts = getInitialTimestamp(tmpo_session, sid, now)
 			sensor_start_ts = initial_ts
 		else:
@@ -633,9 +639,9 @@ def sync(cassandra_session):
 		CASSANDRA_KEYSPACE,
 		TBL_RAW_MISSING,
 		["*"],
-		"",
-		"",
-		""
+		where_clause="",
+		limit=None,
+		allow_filtering=False
 	).set_index("sensor_id")
 
 	logging.info("- Running time (Now - CET) :  " + str(now))

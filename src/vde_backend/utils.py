@@ -72,11 +72,11 @@ def getLastRegisteredConfig(cassandra_session):
 		CASSANDRA_KEYSPACE,
 		TBL_SENSORS_CONFIG,
 		["insertion_time"], 
-		"", 
-		"", 
-		"LIMIT 1",
-		"",
-		"UTC"
+		where_clause="", 
+		limit=1,
+		allow_filtering=False,
+		distinct=False,
+		tz="UTC"
 	)
 	last_config_id = first_row.iat[0,0]
 	
@@ -86,8 +86,6 @@ def getLastRegisteredConfig(cassandra_session):
 		TBL_SENSORS_CONFIG,
 		["*"],
 		"insertion_time = '{}+0000'".format(last_config_id),
-		"ALLOW FILTERING",
-		""
 	)
 	# print(config_df['insertion_time'].head(5))
 	config = Configuration(last_config_id, config_df.set_index("sensor_id"))
@@ -107,9 +105,9 @@ def getAllRegisteredConfigs(cassandra_session):
 		CASSANDRA_KEYSPACE, 
 		TBL_SENSORS_CONFIG,
 		["*"], 
-		"", 
-		"", 
-		""
+		where_clause="", 
+		limit=None, 
+		allow_filtering=False
 	)
 
 	configs = []

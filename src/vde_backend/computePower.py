@@ -107,9 +107,7 @@ def getHomeRawData(cassandra_session, sensors_df, day):
 			CASSANDRA_KEYSPACE, 
 			TBL_RAW,
 			["*"], 
-			where_clause, 
-			"ALLOW FILTERING", 
-			""
+			where_clause
 		)
 
 		home_rawdata[sid] = raw_data_df
@@ -212,8 +210,7 @@ def getDataDatesForHome(cassandra_session, sensors_df):
 			TBL_RAW,
 			["day"],
 			"sensor_id = '{}'".format(sensor_id),
-			"ALLOW FILTERING",
-			"LIMIT 1"
+			limit=1
 		)
 		if len(first_date_df) > 0:
 			if pd.Timestamp(first_date_df.iat[0,0]) < first_date:

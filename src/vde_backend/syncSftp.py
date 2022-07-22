@@ -32,6 +32,7 @@ Constraints :
 
 # standard library
 from datetime import timedelta
+from dis import dis
 import json
 import os
 import argparse
@@ -125,9 +126,9 @@ def getLastRegisteredConfig(cassandra_session, table_name):
 		CASSANDRA_KEYSPACE, 
 		table_name,
 		["*"], 
-		"", 
-		"", 
-		""
+		where_clause="", 
+		limit=None, 
+		allow_filtering=False
 	).groupby("insertion_time")
 	
 	config = None
@@ -167,9 +168,7 @@ def getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, tabl
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
-		where_clause, 
-		"ALLOW FILTERING", 
-		""
+		where_clause,
 	)
 
 	return home_df
@@ -201,9 +200,7 @@ def getHomesPowerDataFromCassandra(cassandra_session, config, date, moment, tabl
 			CASSANDRA_KEYSPACE, 
 			table_name, 
 			cols, 
-			where_clause, 
-			"ALLOW FILTERING", 
-			""
+			where_clause,
 		)
 
 		homes_powerdata[home_id] = home_df
@@ -331,9 +328,9 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 		table_name, 
 		cols, 
 		where_clause, 
-		"ALLOW FILTERING", 
-		"", 
-		"DISTINCT"
+		limit=None,
+		allow_filtering=True,
+		distinct=True
 	)
 
 	all_dates = []

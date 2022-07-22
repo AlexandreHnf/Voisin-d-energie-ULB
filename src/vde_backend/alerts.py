@@ -68,9 +68,7 @@ def getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name):
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
-		where_clause, 
-		"ALLOW FILTERING", 
-		""
+		where_clause
 	)
 
 	return home_df

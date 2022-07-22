@@ -186,7 +186,14 @@ def convertColumnsTimezones(df):
 	UTC timezone
 	""" 
 
-	for col_name in ['ts', 'config_id', 'insertion_time', 'start_ts', 'end_ts']:
+	ts_columns = [ 
+		'ts',
+		'config_id', 
+		'insertion_time', 
+		'start_ts', 
+		'end_ts'
+	]
+	for col_name in ts_columns:
 		if col_name in df.columns:
 			# first convert to UTC beause UTC saved timestamps in Cassandra comes up
 			# with no timezone. Ex: stored ts : 'YYYY-MM-DD HH:MM:SS.MMM000+0000'
@@ -210,7 +217,17 @@ def selectResToDf(session, query):
 	return df
 
 
-def selectQuery(session, keyspace, table, columns, where_clause, allow_filtering, limit, distinct="", tz="CET"):
+def selectQuery(
+		session, 
+		keyspace, 
+		table_name, 
+		columns, 
+		where_clause, 
+		limit				= None,
+		allow_filtering 	= True,
+		distinct 			= False,
+		tz 					= 'CET'
+	):
 	""" 
 	columns = * or a list of columns
 
@@ -221,11 +238,14 @@ def selectQuery(session, keyspace, table, columns, where_clause, allow_filtering
 	where = ""
 	if len(where_clause) > 0:
 		where = "WHERE"
+	distinct = "DISTINCT" if distinct else ""
+	limit = "LIMIT {}".format(limit) if limit is not None else ""
+	allow_filtering = "ALLOW FILTERING" if allow_filtering else ""
 	
 	query = "SELECT {} ".format(distinct)
 	query += "{} ".format(",".join(columns))
 	query += "FROM {}".format(keyspace)
-	query += ".{} ".format(table)
+	query += ".{} ".format(table_name)
 	query += "{} ".format(where)
 	query += "{} ".format(where_clause)
 	query += "{} ".format(limit)
