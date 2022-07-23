@@ -106,7 +106,7 @@ def getHomeRawData(cassandra_session, sensors_df, day):
 			cassandra_session, 
 			CASSANDRA_KEYSPACE, 
 			TBL_RAW,
-			["*"], 
+			["sensor_id, day, ts, power"], 
 			where_clause
 		)
 
@@ -143,16 +143,6 @@ def getHomeConsumptionProductionDf(home_rawdata, home_id, sensors_df):
 	cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
 
 	return cons_prod_df
-
-
-def concentrateConsProdDf(cons_prod_df):
-	""" 
-	transform : index=i, cols = [home_id day ts P_cons P_prod P_tot]
-	into : index = [day, ts], cols = [P_cons P_prod P_tot] 
-	"""
-	df = cons_prod_df.set_index(['day', 'ts'])
-	df = df.drop(['home_id'], axis=1)
-	return df
 
 
 def saveRecomputedPowersToCassandra(cassandra_session, new_config_id, cons_prod_df):

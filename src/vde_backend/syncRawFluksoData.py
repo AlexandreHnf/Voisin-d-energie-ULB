@@ -31,6 +31,7 @@ from utils import (
 	getProgDir,
 	getTimeSpent,
 	isEarlier,
+	setInitSeconds,
 	read_sensor_info,
 	setupLogLevel
 )
@@ -305,7 +306,7 @@ def getTimings(tmpo_session, cassandra_session, config, missing_data, now):
 
 				if sensor_start_ts is not None and str(sensor_start_ts.tz) == "None":
 					sensor_start_ts = sensor_start_ts.tz_localize("CET") # ensures a CET timezone
-				timings[home_id]["sensors"][sid] = sensor_start_ts  # CET
+				timings[home_id]["sensors"][sid] = setInitSeconds(sensor_start_ts)  # CET
 
 			if timings[home_id]["start_ts"] is now:  # no data to recover from this home 
 				timings[home_id]["start_ts"] = None
@@ -326,7 +327,11 @@ def generateHome(tmpo_session, hid, home_sensors, since_timing, to_timing):
 	sensors = []  # list of Sensor objects
 
 	duration_min = round((to_timing - since_timing).total_seconds() / 60.0, 2)
-	logging.info("  -> {} > {} ({} min.)".format(since_timing, to_timing, duration_min))
+	logging.info("  -> {} > {} ({} min.)".format(
+		setInitSeconds(since_timing), 
+		setInitSeconds(to_timing), 
+		duration_min
+	))
 
 	for sid, row in home_sensors.iterrows():
 		sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
