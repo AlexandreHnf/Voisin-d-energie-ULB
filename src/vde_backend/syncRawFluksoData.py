@@ -95,8 +95,8 @@ def createRawFluksoTable(cassandra_session, table_name):
 
 	columns = [
 		"sensor_id TEXT", 
-		"day TEXT", 
-		"ts TIMESTAMP", 
+		"day TEXT", 				# CET timezone
+		"ts TIMESTAMP", 			# UTC timezone (automatically converted)
 		"insertion_time TIMESTAMP", 
 		"config_id TIMESTAMP",
 		"power FLOAT"
@@ -120,8 +120,8 @@ def createPowerTable(cassandra_session, table_name):
 
 	power_cols = [
 		"home_id TEXT", 
-		"day TEXT", 
-		"ts TIMESTAMP", 
+		"day TEXT", 			# CET timezone
+		"ts TIMESTAMP", 		# UTC timezone (automatically converted)
 		"P_cons FLOAT", 
 		"P_prod FLOAT", 
 		"P_tot FLOAT", 
@@ -328,8 +328,8 @@ def generateHome(tmpo_session, hid, home_sensors, since_timing, to_timing):
 
 	duration_min = round((to_timing - since_timing).total_seconds() / 60.0, 2)
 	logging.info("  -> {} > {} ({} min.)".format(
-		setInitSeconds(since_timing), 
-		setInitSeconds(to_timing), 
+		since_timing, 
+		to_timing, 
 		duration_min
 	))
 
@@ -508,8 +508,13 @@ def displayHomeInfo(home_id, start_ts, end_ts):
 	if start_ts is not None and end_ts is not None:
 		duration_min = round((end_ts - start_ts).total_seconds() / 60.0, 2)
 	if duration_min > 0:
-		logging.info("> {} | {} > {} ({} days > {} min.)".format(home_id, 
-					start_ts, end_ts, nb_days, duration_min))
+		logging.info("> {} | {} > {} ({} days > {} min.)".format(
+			home_id, 
+			start_ts, 
+			end_ts, 
+			nb_days, 
+			duration_min
+		))
 	else:
 		logging.info("> {} | no data to recover".format(home_id))
 
@@ -531,7 +536,51 @@ def getIntermediateTimings(start_ts, end_ts):
 	return intermediate_timings
 
 
+def saveDataThreads(cassandra_session, home, config, timings, now, saved_sensors):
+	""" 
+	Threads to save data to different Cassandra tables
+	-> raw data in raw table
+	-> raw missing data in raw_missing table
+	-> power data in power table
+	"""
+
+	threads = []
+	# save raw flukso data in cassandra
+	t1 = Thread(
+		target = saveHomeRawToCassandra, 
+		args=(cassandra_session, home, config, timings)
+	)
+	threads.append(t1)
+	t1.start()
+
+	# save missing raw data in cassandra
+	t2 = Thread(
+		target = saveHomeMissingData, 
+		args = (cassandra_session, config, now, home, saved_sensors)
+	)
+	threads.append(t2)
+	t2.start()
+
+	# save power flukso data in cassandra
+	t3 = Thread(
+		target = saveHomePowerDataToCassandra, 
+		args = (cassandra_session, home, config)
+	)
+	threads.append(t3)
+	t3.start()
+
+	# wait for the threads to complete
+	for t in threads:
+		t.join()
+
+
 def processHomes(cassandra_session, tmpo_session, config, timings, now):
+	""" 
+	For each home, we first create the home object containing
+	all the tmpo queries and series computation
+	Then, we save computed data in Cassandra tables. 
+	"""
+
 	# for each home
 	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
 		# if hid in ['CDB001', 'CDB043', 'CDBA01', 'ECHASC', 'ECHBUA', 'ECHL01']:
@@ -539,40 +588,39 @@ def processHomes(cassandra_session, tmpo_session, config, timings, now):
 			saved_sensors = {}  # for missing data, to check if sensors missing data already saved
 			# if home has a start timestamp and a end timestamp
 			if timings[hid]["start_ts"] is not None and timings[hid]["end_ts"] is not None:
-				intermediate_timings = getIntermediateTimings(timings[hid]["start_ts"], timings[hid]["end_ts"])
-				displayHomeInfo(hid, timings[hid]["start_ts"], timings[hid]["end_ts"])
+				# set init seconds (for tmpo query), might set timings earlier than planned (not a problem)
+				start_timing = setInitSeconds(timings[hid]["start_ts"])
+				end_timing = setInitSeconds(timings[hid]["end_ts"])
+				intermediate_timings = getIntermediateTimings(start_timing, end_timing)
+				displayHomeInfo(hid, start_timing, end_timing)
 
 				for i in range(len(intermediate_timings)-1):  # query day by day
-					start_timing = intermediate_timings[i]
-					to_timing = intermediate_timings[i+1]
+					start_ts = intermediate_timings[i]
+					to_ts = intermediate_timings[i+1]
 
 					# generate home
-					home = generateHome(tmpo_session, hid, home_sensors, start_timing, to_timing)
+					home = generateHome(
+						tmpo_session, 
+						hid, 
+						home_sensors, 
+						start_ts, 
+						to_ts
+					)
 
-					threads = []
-					# save raw flukso data in cassandra
-					t1 = Thread(target = saveHomeRawToCassandra, args=(cassandra_session, home, config, timings))
-					threads.append(t1)
-					t1.start()
-
-					# save missing raw data in cassandra
-					t2 = Thread(target = saveHomeMissingData, args = (cassandra_session, config, now, home, saved_sensors))
-					threads.append(t2)
-					t2.start()
-
-					# save power flukso data in cassandra
-					t3 = Thread(target = saveHomePowerDataToCassandra, args = (cassandra_session, home, config))
-					threads.append(t3)
-					t3.start()
-
-					# wait for the threads to complete
-					for t in threads:
-						t.join()
+					saveDataThreads(
+						cassandra_session, 
+						home, 
+						config, 
+						timings, 
+						now, 
+						saved_sensors
+					)
 
 			else:
 				logging.info("{} : No data to save".format(hid))
 		
 			logging.info("---------------------------------------------------------------")
+
 
 # ====================================================================================
 

@@ -27,8 +27,9 @@ class Sensor:
 		self.flukso_id = flukso_id
 		self.sensor_id = sensor_id
 
-		self.since_timing = setInitSeconds(since_timing.tz_convert("UTC"))
-		self.to_timing = setInitSeconds(to_timing.tz_convert("UTC"))
+		# Convert to UTC timezone for tmpo
+		self.since_timing = since_timing.tz_convert("UTC")
+		self.to_timing = to_timing.tz_convert("UTC")
 
 	def getFluksoID(self):
 		return self.flukso_id

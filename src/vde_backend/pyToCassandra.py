@@ -254,6 +254,7 @@ def selectQuery(
 	# logging.info("===> select query : " + query)
 	res_df = selectResToDf(session, query)
 	if tz == "CET" and len(res_df) > 0:
+		# remark: the date column in tables is in CET timezone
 		convertColumnsTimezones(res_df)
 
 	return res_df

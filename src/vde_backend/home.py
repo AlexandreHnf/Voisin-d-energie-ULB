@@ -40,8 +40,10 @@ class Home:
 	def __init__(self, sensors_info, since_timing, to_timing, home_id, sensors):
 		self.sensors_config = sensors_info
 		self.sensors = sensors
-		self.since_timing = setInitSeconds(since_timing.tz_convert("UTC"))
-		self.to_timing = setInitSeconds(to_timing.tz_convert("UTC"))
+
+		# Convert to UTC timezone for tmpo
+		self.since_timing = since_timing.tz_convert("UTC")
+		self.to_timing = to_timing.tz_convert("UTC")
 		self.home_id = home_id
 		self.columns_names = self.getColumnsNames()
 
