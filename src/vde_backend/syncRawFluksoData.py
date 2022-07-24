@@ -18,6 +18,7 @@ import os
 import time
 
 from threading import Thread
+from matplotlib.pyplot import show
 
 # 3rd party packages
 import pandas as pd
@@ -650,21 +651,42 @@ def saveFluksoDataToCsv(homes):
 # ====================================================================================
 
 
-def showProcessingTimes(configs, begin, setup_time, config_timers):
+def showConfigInfo(config):
+	""" 
+	Display Configuration stats/information
+	"""
+
+	logging.info("- Number of Homes :           {}".format(
+		str(config.getNbHomes())
+	))
+	logging.info("- Number of Fluksos :         {}".format(
+		str(len(set(config.getSensorsConfig().flukso_id)))
+	))
+	logging.info("- Number of Fluksos sensors : {}".format(
+		str(len(config.getSensorsConfig()))
+	))
+
+
+def showProcessingTimes(begin, setup_time, t):
 	"""
 	Display processing time for each step of 1 query
+	t = timer (dictionary with running timings)
 	"""
+
 	logging.info("--------------------- Timings --------------------")
-	logging.info("> Setup time : {}.".format(getTimeSpent(begin, setup_time)))
+	logging.info("> Setup time :                     {}.".format(
+		getTimeSpent(begin, setup_time)
+	))
+	logging.info("> Timings computation :            {}.".format(
+		getTimeSpent(t["start"], t["timing"])
+	))
+	logging.info("> Generate homes + saving in db :  {}.".format(
+		getTimeSpent(t["timing"], t["homes"])
+	))
 
-	for i, config in enumerate(configs):
-		config_id = config.getConfigID()
-		logging.info("> Config : {}".format(str(config_id)))
-		t = config_timers[config_id]
-		logging.info("  > Timings : {}.".format(getTimeSpent(t["start"], t["timing"])))
-		logging.info("  > Generate homes + saving in db : {}.".format(getTimeSpent(t["timing"], t["homes"])))
-
-	logging.info("> Total Processing time : {}.".format(getTimeSpent(begin, time.time())))
+	logging.info("> Total Processing time :          {}.".format(
+		getTimeSpent(begin, time.time())
+	))
 
 
 def createTables(cassandra_session):
@@ -705,15 +727,13 @@ def sync(cassandra_session):
 	ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, TBL_RAW_MISSING)  # truncate existing rows
 
 	# Timer
-	config_timers = {}
 	config_id = config.getConfigID()
 	logging.info("- Config :                    " + str(config_id))
-	config_timers[config_id] = {"start": time.time()}
+	timer = {"start": time.time()}
 
 	# Config information
-	logging.info("- Number of Homes :           " + str(config.getNbHomes()))
-	logging.info("- Number of Fluksos :         " + str(len(set(config.getSensorsConfig().flukso_id))))
-	logging.info("- Number of Fluksos sensors : " + str(len(config.getSensorsConfig())))
+	showConfigInfo(config)
+
 	logging.info("---------------------- Tmpo -----------------------")
 
 	# TMPO synchronization
@@ -727,7 +747,7 @@ def sync(cassandra_session):
 		missing_data,
 		now
 	)
-	config_timers[config_id]["timing"] = time.time()
+	timer["timing"] = time.time()
 
 	# =========================================================
 
@@ -737,11 +757,11 @@ def sync(cassandra_session):
 	# STEP 2 : process all homes data, and save in database
 	processHomes(cassandra_session, tmpo_session, config, timings, now)
 
-	config_timers[config_id]["homes"] = time.time()
+	timer["homes"] = time.time()
 
 	# =========================================================
 
-	showProcessingTimes([config], begin, setup_time, config_timers) 
+	showProcessingTimes(begin, setup_time, timer) 
 
 
 def main():

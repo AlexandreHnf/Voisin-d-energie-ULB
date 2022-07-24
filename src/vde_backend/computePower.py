@@ -45,7 +45,8 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config):
 		config_id = config.getConfigID().isoformat()
 
 		cons_prod_df = home.getConsProdDF()
-		cons_prod_df['date'] = cons_prod_df.apply(lambda row: str(row.name.date()), axis=1) # add date column
+		# add date column
+		cons_prod_df['date'] = cons_prod_df.apply(lambda row: str(row.name.date()), axis=1) 
 		by_day_df = cons_prod_df.groupby("date")  # group by date
 
 		col_names = [
@@ -65,7 +66,8 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config):
 			for timestamp, row in date_rows.iterrows():
 				# save timestamp with CET local timezone, ISO format.
 				ts = timestamp.isoformat()
-				values = [hid, date, ts] + list(row)[:-1] + [insertion_time, config_id]  # [:-1] to avoid date column
+				# [:-1] to avoid date column
+				values = [hid, date, ts] + list(row)[:-1] + [insertion_time, config_id]  
 				insert_queries += ptc.getInsertQuery(
 					CASSANDRA_KEYSPACE, 
 					TBL_POWER, 
