@@ -44,24 +44,32 @@ import pandas as pd
 import paramiko
 
 # local sources
-from constants import CASSANDRA_KEYSPACE, TBL_POWER, TBL_SENSORS_CONFIG
+from constants import (
+	CASSANDRA_KEYSPACE, 
+	TBL_POWER
+)
 import pyToCassandra as ptc
-from utils import getDatesBetween, setupLogLevel  
-from sensorConfig import Configuration
 
+from utils import (
+	getDatesBetween, 
+	setupLogLevel,
+	getLastRegisteredConfig
+)
 
 
 # ==============================================================================
 
 
-LOCAL_PATH = 						"../../../output/fluksoData/sftp_data/"
-LOG_FILE_SFTP = 					"../../../output/fluksoData/sftp_data/logs_sftp.log"
+LOCAL_PATH = 						"../../output/sftp_data/"
+LOG_FILE_SFTP = 					"../../output/sftp_data/logs_sftp.log"
 
 SEND_TO_SFTP = 						False
-DELETE_LOCAL_FILES = 				True
+DELETE_LOCAL_FILES = 				False
 AM = 								"<="
 PM = 								">"
 VERBOSE = 							True
+
+NOON = 								"10:00:00.000000+0000"  # in UTC = 12:00:00 in CET
 
 
 logging_handlers = [logging.FileHandler(LOG_FILE_SFTP)]
@@ -113,36 +121,7 @@ def saveDataToCsv(data_df, csv_filename):
 
 	data_df.to_csv(filepath)
 
-	# logging.info("Successfully Saved flukso data in csv")
-
-
-
-def getLastRegisteredConfig(cassandra_session, table_name):
-	""" 
-	Get the last registered config based on insertion time
-	"""
-	all_configs_df = ptc.selectQuery(
-		cassandra_session, 
-		CASSANDRA_KEYSPACE, 
-		table_name,
-		["*"], 
-		where_clause="", 
-		limit=None, 
-		allow_filtering=False
-	).groupby("insertion_time")
-	
-	config = None
-	if len(all_configs_df) > 0:
-		config_ids = list(all_configs_df.groups.keys())  # keys sorted by default
-		# print(config_ids)
-
-		last_config_id = config_ids[-1]
-		config = Configuration(
-			last_config_id, 
-			all_configs_df.get_group(last_config_id).set_index("sensor_id")
-		)
-
-	return config		
+	# logging.info("Successfully Saved flukso data in csv")	
 
 
 def getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, table_name):
@@ -152,8 +131,9 @@ def getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, tabl
 	> specific timings
 	"""
 
-	ts_clause = "ts {} '{} 12:00:00.000000+0000'".format(moment, date)  # all data before of after noon
-	where_clause = "home_id = {} and day = '{}' and {}".format("'"+home_id+"'", date, ts_clause)
+	# all data before of after noon
+	ts_clause = "ts {} '{} {}'".format(moment, date, NOON)  
+	where_clause = "home_id = '{}' and day = '{}' and {}".format(home_id, date, ts_clause)
 	cols = [
 		"home_id", 
 		"day", 
@@ -173,40 +153,6 @@ def getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, tabl
 
 	return home_df
 
-
-def getHomesPowerDataFromCassandra(cassandra_session, config, date, moment, table_name):
-	""" 
-	Get power data from Power table in Cassandra
-	> for all homes
-	> specific timings
-	"""
-
-	homes_powerdata = {}
-	ids = config.getIds()
-	for home_id in ids.keys():
-		ts_clause = "ts {} '{} 12:00:00.000000+0000'".format(moment, date)  # all data before of after noon
-		where_clause = "home_id = {} and day = '{}' and {}".format("'"+home_id+"'", date, ts_clause)
-		cols = [
-			"home_id", 
-			"day", 
-			"ts", 
-			"p_cons", 
-			"p_prod", 
-			"p_tot"
-		]
-
-		home_df = ptc.selectQuery(
-			cassandra_session, 
-			CASSANDRA_KEYSPACE, 
-			table_name, 
-			cols, 
-			where_clause,
-		)
-
-		homes_powerdata[home_id] = home_df
-
-	return homes_powerdata
-	
 
 def getSftpInfo(sftp_info_filename):
 	""" 
@@ -319,8 +265,9 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	from that first date, return the list of dates until now.
 	"""
 
-	# get first date available for this home TODO : use limit 1 to be more efficient
-	where_clause = "home_id = {}".format("'"+home_id+"'")
+	# TODO : use limit 1 to be more efficient
+	# get first date available for this home 
+	where_clause = "home_id = '{}'".format(home_id)
 	cols = ["home_id", "day"]
 	result_df = ptc.selectQuery(
 		cassandra_session, 
@@ -396,9 +343,8 @@ def processArguments():
 		formatter_class=argparse.RawDescriptionHelpFormatter,
 	)
 	argparser.add_argument(
-		"--c", 
+		"credentials_filename", 
 		type=str, 
-		default="sftp_credentials.json",
 		help="sftp config file"
 	)
 
@@ -409,13 +355,13 @@ def main():
 
 	argparser = processArguments()
 	args = argparser.parse_args()
-	sftp_info_filename = args.c
+	sftp_info_filename = args.credentials_filename
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 	sftp_info = getSftpInfo(sftp_info_filename)
 	sftp_session = getSFTPsession(sftp_info)
 
-	config = getLastRegisteredConfig(cassandra_session, TBL_SENSORS_CONFIG)
+	config = getLastRegisteredConfig(cassandra_session)
 
 	now = pd.Timestamp.now()
 	default_date, moment, moment_now = getdateToQuery(now)
