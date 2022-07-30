@@ -30,20 +30,20 @@ const io = require("socket.io")(server)
 // constants for server
 
 const CASSANDRA = {
-	DATACENTER : 									    "datacenter1",
-	CREDENTIALS_FILE : 									"cassandra_serv_credentials.json",
-	DOMAIN_NAME : 								    	"iridia-vde-frontend.hpda.ulb.ac.be",
-	IP :                              					"164.15.254.92",
+	DATACENTER :                        "datacenter1",
+	CREDENTIALS_FILE :                  "cassandra_serv_credentials.json",
+	DOMAIN_NAME :                       "iridia-vde-frontend.hpda.ulb.ac.be",
+	IP :                                "164.15.254.92",
 
-	KEYSPACE : 										    "flukso"
+	KEYSPACE :                          "flukso"
 }
 
-const LOG_FILE = 									  	"logs.txt"
-const ERROR_LOG_FILE = 									"error_logs.txt"
+const LOG_FILE =                      "logs.txt"
+const ERROR_LOG_FILE =                "error_logs.txt"
 
-const PORT = 										    "5000"
+const PORT =                          "5000"
 
-const VERBOSE =                     					true;     // display logs in terminal or not
+const VERBOSE =                       true;     // display logs in terminal or not
 
 // ========================= LOGGER =====================================
 

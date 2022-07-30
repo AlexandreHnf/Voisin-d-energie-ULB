@@ -8,8 +8,6 @@
 // ============================== VARIABLES =================================
 
 const domain_name = 'http://localhost:5000';
-// const domain_name = 'https://iridia-vde.ulb.ac.be:5000';
-// const socket = io(domain_name);
 
 const HOME_ID = sessionStorage.getItem("username");
 let GRP_IDS = JSON.parse(sessionStorage.getItem('grp_ids'));
@@ -201,9 +199,9 @@ async function sendDateQuery(data_type, date, home_id) {
     if (data_type === "raw") {
       createChartRaw(alldata);
     } else if (data_type === "power") {
-      createChartPowers(alldata, 1, home_id);
+      createChartPowers(alldata, 1, home_id, date);
     } else if (data_type === "groups") {
-      createChartPowers(alldata, 2, home_id);
+      createChartPowers(alldata, 2, home_id, date);
     }
   }	
   
@@ -398,7 +396,17 @@ function initChart(chart, col_id, home_id) {
 }
 
 
-function createChartPowers(powers_data, col_id, home_id) {
+function convertTZ(date, tzString, timezone) {
+  return new Date(
+    (typeof date === "string" ? new Date(date) : date).toLocaleString(
+      timezone,
+      {timeZone: tzString}
+    )
+  );   
+}
+
+
+function createChartPowers(powers_data, col_id, home_id, date) {
   /* 
   fill chart with received data 
   */
@@ -408,8 +416,11 @@ function createChartPowers(powers_data, col_id, home_id) {
   totals = {p_cons_tot: 0, p_prod_tot: 0, p_inj_tot: 0, p_pre_tot: 0}
   for (let i = 0; i < powers_data.length; i++) {
     let row = powers_data[i];
-    let ts = row.ts.slice(0, -5);
-	  //let ts = row.ts;
+
+    let tss = new Date(row.ts);
+    let ts = date + "T" + tss.toTimeString().slice(0,8) // local timezone (CET)
+    // console.log(ts);
+
     charts_powers.day[home_id].data.datasets[0].data.push({x: ts, p_cons: row["p_cons"]});
     charts_powers.day[home_id].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
     charts_powers.day[home_id].data.datasets[2].data.push({x: ts, p_tot: row["p_tot"]});
@@ -496,10 +507,6 @@ function main() {
   document.getElementById("profil_badge").innerText = HOME_ID;
 
   createPage();
-
-  // socket.on('connect_error', function () {
-  //   console.log('Connection Failed. Server down !');
-  // });
 
   initFirstQuery();
 
