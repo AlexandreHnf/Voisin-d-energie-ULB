@@ -299,37 +299,38 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 
 	ids = config.getIds()
 	for home_id in ids.keys():
-		latest_date = getLastDate(sftp_session, home_id)
-		all_dates = [default_date]
-		moments = {default_date: [moment]}
-		if latest_date is None:  # history
-			all_dates = getAllHistoryDates(cassandra_session, home_id, TBL_POWER, now)
-			moments = getMoments(all_dates, moment_now)
-		else:					 # realtime
-			all_dates = getDatesBetween(latest_date, now)
-			moments = getMoments(all_dates, moment_now)
+		if home_id in ['CDB001']:  # TEMP : TODO remove
+			latest_date = getLastDate(sftp_session, home_id)
+			all_dates = [default_date]
+			moments = {default_date: [moment]}
+			if latest_date is None:  # history
+				all_dates = getAllHistoryDates(cassandra_session, home_id, TBL_POWER, now)
+				moments = getMoments(all_dates, moment_now)
+			else:					 # realtime
+				all_dates = getDatesBetween(latest_date, now)
+				moments = getMoments(all_dates, moment_now)
 
-		for date in moments:
-			for moment in moments[date]:
-				csv_filename = getCsvFilename(home_id, date, moment)
-				if VERBOSE:
-					print(csv_filename)
-					logging.info(csv_filename)
-				home_data = getHomePowerDataFromCassandra(
-					cassandra_session, 
-					home_id, 
-					date, 
-					moment, 
-					TBL_POWER
-				)
-				
-				saveDataToCsv(home_data.set_index("home_id"), csv_filename)  # first save csv locally
-				if SEND_TO_SFTP:
-					sendFileToSFTP(sftp_session, csv_filename, sftp_info)								 # then, send to sftp server
+			for date in moments:
+				for moment in moments[date]:
+					csv_filename = getCsvFilename(home_id, date, moment)
+					if VERBOSE:
+						print(csv_filename)
+						logging.info(csv_filename)
+					home_data = getHomePowerDataFromCassandra(
+						cassandra_session, 
+						home_id, 
+						date, 
+						moment, 
+						TBL_POWER
+					)
+					
+					saveDataToCsv(home_data.set_index("home_id"), csv_filename)  # first save csv locally
+					if SEND_TO_SFTP:
+						sendFileToSFTP(sftp_session, csv_filename, sftp_info)								 # then, send to sftp server
 
-		if VERBOSE: 
-			print("---------------------")
-			logging.info("-----------------------")
+			if VERBOSE: 
+				print("---------------------")
+				logging.info("-----------------------")
 
 
 def processArguments():
