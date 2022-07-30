@@ -158,8 +158,6 @@ function processDateQuery() {
 	date_badge.forEach(badge => {
 		badge.innerHTML = date;
 	})
-	// document.getElementById("date_msg").innerHTML = "=> Flukso data - " + date;
-	// sendDateQuery("raw", date.toString());
 	activateLoader();
   sendDateQuery("power", date.toString(), HOME_ID);
   for (let i = 0; i < GRP_IDS.length; i++) {
@@ -210,6 +208,7 @@ async function sendDateQuery(data_type, date, home_id) {
 function createChartCanvas(col_id, col_name, ids) {
 	/* 
 	create html chart canvas :
+  may be cleaner if the html were not defined here. To improve
 	*/
   for (var i = 0; i < ids.length; i++) {
     let div = document.createElement("div");
@@ -396,16 +395,6 @@ function initChart(chart, col_id, home_id) {
 }
 
 
-function convertTZ(date, tzString, timezone) {
-  return new Date(
-    (typeof date === "string" ? new Date(date) : date).toLocaleString(
-      timezone,
-      {timeZone: tzString}
-    )
-  );   
-}
-
-
 function createChartPowers(powers_data, col_id, home_id, date) {
   /* 
   fill chart with received data 
@@ -419,7 +408,6 @@ function createChartPowers(powers_data, col_id, home_id, date) {
 
     let tss = new Date(row.ts);
     let ts = date + "T" + tss.toTimeString().slice(0,8) // local timezone (CET)
-    // console.log(ts);
 
     charts_powers.day[home_id].data.datasets[0].data.push({x: ts, p_cons: row["p_cons"]});
     charts_powers.day[home_id].data.datasets[1].data.push({x: ts, p_prod: row["p_prod"]});
