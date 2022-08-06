@@ -5,7 +5,7 @@ After=multi-user.target
 [Service]
 Type=simple
 Restart=no
-ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/src/vde_backend/alerts.py" --m sign
+ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/alerts.py" --m sign
 
 [Install]
 WantedBy=multi-user.target
