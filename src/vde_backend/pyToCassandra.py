@@ -9,18 +9,20 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 import json
 
 # 3rd party packages
+import cassandra
+import cassandra.auth
+import cassandra.cluster
+import cassandra.policies
 import logging
 import os.path
 import pandas as pd
 
-from cassandra.cluster import Cluster
-from cassandra.auth import PlainTextAuthProvider
-from cassandra.policies import DCAwareRoundRobinPolicy
-
 # local source
 from constants import (
 	CASSANDRA_CREDENTIALS_FILE,
-	SERVER_BACKEND_IP
+	SERVER_BACKEND_IP,
+	CASSANDRA_REPLICATION_STRATEGY,
+	CASSANDRA_REPLICATION_FACTOR,
 )
 
 
@@ -45,7 +47,7 @@ def getRightFormat(values):
 	return res
 
 
-def createKeyspace(session, keyspace_name, replication_class, replication_factor):
+def createKeyspace(session, keyspace_name):
 	""" 
 	Create a new keyspace in the Cassandra database
 
@@ -53,11 +55,13 @@ def createKeyspace(session, keyspace_name, replication_class, replication_factor
 				{'class': <replication_class>, 'replication_factor': <replication_factor>}
 	"""
 	# to create a new keyspace :
-	keyspace_query = "CREATE KEYSPACE {} ".format(keyspace_name)
-	keyspace_query += "WITH REPLICATION = "
-	keyspace_query += "{'class' : {}, ".format(replication_class)
-	keyspace_query += "'replication_factor': {}};".format(replication_factor)	
-
+	keyspace_query = "CREATE KEYSPACE {} WITH REPLICATION = {{'class' : '{}', 'replication_factor': {}}};"
+	keyspace_query = keyspace_query.format(
+		keyspace_name,
+		CASSANDRA_REPLICATION_STRATEGY,
+		CASSANDRA_REPLICATION_FACTOR,
+	)
+	logging.debug(keyspace_query)
 	session.execute(keyspace_query)
 
 
@@ -271,27 +275,34 @@ def connectToCluster(keyspace):
 		if os.path.exists(CASSANDRA_CREDENTIALS_FILE):
 			with open(CASSANDRA_CREDENTIALS_FILE) as json_file:
 				cred = json.load(json_file)
-				auth_provider = PlainTextAuthProvider(
+				auth_provider = cassandra.auth.PlainTextAuthProvider(
 					username=cred["username"], 
 					password=cred["password"]
 				)
-				cluster = Cluster(
+				cluster = cassandra.cluster.Cluster(
 					[SERVER_BACKEND_IP], 
 					port=9042, 
 					auth_provider=auth_provider
 				)
 		else:
 			# create the cluster : connects to localhost (127.0.0.1:9042) by default
-			cluster = Cluster(
-				load_balancing_policy=DCAwareRoundRobinPolicy(local_dc='datacenter1'),
+			cluster = cassandra.cluster.Cluster(
+				load_balancing_policy=cassandra.policies.DCAwareRoundRobinPolicy(
+					local_dc='datacenter1'
+				),
 				protocol_version=3
 			)
 
-		# connect to the keyspace or create one if it doesn't exist
-		session = cluster.connect(keyspace)
+		# connect to the keyspace
+		session = cluster.connect()
+		session.set_keyspace(keyspace)
+	except cassandra.InvalidRequest:
+		# Create the keyspace if it does not exist.
+		createKeyspace(session, keyspace)
+		session.set_keyspace(keyspace)
 	except:
 		logging.critical("Exception occured in 'connectToCluster' cassandra: ", exc_info=True)
-		exit()
+		exit(57)
 
 	return session
 

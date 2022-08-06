@@ -46,6 +46,10 @@ INSERTS_PER_BATCH =                     11000
 # =========================== CASSANDRA =======================================
 # cassandra keyspaces
 CASSANDRA_KEYSPACE =                    "flukso" if PROD else "test"
+# Use NetworkTopologyStrategy if more than one datacenter.
+CASSANDRA_REPLICATION_STRATEGY =        'SimpleStrategy'
+# The replication factor must not exceed the number of nodes in the cluster.
+CASSANDRA_REPLICATION_FACTOR   =        1
 
 # cassandra tables names
 TBL_ACCESS =                            "access"
