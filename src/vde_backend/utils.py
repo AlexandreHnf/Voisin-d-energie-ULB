@@ -124,7 +124,7 @@ def getLastRegisteredConfig(cassandra_session):
 		CASSANDRA_KEYSPACE,
 		TBL_SENSORS_CONFIG,
 		["*"],
-		"insertion_time = '{}+0000'".format(last_config_id),
+		"insertion_time = '{}'".format(last_config_id),
 	)
 	# print(config_df['insertion_time'].head(5))
 	config = Configuration(last_config_id, config_df.set_index("sensor_id"))

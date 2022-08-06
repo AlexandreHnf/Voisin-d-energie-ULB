@@ -178,7 +178,7 @@ def pandas_factory(colnames, rows):
 	return pd.DataFrame(rows, columns=colnames)
 
 
-def convertColumnsTimezones(df):
+def convertColumnsTimezones(df, tz):
 	""" 
 	Given a queried dataframe from Cassandra, convert
 	the timezone of columns containing timestamps
@@ -199,8 +199,7 @@ def convertColumnsTimezones(df):
 			# first convert to UTC beause UTC saved timestamps in Cassandra comes up
 			# with no timezone. Ex: stored ts : 'YYYY-MM-DD HH:MM:SS.MMM000+0000'
 			# becomes 'YYYY-MM-DD HH:MM:SS.MMM' when queried.
-			df[col_name] = df[col_name].dt.tz_localize("UTC").dt.tz_convert('UTC')
-			df[col_name] = df[col_name].dt.tz_convert('CET')
+			df[col_name] = df[col_name].dt.tz_localize("UTC").dt.tz_convert(tz)
 
 
 def selectResToDf(session, query):
@@ -252,11 +251,11 @@ def selectQuery(
 	query += "{} ".format(limit)
 	query += "{};".format(allow_filtering)
 
-	# logging.info("===> select query : " + query)
+	logging.debug("===> select query : " + query)
 	res_df = selectResToDf(session, query)
-	if tz == "CET" and len(res_df) > 0:
+	if len(res_df) > 0:
 		# remark: the date column in tables is in CET timezone
-		convertColumnsTimezones(res_df)
+		convertColumnsTimezones(res_df, tz)
 
 	return res_df
 	
