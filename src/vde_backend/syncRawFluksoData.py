@@ -563,43 +563,39 @@ def processHomes(cassandra_session, tmpo_session, config, timings, now):
 
 	# for each home
 	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
-		# if hid in ['CDB001', 'CDB043', 'CDBA01', 'ECHASC', 'ECHBUA', 'ECHL01']:
-		if hid in ['CDB001']:
-			saved_sensors = {}  # for missing data, to check if sensors missing data already saved
-			# if home has a start timestamp and a end timestamp
-			if timings[hid]["start_ts"] is not None and timings[hid]["end_ts"] is not None:
-				# set init seconds (for tmpo query), might set timings earlier than planned (not a problem)
-				start_timing = setInitSeconds(timings[hid]["start_ts"])
-				end_timing = setInitSeconds(timings[hid]["end_ts"])
-				intermediate_timings = getIntermediateTimings(start_timing, end_timing)
-				displayHomeInfo(hid, start_timing, end_timing)
+		saved_sensors = {}  # for missing data, to check if sensors missing data already saved
+		# if home has a start timestamp and a end timestamp
+		if timings[hid]["start_ts"] is not None and timings[hid]["end_ts"] is not None:
+			# set init seconds (for tmpo query), might set timings earlier than planned (not a problem)
+			start_timing = setInitSeconds(timings[hid]["start_ts"])
+			end_timing = setInitSeconds(timings[hid]["end_ts"])
+			intermediate_timings = getIntermediateTimings(start_timing, end_timing)
+			displayHomeInfo(hid, start_timing, end_timing)
 
-				for i in range(len(intermediate_timings)-1):  # query day by day
-					start_ts = intermediate_timings[i]
-					to_ts = intermediate_timings[i+1]
+			for i in range(len(intermediate_timings)-1):  # query day by day
+				start_ts = intermediate_timings[i]
+				to_ts = intermediate_timings[i+1]
 
-					# generate home
-					home = generateHome(
-						tmpo_session, 
-						hid, 
-						home_sensors, 
-						start_ts, 
-						to_ts
-					)
+				# generate home
+				home = generateHome(
+					tmpo_session, 
+					hid, 
+					home_sensors, 
+					start_ts, 
+					to_ts
+				)
 
-					saveDataThreads(
-						cassandra_session, 
-						home, 
-						config, 
-						timings, 
-						now, 
-						saved_sensors
-					)
+				saveDataThreads(
+					cassandra_session, 
+					home, 
+					config, 
+					timings, 
+					now, 
+					saved_sensors
+				)
 
-			else:
-				logging.info("{} : No data to save".format(hid))
-		
-			logging.info("---------------------------------------------------------------")
+		else:
+			logging.info("{} : No data to save".format(hid))
 
 
 # ====================================================================================
