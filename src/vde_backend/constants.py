@@ -23,7 +23,6 @@ SFTP_LOCAL_PATH = 	"/opt/vde/sftp_data/" if PROD else "../../output/sftp_data/"
 
 # Log files.
 LOG_FILE = 			"/var/log/vde/prod.log" if PROD else "/var/log/vde/test.log"
-SFTP_LOG_FILE = 	"/var/log/vde/sftp.log" if PROD else "../../output/sftp_data/sftp.log"
 
 # credentials
 CASSANDRA_CREDENTIALS_FILE = 			'/opt/vde/cassandra_serv_credentials.json'

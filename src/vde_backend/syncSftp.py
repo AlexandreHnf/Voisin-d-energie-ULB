@@ -39,7 +39,6 @@ import os.path
 import argparse
 
 # 3rd party packages
-import logging
 import pandas as pd
 
 import paramiko
@@ -47,7 +46,6 @@ import paramiko
 # local sources
 from constants import (
 	PROD,
-	SFTP_LOG_FILE,
 	SFTP_LOCAL_PATH,
 	CASSANDRA_KEYSPACE, 
 	TBL_POWER
@@ -55,8 +53,8 @@ from constants import (
 import pyToCassandra as ptc
 
 from utils import (
+	logging,
 	getDatesBetween, 
-	setupLogLevel,
 	getLastRegisteredConfig
 )
 
@@ -67,17 +65,6 @@ AM = 								"<="
 PM = 								">"
 
 NOON = 								"10:00:00.000000+0000"  # in UTC = 12:00:00 in CET
-
-
-logging_handlers = [logging.FileHandler(SFTP_LOG_FILE)]
-
-# Create and configure logger
-logging.basicConfig(
-	level = setupLogLevel(),
-	format = "{asctime} {levelname:<8} {message}",
-	style='{',
-	handlers=logging_handlers
-)
 
 
 def getdateToQuery(now):
@@ -118,7 +105,7 @@ def saveDataToCsv(data_df, csv_filename):
 
 	data_df.to_csv(filepath)
 
-	# logging.info("Successfully Saved flukso data in csv")	
+	logging.debug("Successfully Saved flukso data in csv")	
 
 
 def getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, table_name):

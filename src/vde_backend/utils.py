@@ -14,12 +14,14 @@ from datetime import timedelta
 import pandas as pd
 import numpy as np
 import logging
+import logging.handlers
 
 # local sources
 from constants import (
 	CASSANDRA_KEYSPACE, 
 	FREQ, 
 	LOG_LEVEL,
+	LOG_FILE,
 	TBL_SENSORS_CONFIG
 )
 
@@ -27,8 +29,45 @@ from sensorConfig import Configuration
 import pyToCassandra as ptc
 
 
-# ========================================================================================
+def setupLogLevel():
+	""" 
+	set logging level based on a constant
+	levels : 
+	- CRITICAL
+	- ERROR
+	- WARNING
+	- INFO
+	- DEBUG
+	"""
+	if LOG_LEVEL == "CRITICAL":
+		return logging.CRITICAL
+	elif LOG_LEVEL == "ERROR":
+		return logging.ERROR
+	elif LOG_LEVEL == "WARNING":
+		return logging.WARNING
+	elif LOG_LEVEL == "INFO":
+		return logging.INFO
+	elif LOG_LEVEL == "DEBUG":
+		return logging.DEBUG
 
+
+# Create and configure logger
+logging.getLogger("tmpo").setLevel(logging.ERROR)
+logging.getLogger("requests").setLevel(logging.ERROR)
+logging.getLogger("urllib3").setLevel(logging.ERROR)
+
+logging.basicConfig(
+	level = setupLogLevel(),
+	format = "{asctime} {filename} {levelname:<8} {message}",
+    style='{',
+	handlers=[
+		logging.handlers.TimedRotatingFileHandler(
+			LOG_FILE,
+			when='midnight',
+			backupCount=7,
+		),
+	]
+)
 
 
 def getProgDir():
@@ -170,7 +209,7 @@ def energy2power(energy_df):
 	"""
 	from cumulative energy to power (Watt)
 	"""
-	# logging.info(energy_df.head(10))
+	logging.debug(energy_df.head(10))
 	power_df = energy_df.diff() * 1000
 	power_df.fillna(0, inplace=True)
 	
@@ -184,28 +223,6 @@ def getTimeSpent(time_begin, time_end):
 	Get the time spent in seconds between 2 timings (1 timing = time.time())
 	"""
 	return timedelta(seconds=time_end - time_begin)
-
-
-def setupLogLevel():
-	""" 
-	set logging level based on a constant
-	levels : 
-	- CRITICAL
-	- ERROR
-	- WARNING
-	- INFO
-	- DEBUG
-	"""
-	if LOG_LEVEL == "CRITICAL":
-		return logging.CRITICAL
-	elif LOG_LEVEL == "ERROR":
-		return logging.ERROR
-	elif LOG_LEVEL == "WARNING":
-		return logging.WARNING
-	elif LOG_LEVEL == "INFO":
-		return logging.INFO
-	elif LOG_LEVEL == "DEBUG":
-		return logging.DEBUG
 
 
 def main():

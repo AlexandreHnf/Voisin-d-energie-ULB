@@ -25,16 +25,14 @@ import pandas as pd
 import numpy as np
 import tmpo
 
-import logging
-
 from utils import (
+	logging,
 	getLastRegisteredConfig,
 	getProgDir,
 	getTimeSpent,
 	isEarlier,
 	setInitSeconds,
 	read_sensor_info,
-	setupLogLevel
 )
 
 
@@ -55,7 +53,6 @@ from constants import (
 	FROM_FIRST_TS, 
 	INSERTS_PER_BATCH, 
 	LIMIT_TIMING_RAW,
-	LOG_FILE, 
 	TBL_RAW, 
 	FREQ, 
 	TBL_RAW_MISSING,
@@ -66,19 +63,6 @@ from constants import (
 import pyToCassandra as ptc
 from computePower import saveHomePowerDataToCassandra
 from sensor import Sensor
-
-# Create and configure logger
-logging.getLogger("tmpo").setLevel(logging.ERROR)
-logging.getLogger("requests").setLevel(logging.ERROR)
-logging.getLogger("urllib3").setLevel(logging.ERROR)
-
-logging_handlers = [logging.FileHandler(LOG_FILE)]
-
-logging.basicConfig(
-	level = setupLogLevel(),
-	format = "{asctime} {levelname:<8} {message}", style='{',
-	handlers=logging_handlers
-)
 
 # ====================================================================================
 # Cassandra table creation
