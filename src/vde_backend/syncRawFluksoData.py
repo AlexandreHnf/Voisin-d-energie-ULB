@@ -50,14 +50,13 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 # local sources
 from home import Home
 from constants import (
+	PROD,
 	CASSANDRA_KEYSPACE, 
 	FROM_FIRST_TS, 
-	FROM_FIRST_TS_STATUS, 
 	INSERTS_PER_BATCH, 
 	LIMIT_TIMING_RAW,
 	LOG_FILE, 
 	LOG_VERBOSE, 
-	OUTPUT_FILE, 
 	TBL_RAW, 
 	FREQ, 
 	TBL_RAW_MISSING,
@@ -244,7 +243,7 @@ def getInitialTimestamp(tmpo_session, sid, now):
 	return a timestamp in local timezone (CET)
 	"""
 	initial_ts = now if FROM_FIRST_TS is None else (now - pd.Timedelta(FROM_FIRST_TS))
-	if FROM_FIRST_TS_STATUS == "server":
+	if PROD:
 		initial_ts_tmpo = tmpo_session.first_timestamp(sid)
 
 		if initial_ts_tmpo is not None:
@@ -621,31 +620,6 @@ def processHomes(cassandra_session, tmpo_session, config, timings, now):
 				logging.info("{} : No data to save".format(hid))
 		
 			logging.info("---------------------------------------------------------------")
-
-
-# ====================================================================================
-
-
-def saveFluksoDataToCsv(homes):
-	""" 
-	may be obsolete/broken 
-	"""
-	logging.info("saving flukso data in csv...")
-	for home in homes:
-		# filepath = "output/fluksoData/{}.csv".format(home.getHomeID())
-		power_df = home.getRawDF()
-		cons_prod_df = home.getConsProdDF()
-		combined_df = power_df.join(cons_prod_df)
-
-		outname = home.getHomeID() + '.csv'
-		outdir = OUTPUT_FILE
-		if not os.path.exists(outdir):
-			os.mkdir(outdir)
-		filepath = os.path.join(outdir, outname)
-
-		combined_df.to_csv(filepath)
-
-	logging.info("Successfully Saved flukso data in csv")
 
 
 # ====================================================================================

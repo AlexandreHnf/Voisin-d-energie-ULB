@@ -18,7 +18,7 @@ from cassandra.policies import DCAwareRoundRobinPolicy
 
 # local source
 from constants import (
-	CASSANDRA_AUTH_MODE, 
+	PROD,
 	CASSANDRA_CREDENTIALS_FILE, 
 	SERVER_BACKEND_IP
 )
@@ -270,14 +270,7 @@ def connectToCluster(keyspace):
 	- or with username and password : using AuthProvider
 	"""
 	try:
-		if CASSANDRA_AUTH_MODE == "local":
-			# create the cluster : connects to localhost (127.0.0.1:9042) by default
-			cluster = Cluster(
-				load_balancing_policy=DCAwareRoundRobinPolicy(local_dc='datacenter1'),
-				protocol_version=3
-			)
-		
-		elif CASSANDRA_AUTH_MODE == "server":
+		if PROD:
 			with open(CASSANDRA_CREDENTIALS_FILE) as json_file:
 				cred = json.load(json_file)
 				auth_provider = PlainTextAuthProvider(
@@ -289,6 +282,12 @@ def connectToCluster(keyspace):
 					port=9042, 
 					auth_provider=auth_provider
 				)
+		else:
+			# create the cluster : connects to localhost (127.0.0.1:9042) by default
+			cluster = Cluster(
+				load_balancing_policy=DCAwareRoundRobinPolicy(local_dc='datacenter1'),
+				protocol_version=3
+			)
 
 		# connect to the keyspace or create one if it doesn't exist
 		session = cluster.connect(keyspace)
