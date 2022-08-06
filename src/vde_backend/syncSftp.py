@@ -65,7 +65,6 @@ from utils import (
 
 AM = 								"<="
 PM = 								">"
-VERBOSE = 							True
 
 NOON = 								"10:00:00.000000+0000"  # in UTC = 12:00:00 in CET
 
@@ -310,9 +309,7 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 		for date in moments:
 			for moment in moments[date]:
 				csv_filename = getCsvFilename(home_id, date, moment)
-				if VERBOSE:
-					print(csv_filename)
-					logging.info(csv_filename)
+				logging.debug(csv_filename)
 				home_data = getHomePowerDataFromCassandra(
 					cassandra_session, 
 					home_id, 
@@ -325,9 +322,7 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 				if PROD:
 					sendFileToSFTP(sftp_session, csv_filename, sftp_info)								 # then, send to sftp server
 
-		if VERBOSE: 
-			print("---------------------")
-			logging.info("-----------------------")
+		logging.debug("-----------------------")
 
 
 def processArguments():
@@ -364,15 +359,10 @@ def main():
 	now = pd.Timestamp.now()
 	default_date, moment, moment_now = getdateToQuery(now)
 
-	if VERBOSE : 
-		print("config id : ", config.getConfigID())
-		logging.info("config id : " + str(config.getConfigID()))
-		print("date : ", default_date)
-		logging.info("date : " + default_date)
-		print("moment : ", moment)
-		logging.info("moment : " + moment)
-		print("moment now : ", moment_now)
-		logging.info("moment now : " + moment_now)
+	logging.debug("config id : " + str(config.getConfigID()))
+	logging.debug("date : " + default_date)
+	logging.debug("moment : " + moment)
+	logging.debug("moment now : " + moment_now)
 
 
 	processAllHomes(

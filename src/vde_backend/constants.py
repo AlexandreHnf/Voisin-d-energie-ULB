@@ -62,4 +62,3 @@ SERVER_FRONTEND_IP = 					'iridia-vde-frontend.hpda.ulb.ac.be'
 SERVER_BACKEND_IP = 					'iridia-vde-db.hpda.ulb.ac.be'
 
 LOG_LEVEL =								"INFO" if PROD else "DEBUG"
-LOG_VERBOSE = 							True

@@ -56,7 +56,6 @@ from constants import (
 	INSERTS_PER_BATCH, 
 	LIMIT_TIMING_RAW,
 	LOG_FILE, 
-	LOG_VERBOSE, 
 	TBL_RAW, 
 	FREQ, 
 	TBL_RAW_MISSING,
@@ -74,8 +73,6 @@ logging.getLogger("requests").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 logging_handlers = [logging.FileHandler(LOG_FILE)]
-if LOG_VERBOSE:
-	logging_handlers.append(logging.StreamHandler())
 
 logging.basicConfig(
 	level = setupLogLevel(),
@@ -434,7 +431,7 @@ def saveHomeMissingData(cassandra_session, config, to_timing, home, saved_sensor
 								start_ts = timestamp.isoformat()
 								if np.isnan(inc_power_df[sid][i]):
 									values = [sid, config_id, start_ts, end_ts]
-									# logging.info("{} | start : {}, end = {}", config_id, start_ts, end_ts)
+									logging.debug("{} | start : {}, end = {}".format(config_id, start_ts, end_ts))
 									ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, TBL_RAW_MISSING, col_names, values)
 									saved_sensors[sid] = True  # mark that this sensor has missing data
 									# as soon as we find the first ts with null value, we go to next sensor
