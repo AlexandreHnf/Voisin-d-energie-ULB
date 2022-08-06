@@ -6,6 +6,7 @@ After=multi-user.target
 Type=simple
 Restart=no
 ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/src/vde_backend/syncRawFluksoData.py"
+TimeoutSec=5hours
 
 [Install]
 WantedBy=multi-user.target

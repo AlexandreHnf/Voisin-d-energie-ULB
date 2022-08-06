@@ -5,7 +5,6 @@ Description=Backend - timer - sync raw data
 [Timer]
 OnBootSec=1min
 OnUnitActiveSec=5min
-TimeoutSec=5hours
 
 [Install]
 WantedBy=timers.target
