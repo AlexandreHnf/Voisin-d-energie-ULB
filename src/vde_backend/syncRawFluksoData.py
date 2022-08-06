@@ -18,7 +18,6 @@ import os
 import time
 
 from threading import Thread
-from matplotlib.pyplot import show
 
 # 3rd party packages
 import pandas as pd
