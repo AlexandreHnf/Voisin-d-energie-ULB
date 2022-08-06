@@ -60,9 +60,6 @@ def createKeyspace(session, keyspace_name, replication_class, replication_factor
 
 	session.execute(keyspace_query)
 
-	# use the keyspace
-	# session.execute("USE {}".format(keyspace_name))
-
 
 def deleteRows(session, keyspace, table_name):
 	""" 
@@ -298,10 +295,3 @@ def connectToCluster(keyspace):
 
 	return session
 
-
-def main():
-	session = connectToCluster("test")
-
-
-if __name__ == "__main__":
-	main()
