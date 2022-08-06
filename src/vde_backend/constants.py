@@ -36,8 +36,9 @@ FREQ =                                  [8, "S"]  # 8 sec.
 # missing raw data time limit = keep data from max X time back from now
 LIMIT_TIMING_RAW =                      2  # days
 
-# Period back in time to fetch Flukso data. Set None to disable.
-FROM_FIRST_TS =                         None if PROD else "10min"
+# Period back in time to fetch Flukso data. Will be ignored in production mode.
+# Set None to disable.
+FROM_FIRST_TS =                         "10min"
 
 # nb lines to insert per batch insert when inserting in cassandra table
 INSERTS_PER_BATCH =                     11000
