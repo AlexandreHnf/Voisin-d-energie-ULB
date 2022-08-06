@@ -216,7 +216,7 @@ class Home:
 		cons_prod_df : timestamp, P_cons, P_prod, P_tot
 		"""
 		cons_prod_df = pd.DataFrame(
-			[[0, 0, 0] for _ in range(len(self.raw_df))],
+			0,
 			self.raw_df.index,
 			["P_cons", "P_prod", "P_tot"]
 		)
