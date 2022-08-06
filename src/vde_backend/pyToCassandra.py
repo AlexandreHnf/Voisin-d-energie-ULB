@@ -9,8 +9,9 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 import json
 
 # 3rd party packages
-import pandas as pd
 import logging
+import os.path
+import pandas as pd
 
 from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
@@ -18,8 +19,7 @@ from cassandra.policies import DCAwareRoundRobinPolicy
 
 # local source
 from constants import (
-	PROD,
-	CASSANDRA_CREDENTIALS_FILE, 
+	CASSANDRA_CREDENTIALS_FILE,
 	SERVER_BACKEND_IP
 )
 
@@ -267,10 +267,11 @@ def connectToCluster(keyspace):
 	""" 
 	connect to Cassandra Cluster
 	- either locally : simple, ip = 127.0.0.1:9042, by default
-	- or with username and password : using AuthProvider
+	- or with username and password using AuthProvider, if the credentials file
+	  exits
 	"""
 	try:
-		if PROD:
+		if os.path.exists(CASSANDRA_CREDENTIALS_FILE):
 			with open(CASSANDRA_CREDENTIALS_FILE) as json_file:
 				cred = json.load(json_file)
 				auth_provider = PlainTextAuthProvider(
@@ -293,7 +294,8 @@ def connectToCluster(keyspace):
 		session = cluster.connect(keyspace)
 	except:
 		logging.critical("Exception occured in 'connectToCluster' cassandra: ", exc_info=True)
-	
+		exit()
+
 	return session
 
 
