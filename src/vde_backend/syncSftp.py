@@ -35,6 +35,7 @@ from datetime import timedelta
 from dis import dis
 import json
 import os
+import os.path
 import argparse
 
 # 3rd party packages
@@ -45,6 +46,9 @@ import paramiko
 
 # local sources
 from constants import (
+	PROD,
+	SFTP_LOG_FILE,
+	SFTP_LOCAL_PATH,
 	CASSANDRA_KEYSPACE, 
 	TBL_POWER
 )
@@ -59,12 +63,6 @@ from utils import (
 
 # ==============================================================================
 
-
-LOCAL_PATH = 						"../../output/sftp_data/"
-LOG_FILE_SFTP = 					"../../output/sftp_data/logs_sftp.log"
-
-SEND_TO_SFTP = 						False
-DELETE_LOCAL_FILES = 				False
 AM = 								"<="
 PM = 								">"
 VERBOSE = 							True
@@ -72,7 +70,7 @@ VERBOSE = 							True
 NOON = 								"10:00:00.000000+0000"  # in UTC = 12:00:00 in CET
 
 
-logging_handlers = [logging.FileHandler(LOG_FILE_SFTP)]
+logging_handlers = [logging.FileHandler(SFTP_LOG_FILE)]
 
 # Create and configure logger
 logging.basicConfig(
@@ -114,7 +112,7 @@ def saveDataToCsv(data_df, csv_filename):
 	Save to csv
 	"""
 
-	outdir = LOCAL_PATH
+	outdir = SFTP_LOCAL_PATH
 	if not os.path.exists(outdir):
 		os.mkdir(outdir)
 	filepath = os.path.join(outdir, csv_filename)
@@ -230,11 +228,11 @@ def sendFileToSFTP(sftp_session, filename, sftp_info):
 	"""
 
 	dest_path = sftp_info["destination_path"] + filename
-	local_path = LOCAL_PATH + filename
+	local_path = os.path.join(SFTP_LOCAL_PATH, filename)
 
 	sftp_session.put(local_path, dest_path)
 
-	if DELETE_LOCAL_FILES:
+	if PROD:
 		os.remove(local_path)
 
 
@@ -324,7 +322,7 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 				)
 				
 				saveDataToCsv(home_data.set_index("home_id"), csv_filename)  # first save csv locally
-				if SEND_TO_SFTP:
+				if PROD:
 					sendFileToSFTP(sftp_session, csv_filename, sftp_info)								 # then, send to sftp server
 
 		if VERBOSE: 

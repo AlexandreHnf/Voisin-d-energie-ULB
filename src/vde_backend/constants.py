@@ -17,9 +17,13 @@ CONFIG_SENSORS_TAB =                    "Export_InstallationSensors"
 CONFIG_ACCESS_TAB =                     "Export_Access"
 CONFIG_CAPTIONS_TAB =                   "InstallationCaptions"
 
+# Path to local databases.
 TMPO_FILE = 		"/opt/vde/" if PROD else ""
+SFTP_LOCAL_PATH = 	"/opt/vde/sftp_data/" if PROD else "../../output/sftp_data/"
 
+# Log files.
 LOG_FILE = 			"/var/log/vde/prod.log" if PROD else "/var/log/vde/test.log"
+SFTP_LOG_FILE = 	"/var/log/vde/sftp.log" if PROD else "../../output/sftp_data/sftp.log"
 
 # credentials
 CASSANDRA_CREDENTIALS_FILE = 			'/opt/vde/cassandra_serv_credentials.json'
