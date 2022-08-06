@@ -271,27 +271,24 @@ def connectToCluster(keyspace):
 	- or with username and password using AuthProvider, if the credentials file
 	  exits
 	"""
+	lbp = cassandra.policies.DCAwareRoundRobinPolicy(local_dc='datacenter1')
+	auth_provider = None
 	try:
 		if os.path.exists(CASSANDRA_CREDENTIALS_FILE):
 			with open(CASSANDRA_CREDENTIALS_FILE) as json_file:
 				cred = json.load(json_file)
 				auth_provider = cassandra.auth.PlainTextAuthProvider(
-					username=cred["username"], 
+					username=cred["username"],
 					password=cred["password"]
 				)
-				cluster = cassandra.cluster.Cluster(
-					[SERVER_BACKEND_IP], 
-					port=9042, 
-					auth_provider=auth_provider
-				)
-		else:
-			# create the cluster : connects to localhost (127.0.0.1:9042) by default
-			cluster = cassandra.cluster.Cluster(
-				load_balancing_policy=cassandra.policies.DCAwareRoundRobinPolicy(
-					local_dc='datacenter1'
-				),
-				protocol_version=3
-			)
+
+		cluster = cassandra.cluster.Cluster(
+			contact_points=[SERVER_BACKEND_IP, '127.0.0.1',],
+			port=9042,
+			load_balancing_policy=lbp,
+			protocol_version=4,
+			auth_provider=auth_provider,
+		)
 
 		# connect to the keyspace
 		session = cluster.connect()
