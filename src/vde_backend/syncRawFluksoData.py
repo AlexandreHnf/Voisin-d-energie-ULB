@@ -244,7 +244,7 @@ def getSensorTimings(tmpo_session, cassandra_session, missing_data, sid, now):
 		or None if no starting timestamp
 	"""
 	sensor_start_ts = None
-	if missing_data.index.contains(sid):  # if there is missing data for this sensor
+	if sid in missing_data.index:  # if there is missing data for this sensor
 		# CET timezone (minus a certain offset to avoid losing first ts)
 		start_ts = missing_data.loc[sid]["start_ts"] - timedelta(seconds=FREQ[0]) 
 		sensor_start_ts = start_ts  # sensor start timing = missing data first timestamp
