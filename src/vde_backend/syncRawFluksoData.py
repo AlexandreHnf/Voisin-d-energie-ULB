@@ -87,9 +87,9 @@ def createRawFluksoTable(cassandra_session, table_name):
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		columns, 
-		["sensor_id", "day"],
-		["ts"],
-		{"ts":"ASC"}
+		["sensor_id"],
+		["day", "ts"],
+		{"day": "ASC", "ts":"ASC"}
 	)
 
 
@@ -114,9 +114,9 @@ def createPowerTable(cassandra_session, table_name):
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		power_cols, 
-		["home_id", "day"],
-		["ts"],
-		{"ts":"ASC"}
+		["home_id"],
+		["day", "ts"],
+		{"day": "ASC", "ts":"ASC"}
 	)
 
 
@@ -162,58 +162,30 @@ def getLastRegisteredTimestamp(cassandra_session, table_name, sensor_id):
 	more robust but much slower
 	"""
 	# get last date available for this home
-	where_clause = "sensor_id = '{}'".format(sensor_id)
-	cols = ["sensor_id", "day"]
+	where_clause = "sensor_id = '{}' ORDER BY day DESC".format(sensor_id)
 	dates_df = ptc.selectQuery(
 		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		table_name, 
-		cols, 
+		["day"],
 		where_clause, 
-		limit=None,
-		allow_filtering=True,
-		distinct=True
+		limit=1,
 	)
 
-	ts_df = None
 	if len(dates_df) > 0:
-		last_date = dates_df.iloc[len(dates_df) - 1]['day']
-
-		where_clause = "sensor_id = '{}' AND day = '{}' ORDER BY ts DESC".format(
-			sensor_id, last_date)
+		last_date = dates_df.iat[0,0]
 		ts_df = ptc.selectQuery(
-			cassandra_session, 
-			CASSANDRA_KEYSPACE, 
+			cassandra_session,
+			CASSANDRA_KEYSPACE,
 			table_name,
-			["ts"], 
-			where_clause, 
-			limit=1
+			["ts"],
+			"sensor_id = '{}' AND day = '{}'".format(sensor_id, last_date),
 		)
 		if len(ts_df) > 0:
-			return ts_df
+			return ts_df.max().max()
 
-	return ts_df
+	return None
 
-
-def getDefaultTiming(cassandra_session, sensor_id):
-	"""
-	We find the last registered timestamp in raw table
-
-	if last_timestamp comes from raw table, it is a tz-naive Timestamp with CET timezone
-
-	return None if no last registered timestamp in raw table (it 
-	will be defined later by 'getTimings' function based on the configuration)
-	"""
-	# get last registered timestamp in raw table
-	last_timestamp = getLastRegisteredTimestamp(cassandra_session, TBL_RAW, sensor_id)
-
-	if last_timestamp is not None:  # != None
-		return last_timestamp.iloc[0]['ts']
-	else:  # if no registered timestamp in raw table yet
-		return None
-
-
-# ====================================================================================
 
 def getInitialTimestamp(tmpo_session, sid, now):
 	""" 
@@ -249,7 +221,7 @@ def getSensorTimings(tmpo_session, cassandra_session, missing_data, sid, now):
 		start_ts = missing_data.loc[sid]["start_ts"] - timedelta(seconds=FREQ[0]) 
 		sensor_start_ts = start_ts  # sensor start timing = missing data first timestamp
 	else:  # if no missing data for this sensor
-		default_timing = getDefaultTiming(cassandra_session, sid)  # None or tz-naive CET
+		default_timing = getLastRegisteredTimestamp(cassandra_session, TBL_RAW, sid)  # None or tz-naive CET
 		if default_timing is None:  # if no raw data registered for this sensor yet
 			# we take its first tmpo timestamp
 			initial_ts = getInitialTimestamp(tmpo_session, sid, now)
