@@ -10,12 +10,13 @@ __copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 # 3rd party packages
 import numpy as np
+import pandas as pd
 
 # local sources
-from utils import(
-	getSpecificSerie,
-	setInitSeconds
-) 
+from utils import (
+	setInitSeconds,
+	time_range,
+)
 
 
 # ===============================================================================
@@ -55,7 +56,7 @@ class Sensor:
 			)
 
 		if len(dff.index) == 0:
-			dff = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
-			
+			dff = pd.Series(np.nan, index=time_range(self.since_timing, self.to_timing))
+
 		return dff
 

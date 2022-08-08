@@ -187,22 +187,30 @@ def isEarlier(ts1, ts2):
 	return (ts1 - ts2) / np.timedelta64(1, 's') < 0
 
 
-def getSpecificSerie(value, since_timing, to_timing):
-	""" 
-	Get a pandas series between 2 defined timestamps 
-	and filled with predefined values
-	"""
-
-	period = (to_timing - since_timing).total_seconds() / FREQ[0]
-	values = pd.date_range(
-		since_timing, 
-		periods=period, 
-		freq=str(FREQ[0]) + FREQ[1]
+def time_range(since, until):
+	return pd.date_range(
+		since,
+		until,
+		freq=str(FREQ[0]) + FREQ[1],
+		closed='left',
 	)
 
-	values_series = pd.Series(int(period) * [value], values)
 
-	return values_series
+def resample_extend(df, since_timing, to_timing):
+	"""
+	pandas' df.resample only returns a DataFrame whose index matches the input index.
+	On the opposite, this function guarrantees that the index of the returned,
+	resampled DataFrame start at since_timing and end at to_timing.
+	"""
+
+	filled_df = (df
+		# Resampling with origin is needed for later reindexing. If indexes are
+		# unaligned, the data is lost, replaced by NaNs.
+		.resample(str(FREQ[0]) + FREQ[1], origin=since_timing)
+		.mean()
+		.reindex(time_range(since_timing, to_timing))
+	)
+	return filled_df
 
 
 def energy2power(energy_df):

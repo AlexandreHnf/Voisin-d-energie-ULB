@@ -14,12 +14,10 @@ import logging
 
 # local sources
 from utils import (
-	energy2power, 
-	getSpecificSerie,
+	energy2power,
+	resample_extend,
 	setInitSeconds
 )
-
-from constants import FREQ
 
 
 def getLocalTimestampsIndex(df):
@@ -163,13 +161,8 @@ class Home:
 		2) get a dataframe containing all the lines with NaN values (= incomplete rows)
 		"""
 
-		energy_df = self.energy_df.resample(str(FREQ[0]) + FREQ[1]).mean() # resample to 8sec
-		filler = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
-		filled_df = pd.concat([energy_df, filler], axis=1)
-		del filler
-		filled_df.columns = self.columns_names + ["fill"]
-		filled_df = filled_df.drop(['fill'], axis=1) # remove the filler col
-
+		filled_df = resample_extend(self.energy_df, self.since_timing, self.to_timing)
+		filled_df.columns = self.columns_names
 		incomplete_raw_df = filled_df[filled_df.isna().any(axis=1)]  # with CET timezones
 		self.nb_nan = filled_df.isna().sum().sum()  # count nb of nan in the entire df
 		self.len_nan = len(incomplete_raw_df)
@@ -188,12 +181,8 @@ class Home:
 		"""
 		
 		power_df = energy2power(self.energy_df) # cumulative energy to power conversion
-		filler = getSpecificSerie(np.nan, self.since_timing, self.to_timing)
-		raw_df = pd.concat([power_df, filler], axis=1)
-		del power_df; del filler
-		raw_df.columns = self.columns_names + ["fill"]
-		raw_df = raw_df.drop(['fill'], axis=1) # remove the filler col
-
+		raw_df = resample_extend(power_df, self.since_timing, self.to_timing)
+		raw_df.columns = self.columns_names
 		# timestamps column
 		raw_df.index = pd.DatetimeIndex(raw_df.index, name="time", ambiguous='NaT')
 		# convert all timestamps to local timezone (CET)
