@@ -1,7 +1,6 @@
 MIT License
 
-Copyright (c) 2021 Othneil Drew
-Copyright (c) 2022 Alexandre Heneffe
+Copyright (c) 2022 Alexandre Heneffe and Guillaume Levasseur
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

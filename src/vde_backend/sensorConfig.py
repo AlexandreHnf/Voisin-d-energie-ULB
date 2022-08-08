@@ -1,8 +1,7 @@
 __title__ = "sensorConfig"
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __author__ = "Alexandre Heneffe"
 __license__ = "MIT"
-__copyright__ = "Copyright 2022 Alexandre Heneffe"
 
 
 class Configuration:
