@@ -258,7 +258,47 @@ def selectQuery(
 		convertColumnsTimezones(res_df, tz)
 
 	return res_df
-	
+
+
+def groupbyQuery(
+		session, 
+		keyspace, 
+		table_name, 
+		column,
+		groupby_operator,
+		groupby_cols,
+		limit				= None,
+		allow_filtering 	= True,
+		tz 					= 'CET'
+	):
+	"""
+	column = a single column to apply the operator on.
+	groupby_cols = list of columns by which data is grouped.
+	command : SELECT <groupby_operator> <columns> FROM <keyspace>.<table_name>
+				GROUP BY <groupby_cols> <LIMIT> <ALLOW FILTERING>;
+	"""
+
+	if '*' in column or ',' in column:
+		raise ValueError("Group by only supports one column to compute the operator.")
+
+	limit = "LIMIT {}".format(limit) if limit is not None else ""
+	allow_filtering = "ALLOW FILTERING" if allow_filtering else ""
+	query = "SELECT {}({}) FROM {}.{} GROUP BY {} {} {};".format(
+		groupby_operator,
+		column,
+		keyspace,
+		table_name,
+		','.join(groupby_cols),
+		limit,
+		allow_filtering,
+	)
+	logging.debug("===> groupby query : " + query)
+	res_df = selectResToDf(session, query)
+	if len(res_df) > 0:
+		# remark: the date column in tables is in CET timezone
+		convertColumnsTimezones(res_df, tz)
+
+	return res_df
 
 # ==========================================================================
 

@@ -106,19 +106,17 @@ def getLastRegisteredConfig(cassandra_session):
 	"""
 	Get the last registered config based on insertion time
 	"""
-	first_row = ptc.selectQuery(
-		cassandra_session, 
+	latest_configs = ptc.groupbyQuery(
+		cassandra_session,
 		CASSANDRA_KEYSPACE,
 		TBL_SENSORS_CONFIG,
-		["insertion_time"], 
-		where_clause="", 
-		limit=1,
+		column='insertion_time',
+		groupby_operator='max',
+		groupby_cols=['home_id', 'sensor_id'],
 		allow_filtering=False,
-		distinct=False,
 		tz="UTC"
 	)
-	last_config_id = first_row.iat[0,0]
-	
+	last_config_id = latest_configs.max().max().tz_localize('UTC')
 	config_df = ptc.selectQuery(
 		cassandra_session,
 		CASSANDRA_KEYSPACE,
