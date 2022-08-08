@@ -118,23 +118,6 @@ def batch_insert(session, inserts):
 	session.execute(query)
 
 
-def getCompoundKeyStr(primary_keys):
-	""" 
-	right string format for compound key
-	"""
-	return "(" + "".join(primary_keys) + ")"
-
-
-def getClusteringKeyStr(clustering_keys):
-	""" 
-	right string format for clustering key
-	"""
-	if len(clustering_keys) == 0:
-		return ""
-	else:
-		return "," + ",".join(clustering_keys)
-
-
 def getOrdering(ordering):
 	""" 
 	ordering format : {"column_name": "ASC", "column_name2": "DESC"}
@@ -157,18 +140,17 @@ def createTable(session, keyspace, table_name, columns, primary_keys, clustering
 	command : CREATE TABLE IF NOT EXISTS <keyspace>.<table_name> 
 				(<columns>, PRIMARY KEY (<primary keys><clustering keys>)) <ordering>;
 	"""
-	# create a new table : 
 
 	query = "CREATE TABLE IF NOT EXISTS {}".format(keyspace)
 	query += ".{} ".format(table_name)
 	query += "({}, ".format(",".join(columns))
-	query += "PRIMARY KEY ({}".format(getCompoundKeyStr(primary_keys))
-	query += "{})) ".format(getClusteringKeyStr(clustering_keys))
+	query += "PRIMARY KEY (({})".format(','.join(primary_keys))
+	query += "{})) ".format(',' + ','.join(clustering_keys) if len(clustering_keys) else '')
 	query += "{};".format(getOrdering(ordering))
 
-	# logging.info("===>  create table query : " + query)
-	session.execute(query) 
-	# logging.info("successfully created table " + table_name)
+	logging.debug("===>  create table query : " + query)
+	session.execute(query)
+	logging.debug("successfully created table " + table_name)
 
 
 def pandas_factory(colnames, rows):

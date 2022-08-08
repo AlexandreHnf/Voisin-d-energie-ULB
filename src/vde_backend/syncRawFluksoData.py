@@ -87,8 +87,8 @@ def createRawFluksoTable(cassandra_session, table_name):
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		columns, 
-		["sensor_id, day"], 
-		["ts"], 
+		["sensor_id", "day"],
+		["ts"],
 		{"ts":"ASC"}
 	)
 
@@ -114,8 +114,8 @@ def createPowerTable(cassandra_session, table_name):
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		power_cols, 
-		["home_id, day"], 
-		["ts"], 
+		["home_id", "day"],
+		["ts"],
 		{"ts":"ASC"}
 	)
 
@@ -138,7 +138,7 @@ def createRawMissingTable(cassandra_session, table_name):
 		CASSANDRA_KEYSPACE,
 		table_name, 
 		cols, 
-		["sensor_id, config_id"], 
+		["sensor_id", "config_id"],
 		["start_ts"], 
 		{"start_ts":"ASC"}
 	)
