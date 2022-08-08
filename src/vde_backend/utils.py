@@ -58,7 +58,7 @@ logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 logging.basicConfig(
 	level = setupLogLevel(),
-	format = "{asctime} {filename} {levelname:<8} {message}",
+	format = "{asctime} {levelname:<8} {filename:<16} {message}",
     style='{',
 	handlers=[
 		logging.handlers.TimedRotatingFileHandler(
