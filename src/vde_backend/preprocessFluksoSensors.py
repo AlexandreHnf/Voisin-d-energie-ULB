@@ -118,9 +118,13 @@ def recomputeData(cassandra_session):
 	""" 
 	Recompute the power data according to the latest configuration.
 	"""
-	new_config = getLastRegisteredConfig(cassandra_session)
-	changed_homes = new_config.getSensorsConfig()["home_id"].unique()
-	recomputePowerData(cassandra_session, new_config, changed_homes)
+	try: 
+		new_config = getLastRegisteredConfig(cassandra_session)
+		changed_homes = new_config.getSensorsConfig()["home_id"].unique()
+		recomputePowerData(cassandra_session, new_config, changed_homes)
+	except Exception as e: 
+		print("Exception occured in 'recomputeData' : " + str(e))
+		print("Run 'syncRawFluksoData.py' to create the necessary tables.")
 
 
 def writeSensorsConfigCassandra(cassandra_session, new_config_df, now):
