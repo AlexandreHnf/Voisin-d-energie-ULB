@@ -217,6 +217,15 @@ Here are the list of all the executable scripts aswell as their arguments :
 
 <br />
 
+* retrieveDB : The script allows to get power data from Cassandra database into csv files. 1 file = 1 home and 1 specific day.
+  ```sh
+  retrieveDB.py [--day DAY] output_filename
+  ```
+  * The --day argument is the specific day we can query. It has to be in the form : YYYY_MM_DD 
+  * The output_filename argument is the directory path where the csv data files will be saved.
+
+<br />
+
 <br />
 
 
