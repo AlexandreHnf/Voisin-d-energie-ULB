@@ -35,17 +35,6 @@ DATA_LOCAL_PATH = 'output/retrieved_data/' # TODO : put it in constants.py
 # ==============================================================================
 
 
-def getYesterday(now):
-	""" 
-	Given the timestamp of today, get the previous day's date.
-	-> YYYY-MM-DD
-	"""
-
-	yesterday = now.date()-timedelta(days=1)
-
-	return yesterday
-
-
 def saveDataToCsv(data_df, csv_filename, output_filename):
 	""" 
 	Save to csv
@@ -140,7 +129,7 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	return all_dates
 
 
-def processAllHomes(cassandra_session, config, default_date, now, output_filename):
+def processAllHomes(cassandra_session, config, now, specific_day, output_filename):
 	""" 
 	save 1 csv file per home, per day
 	- if no data sent for this home yet, we send the whole history
@@ -149,11 +138,14 @@ def processAllHomes(cassandra_session, config, default_date, now, output_filenam
 
 	for home_id in config.getIds().keys():
 		latest_date = getLastDate(output_filename, home_id)
-		all_dates = [default_date]
-		if latest_date is None:  # history
-			all_dates = getAllHistoryDates(cassandra_session, home_id, TBL_POWER, now)
-		else:					 # realtime
-			all_dates = getDatesBetween(latest_date, now)
+		all_dates = []
+		if specific_day != "":
+			all_dates.append(specific_day)
+		else:
+			if latest_date is None:  # history
+				all_dates = getAllHistoryDates(cassandra_session, home_id, TBL_POWER, now)
+			else:					 # realtime
+				all_dates = getDatesBetween(latest_date, now)
 
 		for date in all_dates:
 			csv_filename = "{}_{}.csv".format(home_id, date)
@@ -186,6 +178,14 @@ def processArguments():
 		help="output filename"
 	)
 
+	argparser.add_argument(
+		"--day",
+		type=str,
+		default="",
+		required=False,
+		help="day in YYYY_MM_DD format"
+	)
+
 	return argparser
 
 
@@ -194,24 +194,22 @@ def main():
 	argparser = processArguments()
 	args = argparser.parse_args()
 	output_filename = args.output_filename
+	specific_day = args.day
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	config = getLastRegisteredConfig(cassandra_session)
 
 	now = pd.Timestamp.now()
-	yesterday = getYesterday(now)
-	default_date = str(yesterday)
 
 	print("config id : " + str(config.getConfigID()))
-	print("date : " + default_date)
-
+	print("specific day: " + "/" if specific_day == "" else specific_day)
 
 	processAllHomes(
 		cassandra_session, 
 		config, 
-		default_date, 
 		now, 
+		specific_day,
 		output_filename
 	)
 
