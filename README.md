@@ -221,7 +221,8 @@ Here are the list of all the executable scripts aswell as their arguments :
   ```sh
   retrieveDB.py [--day DAY] output_filename
   ```
-  * The --day argument is the specific day we can query. It has to be in the form : YYYY_MM_DD 
+  * The --day argument is the specific day we can query. It has to be in the form : YYYY_MM_DD
+    *  If no specific day is specified, then the script automatically retrieve data from the last saved date based on the previous local files for each home. If no data has been saved for a home yet, the script will take all the history available in the database for that home.
   * The output_filename argument is the directory path where the csv data files will be saved.
 
 <br />

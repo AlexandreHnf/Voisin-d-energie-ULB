@@ -5,12 +5,19 @@ __license__ = "MIT"
 
 
 """ 
-Script to save Flukso electrical data from the Cassandra database
+Script to save Flukso electrical data from the Cassandra database to csv files
+saved csv files : 
+	1 file = power data of 1 specific home, 1 specific day
+	power data = consumption, production, total.
+	see 'syncRawFluksoData.py' for more details about the data.
+
+	in automatic mode: the script automatically retrieve data from the last saved date
+	for each home. If no saved file yet, then we take the history of all dates
+	available in the database for each home. 
 """
 
 
 # standard library
-from datetime import timedelta
 import os
 import os.path
 import argparse
@@ -30,7 +37,6 @@ from utils import (
 	getLastRegisteredConfig
 )
 
-DATA_LOCAL_PATH = 'output/retrieved_data/' # TODO : put it in constants.py
 
 # ==============================================================================
 
@@ -94,7 +100,6 @@ def getLastDate(output_file, home_id):
 			latest_file = filename
 
 	if latest_file is not None:
-		print(latest_file)
 		latest_date = pd.Timestamp(latest_file.split("_")[1][:-4])
 
 	return latest_date
