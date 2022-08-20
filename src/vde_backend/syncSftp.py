@@ -31,7 +31,6 @@ Constraints :
 
 # standard library
 from datetime import timedelta
-from dis import dis
 import json
 import os
 import os.path
@@ -248,25 +247,23 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	from that first date, return the list of dates until now.
 	"""
 
-	# TODO : use limit 1 to be more efficient
 	# get first date available for this home 
 	where_clause = "home_id = '{}'".format(home_id)
-	cols = ["home_id", "day"]
-	result_df = ptc.selectQuery(
+	cols = ["day"]
+	date_df = ptc.selectQuery(
 		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
 		where_clause, 
-		limit=None,
+		limit=1,
 		allow_filtering=True,
-		distinct=True
+		distinct=False
 	)
 
 	all_dates = []
-	if len(result_df) > 0:
-		first_date = pd.Timestamp(list(result_df.groupby('day').groups.keys())[0])
-		del result_df
+	if len(date_df) > 0:
+		first_date = pd.Timestamp(date_df.iat[0,0])
 
 		all_dates = getDatesBetween(first_date, now)
 
@@ -283,6 +280,7 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 	ids = config.getIds()
 	for home_id in ids.keys():
 		latest_date = getLastDate(sftp_session, home_id)
+		latest_date = None
 		all_dates = [default_date]
 		moments = {default_date: [moment]}
 		if latest_date is None:  # history
