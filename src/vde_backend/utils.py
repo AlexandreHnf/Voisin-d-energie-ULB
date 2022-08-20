@@ -17,6 +17,7 @@ import logging.handlers
 
 # local sources
 from constants import (
+	PROD,
 	CASSANDRA_KEYSPACE, 
 	FREQ, 
 	LOG_LEVEL,
@@ -67,6 +68,9 @@ logging.basicConfig(
 		),
 	]
 )
+
+if not PROD:
+	logging.getLogger().addHandler(logging.StreamHandler())  # also print to stdout
 
 
 def getProgDir():
@@ -199,7 +203,6 @@ def resample_extend(df, since_timing, to_timing):
 	On the opposite, this function guarrantees that the index of the returned,
 	resampled DataFrame start at since_timing and end at to_timing.
 	"""
-
 	filled_df = (df
 		# Resampling with origin is needed for later reindexing. If indexes are
 		# unaligned, the data is lost, replaced by NaNs.
@@ -214,7 +217,6 @@ def energy2power(energy_df):
 	"""
 	from cumulative energy to power (Watt)
 	"""
-	logging.debug(energy_df.head(10))
 	power_df = energy_df.diff() * 1000
 	power_df.fillna(0, inplace=True)
 	
