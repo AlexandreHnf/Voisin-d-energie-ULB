@@ -15,6 +15,7 @@ Script to fetch Fluksometer data using the tmpo protocol and
 from datetime import timedelta
 import os
 import time
+import argparse
 
 from threading import Thread
 
@@ -680,7 +681,36 @@ def sync(cassandra_session):
 	showProcessingTimes(begin, setup_time, timer) 
 
 
+def processArguments():
+	""" 
+	process arguments
+	argument : custom mode : choose a interval between 2 specific timings
+	"""
+	argparser = argparse.ArgumentParser(
+		description=__doc__,
+		formatter_class=argparse.RawDescriptionHelpFormatter
+	)
+
+	argparser.add_argument(
+		"--custom", type=str,
+		nargs="*",
+		help="start timing and end timing. Format : YYYY-MM-DD_HH:MM:SS+0200"
+	)
+
+	return argparser
+
+
+
 def main():
+
+	argparser = processArguments()
+	args = argparser.parse_args()
+
+	# Custom timings argument
+	custom_timings = {}
+	if args.custom:
+		custom_timings["start_ts"] = pd.Timestamp((args.custom[0]).replace('_', ' '), tz="CET")
+		custom_timings["end_ts"] = pd.Timestamp((args.custom[1]).replace('_', ' '), tz="CET")
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
