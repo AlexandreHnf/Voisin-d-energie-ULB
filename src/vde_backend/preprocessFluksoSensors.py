@@ -13,6 +13,7 @@ import pandas as pd
 
 # local source
 from constants import (
+	TBL_POWER,
 	TBL_SENSORS_CONFIG, 
 	CASSANDRA_KEYSPACE, 
 	CONFIG_SENSORS_TAB, 
@@ -118,13 +119,9 @@ def recomputeData(cassandra_session):
 	""" 
 	Recompute the power data according to the latest configuration.
 	"""
-	try: 
-		new_config = getLastRegisteredConfig(cassandra_session)
-		changed_homes = new_config.getSensorsConfig()["home_id"].unique()
-		recomputePowerData(cassandra_session, new_config, changed_homes)
-	except Exception as e: 
-		print("Exception occured in 'recomputeData' : " + str(e))
-		print("Run 'syncRawFluksoData.py' to create the necessary tables.")
+	new_config = getLastRegisteredConfig(cassandra_session)
+	changed_homes = new_config.getSensorsConfig()["home_id"].unique()
+	recomputePowerData(cassandra_session, new_config, changed_homes)
 
 
 def writeSensorsConfigCassandra(cassandra_session, new_config_df, now):
@@ -380,7 +377,8 @@ def main():
 
 	# then, compare new config with previous configs and recompute data if necessary
 	print("> Recompute previous data... ")
-	recomputeData(cassandra_session)
+	if (ptc.existTable(cassandra_session, CASSANDRA_KEYSPACE, TBL_POWER)):
+		recomputeData(cassandra_session)
 
 
 

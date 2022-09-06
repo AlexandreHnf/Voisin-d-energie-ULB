@@ -280,6 +280,21 @@ def groupbyQuery(
 
 	return res_df
 
+
+def existTable(session, keyspace, table_name):
+	""" 
+	Check if a table exists in the cluster given a certain keyspace
+	"""
+	query = "SELECT table_name from system_schema.tables "
+	query += "where keyspace_name = '{}' ".format(keyspace)
+	query += "and table_name = '{}' ".format(table_name)
+	query += "ALLOW FILTERING;"
+
+	r = session.execute(query)
+
+	return (len(r.current_rows) > 0)
+
+
 # ==========================================================================
 
 
@@ -321,4 +336,3 @@ def connectToCluster(keyspace):
 		exit(57)
 
 	return session
-
