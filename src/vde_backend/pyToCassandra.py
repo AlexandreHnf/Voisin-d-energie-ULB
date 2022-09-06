@@ -84,6 +84,7 @@ def insert(session, keyspace, table, columns, values):
 	query += "({}) ".format(",".join(columns))
 	query += "VALUES ({});".format(",".join(getRightFormat(values)))
 
+	logging.info("===> insert query :" + query)
 	session.execute(query)
 
 
@@ -147,7 +148,7 @@ def createTable(session, keyspace, table_name, columns, primary_keys, clustering
 	query += "{};".format(getOrdering(ordering))
 
 	session.execute(query)
-	logging.debug("successfully created table " + table_name)
+	logging.debug("===> create table query : " + query)
 
 
 def pandas_factory(colnames, rows):
@@ -230,6 +231,7 @@ def selectQuery(
 	query += "{} ".format(limit)
 	query += "{};".format(allow_filtering)
 
+	logging.debug("===> select query : " + query)
 	res_df = selectResToDf(session, query)
 	if len(res_df) > 0:
 		# remark: the date column in tables is in CET timezone
@@ -270,6 +272,7 @@ def groupbyQuery(
 		limit,
 		allow_filtering,
 	)
+	logging.debug("===> groupby query : " + query)
 	res_df = selectResToDf(session, query)
 	if len(res_df) > 0:
 		# remark: the date column in tables is in CET timezone
