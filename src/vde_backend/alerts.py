@@ -21,9 +21,11 @@ from datetime import timedelta
 
 # local source
 import pyToCassandra as ptc
-from utils import getLastRegisteredConfig
+from utils import(
+	getLastRegisteredConfig,
+	getHomePowerDataFromCassandra
+)
 from constants import (
-	TBL_POWER, 
 	CASSANDRA_KEYSPACE
 )
 
@@ -52,31 +54,12 @@ def sendMail(mail_filename):
 	pass 
 
 
-def getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name):
-	""" 
-	Get power data from Power table in Cassandra
-	> for 1 specific home
-	> for 1 specific day
-	"""
 
-	where_clause = "home_id = '{}' and day = '{}'".format(home_id, date)
-	cols = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot"]
-	home_df = ptc.selectQuery(
-		cassandra_session, 
-		CASSANDRA_KEYSPACE, 
-		table_name, 
-		cols, 
-		where_clause
-	)
-
-	return home_df
-
-
-def checkMissing(cassandra_session, home_id, date, table_name):
+def checkMissing(cassandra_session, home_id, date):
 	""" 
 	Check if there are a lot of missing data in one day of power data for a home
 	"""
-	home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name)
+	home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date)
 
 	count_zero = 0
 	if len(home_df) > 0:
@@ -89,14 +72,14 @@ def checkMissing(cassandra_session, home_id, date, table_name):
 	return count_zero, len(home_df)
 
 
-def checkSigns(cassandra_session, home_id, date, table_name):
+def checkSigns(cassandra_session, home_id, date):
 	""" 
 	Check if the signs are coherent in power data based on 2 criterion : 
 	Signs are incorrect if there are :
 	- negative consumption values
 	- positive production values
 	"""
-	home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name)
+	home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date)
 
 	ok = True
 	if len(home_df) > 0:
@@ -130,7 +113,7 @@ def getHomesWithMissingData(cassandra_session, config, yesterday):
 	
 	to_alert = {}
 	for home_id in config.getIds().keys():
-		nb_zeros, tot_len = checkMissing(cassandra_session, home_id, yesterday, TBL_POWER)
+		nb_zeros, tot_len = checkMissing(cassandra_session, home_id, yesterday)
 
 		percentage = 0
 		if nb_zeros > 0:
@@ -148,7 +131,7 @@ def getHomesWithIncorrectSigns(cassandra_session, config, yesterday):
 	"""
 	to_alert = {}
 	for home_id in config.getIds().keys():
-		ok, info = checkSigns(cassandra_session, home_id, yesterday, TBL_POWER)
+		ok, info = checkSigns(cassandra_session, home_id, yesterday)
 		if not ok:
 			to_alert[home_id] = info
 

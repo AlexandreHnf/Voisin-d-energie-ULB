@@ -53,7 +53,8 @@ import pyToCassandra as ptc
 from utils import (
 	logging,
 	getDatesBetween, 
-	getLastRegisteredConfig
+	getLastRegisteredConfig,
+	getHomePowerDataFromCassandra
 )
 
 
@@ -104,36 +105,6 @@ def saveDataToCsv(data_df, csv_filename):
 	data_df.to_csv(filepath)
 
 	logging.debug("Successfully Saved flukso data in csv")	
-
-
-def getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, table_name):
-	""" 
-	Get power data from Power table in Cassandra
-	> for 1 specific home
-	> specific timings
-	"""
-
-	# all data before of after noon
-	ts_clause = "ts {} '{} {}'".format(moment, date, NOON)  
-	where_clause = "home_id = '{}' and day = '{}' and {}".format(home_id, date, ts_clause)
-	cols = [
-		"home_id", 
-		"day", 
-		"ts", 
-		"p_cons", 
-		"p_prod", 
-		"p_tot"
-	]
-
-	home_df = ptc.selectQuery(
-		cassandra_session, 
-		CASSANDRA_KEYSPACE, 
-		table_name, 
-		cols, 
-		where_clause,
-	)
-
-	return home_df
 
 
 def getSftpInfo(sftp_info_filename):
@@ -280,7 +251,6 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 	ids = config.getIds()
 	for home_id in ids.keys():
 		latest_date = getLastDate(sftp_session, home_id)
-		latest_date = None
 		all_dates = [default_date]
 		moments = {default_date: [moment]}
 		if latest_date is None:  # history
@@ -299,12 +269,13 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 					home_id, 
 					date, 
 					moment, 
-					TBL_POWER
+					TBL_POWER,
+					ts_clause = "AND ts {} '{} {}'".format(moment, date, NOON)
 				)
 				
 				saveDataToCsv(home_data.set_index("home_id"), csv_filename)  # first save csv locally
 				if PROD:
-					sendFileToSFTP(sftp_session, csv_filename, sftp_info)								 # then, send to sftp server
+					sendFileToSFTP(sftp_session, csv_filename, sftp_info) # then, send to sftp server
 
 		logging.debug("-----------------------")
 

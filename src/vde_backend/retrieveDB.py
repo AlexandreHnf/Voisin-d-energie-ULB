@@ -34,7 +34,8 @@ import pyToCassandra as ptc
 
 from utils import (
 	getDatesBetween, 
-	getLastRegisteredConfig
+	getLastRegisteredConfig,
+	getHomePowerDataFromCassandra
 )
 
 
@@ -53,34 +54,6 @@ def saveDataToCsv(data_df, csv_filename, output_filename):
 	data_df.to_csv(filepath)
 
 	print("Successfully Saved data in csv")	
-
-
-def getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name):
-	""" 
-	Get power data from Power table in Cassandra
-	> for 1 specific home
-	> specific day
-	"""
-
-	where_clause = "home_id = '{}' and day = '{}'".format(home_id, date)
-	cols = [
-		"home_id", 
-		"day", 
-		"ts", 
-		"p_cons", 
-		"p_prod", 
-		"p_tot"
-	]
-
-	home_df = ptc.selectQuery(
-		cassandra_session, 
-		CASSANDRA_KEYSPACE, 
-		table_name, 
-		cols, 
-		where_clause,
-	)
-
-	return home_df
 
 
 def getLastDate(output_file, home_id):
@@ -158,8 +131,7 @@ def processAllHomes(cassandra_session, config, now, specific_day, output_filenam
 			home_data = getHomePowerDataFromCassandra(
 				cassandra_session, 
 				home_id, 
-				date, 
-				TBL_POWER
+				date
 			)
 			
 			saveDataToCsv(home_data.set_index("home_id"), csv_filename, output_filename)

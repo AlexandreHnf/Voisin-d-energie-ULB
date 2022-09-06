@@ -24,6 +24,7 @@ from constants import (
 	LOG_LEVEL,
 	LOG_FILE,
 	LOG_HANDLER,
+	TBL_POWER,
 	TBL_SENSORS_CONFIG
 )
 
@@ -166,6 +167,34 @@ def getAllRegisteredConfigs(cassandra_session):
 			configs.append(Configuration(config_id, config.set_index("sensor_id")))
 
 	return configs
+
+
+def getHomePowerDataFromCassandra(cassandra_session, home_id, date, ts_clause=""):
+	""" 
+	Get power data from Power table in Cassandra
+	> for 1 specific home
+	> specific day
+	"""
+
+	where_clause = "home_id = '{}' and day = '{}' {}".format(home_id, date, ts_clause)
+	cols = [
+		"home_id", 
+		"day", 
+		"ts", 
+		"p_cons", 
+		"p_prod", 
+		"p_tot"
+	]
+
+	home_df = ptc.selectQuery(
+		cassandra_session, 
+		CASSANDRA_KEYSPACE, 
+		TBL_POWER, 
+		cols, 
+		where_clause,
+	)
+
+	return home_df
 
 
 def getDatesBetween(start_date, end_date):
