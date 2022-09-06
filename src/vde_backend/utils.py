@@ -6,6 +6,7 @@ __license__ = "MIT"
 
 # standard library
 import os
+import sys
 import math
 from datetime import timedelta
 
@@ -22,6 +23,7 @@ from constants import (
 	FREQ, 
 	LOG_LEVEL,
 	LOG_FILE,
+	LOG_HANDLER,
 	TBL_SENSORS_CONFIG
 )
 
@@ -51,6 +53,23 @@ def setupLogLevel():
 		return logging.DEBUG
 
 
+def getLogHandler():
+	""" 
+	If prod : rotating logfile handler
+	If dev : only stdout
+	"""
+	if LOG_HANDLER == "logfile":
+		handler = logging.handlers.TimedRotatingFileHandler(
+			LOG_FILE,
+			when='midnight',
+			backupCount=7,
+		)
+	else:  # stdout
+		handler = logging.StreamHandler(stream=sys.stdout)
+	
+	return handler
+
+
 # Create and configure logger
 logging.getLogger("tmpo").setLevel(logging.ERROR)
 logging.getLogger("requests").setLevel(logging.ERROR)
@@ -60,17 +79,8 @@ logging.basicConfig(
 	level = setupLogLevel(),
 	format = "{asctime} {levelname:<8} {filename:<16} {message}",
     style='{',
-	handlers=[
-		logging.handlers.TimedRotatingFileHandler(
-			LOG_FILE,
-			when='midnight',
-			backupCount=7,
-		),
-	]
+	handlers=[getLogHandler()]
 )
-
-if not PROD:
-	logging.getLogger().addHandler(logging.StreamHandler())  # also print to stdout
 
 
 def getProgDir():
@@ -127,7 +137,6 @@ def getLastRegisteredConfig(cassandra_session):
 		["*"],
 		"insertion_time = '{}'".format(last_config_id),
 	)
-	# print(config_df['insertion_time'].head(5))
 	config = Configuration(last_config_id, config_df.set_index("sensor_id"))
 	return config
 
