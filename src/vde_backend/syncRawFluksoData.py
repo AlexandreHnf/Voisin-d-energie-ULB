@@ -532,7 +532,7 @@ def getIntermediateTimings(start_ts, end_ts):
 	return intermediate_timings
 
 
-def saveDataThreads(cassandra_session, home, config, timings, now, saved_sensors):
+def saveDataThreads(cassandra_session, home, config, timings, now, saved_sensors, custom):
 	""" 
 	Threads to save data to different Cassandra tables
 	-> raw data in raw table
@@ -549,13 +549,14 @@ def saveDataThreads(cassandra_session, home, config, timings, now, saved_sensors
 	threads.append(t1)
 	t1.start()
 
-	# save missing raw data in cassandra
-	t2 = Thread(
-		target = saveHomeMissingData, 
-		args = (cassandra_session, config, now, home, saved_sensors)
-	)
-	threads.append(t2)
-	t2.start()
+	if not custom:  # in custom mode, no need to save missing data (in the past)
+		# save missing raw data in cassandra
+		t2 = Thread(
+			target = saveHomeMissingData, 
+			args = (cassandra_session, config, now, home, saved_sensors)
+		)
+		threads.append(t2)
+		t2.start()
 
 	# save power flukso data in cassandra
 	t3 = Thread(
@@ -570,7 +571,7 @@ def saveDataThreads(cassandra_session, home, config, timings, now, saved_sensors
 		t.join()
 
 
-def processHomes(cassandra_session, tmpo_session, config, timings, now):
+def processHomes(cassandra_session, tmpo_session, config, timings, now, custom):
 	""" 
 	For each home, we first create the home object containing
 	all the tmpo queries and series computation
@@ -607,7 +608,8 @@ def processHomes(cassandra_session, tmpo_session, config, timings, now):
 					config, 
 					timings, 
 					now, 
-					saved_sensors
+					saved_sensors,
+					custom
 				)
 
 		else:
@@ -666,6 +668,9 @@ def createTables(cassandra_session):
 
 def sync(cassandra_session, custom_timings):
 	logging.info("====================== Sync ======================")
+
+	custom = len(custom_timings) > 0  # custom mode
+	logging.info("- Custom mode :               " + str(custom))
 	begin = time.time()
 	
 	# > timings
@@ -690,7 +695,9 @@ def sync(cassandra_session, custom_timings):
 
 	# =========================================================
 
-	ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, TBL_RAW_MISSING)  # truncate existing rows
+	if not custom:
+		#truncate existing rows in Raw missing table
+		ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, TBL_RAW_MISSING)
 
 	# Timer
 	config_id = config.getConfigID()
@@ -722,7 +729,7 @@ def sync(cassandra_session, custom_timings):
 	logging.info("Generating homes data, getting Flukso data and save in Cassandra...")
 
 	# STEP 2 : process all homes data, and save in database
-	processHomes(cassandra_session, tmpo_session, config, timings, now)
+	processHomes(cassandra_session, tmpo_session, config, timings, now, custom)
 
 	timer["homes"] = time.time()
 
@@ -761,6 +768,7 @@ def main():
 		custom_timings["start_ts"] = pd.Timestamp((args.custom[0]).replace('_', ' '), tz="CET")
 		custom_timings["end_ts"] = pd.Timestamp((args.custom[1]).replace('_', ' '), tz="CET")
 
+	# Cassandra database connection
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	# first, create tables if needed : 
