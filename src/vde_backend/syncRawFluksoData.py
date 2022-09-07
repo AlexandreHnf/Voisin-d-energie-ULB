@@ -16,6 +16,7 @@ from datetime import timedelta
 import os
 import time
 import argparse
+import sys
 
 from threading import Thread
 
@@ -664,6 +665,7 @@ def createTables(cassandra_session):
 def sync(cassandra_session, custom_timings):
 	logging.info("====================== Sync ======================")
 
+	# custom mode (custom start and end timings)
 	custom = len(custom_timings) > 0  # custom mode
 	logging.info("- Custom mode :               " + str(custom))
 	begin = time.time()
@@ -733,6 +735,28 @@ def sync(cassandra_session, custom_timings):
 	showProcessingTimes(begin, setup_time, timer) 
 
 
+def processCustomTimingsArgs(args):
+	""" 
+	Given the custom mode, check if the two provided arguments
+	are valid. Namely, if the timestamp format is ok, and 
+	start ts < end ts
+	"""
+	custom_timings = {}
+	if args.custom:
+		try:
+			custom_timings["start_ts"] = pd.Timestamp((args.custom[0]).replace('_', ' '), tz="CET")
+			custom_timings["end_ts"] = pd.Timestamp((args.custom[1]).replace('_', ' '), tz="CET")
+		except:
+			logging.critical("Wrong argument format - custom timings : ", exc_info=True)
+			sys.exit(1)
+
+		if isEarlier(custom_timings["end_ts"], custom_timings["start_ts"]):
+			logging.critical("Wrong arguments (custom timings) : first timing must be earlier than second timing")
+			sys.exit(1)
+
+	return custom_timings
+
+
 def processArguments():
 	""" 
 	process arguments
@@ -746,7 +770,7 @@ def processArguments():
 	argparser.add_argument(
 		"--custom", type=str,
 		nargs="*",
-		help="start timing and end timing. Format : YYYY-MM-DD_HH:MM:SS+0200"
+		help="start timing and end timing. Format : YYYY-MM-DD_HH:MM:SS"
 	)
 
 	return argparser
@@ -758,10 +782,7 @@ def main():
 	args = argparser.parse_args()
 
 	# Custom timings argument
-	custom_timings = {}
-	if args.custom:
-		custom_timings["start_ts"] = pd.Timestamp((args.custom[0]).replace('_', ' '), tz="CET")
-		custom_timings["end_ts"] = pd.Timestamp((args.custom[1]).replace('_', ' '), tz="CET")
+	custom_timings = processCustomTimingsArgs(args)
 
 	# Cassandra database connection
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
