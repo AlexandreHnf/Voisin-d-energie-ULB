@@ -177,8 +177,13 @@ def getHomes(config, specific_home):
 def processArguments():
 	"""
 	process arguments 
-	argument : sftp config filename
-		-> contains host, port, username, password and destination path
+	
+	arguments : 
+		- sftp config filename (mandatory)
+			-> contains host, port, username, password and destination path
+		- home (optional): specific home id
+		- day (optional): specific day
+		- date_range (optional) : range between 2 specific dates
 	"""
 	argparser = argparse.ArgumentParser(
 		description=__doc__,

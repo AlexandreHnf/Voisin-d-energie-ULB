@@ -219,10 +219,12 @@ Here are the list of all the executable scripts aswell as their arguments :
 
 * retrieveDB : The script allows to get power data from Cassandra database into csv files. 1 file = 1 home and 1 specific day.
   ```sh
-  retrieveDB.py [--day DAY] output_filename
+  retrieveDB.py [--home HOME_ID] [--day DAY] [--date_range DATE1 DATE2] output_filename
   ```
   * The --day argument is the specific day we can query. It has to be in the form : YYYY_MM_DD
     *  If no specific day is specified, then the script automatically retrieve data from the last saved date based on the previous local files for each home. If no data has been saved for a home yet, the script will take all the history available in the database for that home.
+  * The --home argument allows to save data of 1 home specifically
+  * The --date_range argument allows to select a start date and an end date and retrieve the data for all dates between these two dates (can be combined with --home).  
   * The output_filename argument is the directory path where the csv data files will be saved.
 
 <br />
