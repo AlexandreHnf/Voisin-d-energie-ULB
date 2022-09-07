@@ -107,7 +107,36 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	return all_dates
 
 
-def processAllHomes(cassandra_session, now, homes, specific_day, output_filename):
+def getDates(cassandra_session, home_id, specific_days, now, output_filename):
+	""" 
+	Get all dates based on the chosen argument:
+	- if 1 specific date :  [specific_date]
+	- if date range date1 -> dateN : [date1... dateN]
+	- if no specific dates : 
+		- if no data saved yet : all database history
+		- if data already saved : dates between latest date and now
+	"""
+
+	all_dates = []
+	if specific_days:
+		if len(specific_days) == 1:
+			all_dates.append(specific_days[0])
+		elif len(specific_days) == 2:
+			all_dates = getDatesBetween(
+				pd.Timestamp(specific_days[0]), 
+				pd.Timestamp(specific_days[1])
+			)
+	else:
+		latest_date = getLastDate(output_filename, home_id)
+		if latest_date is None:  # history
+			all_dates = getAllHistoryDates(cassandra_session, home_id, TBL_POWER, now)
+		else:					 # realtime
+			all_dates = getDatesBetween(latest_date, now)
+
+	return all_dates
+
+
+def processAllHomes(cassandra_session, now, homes, specific_days, output_filename):
 	""" 
 	save 1 csv file per home, per day
 	- if no data sent for this home yet, we send the whole history
@@ -115,15 +144,7 @@ def processAllHomes(cassandra_session, now, homes, specific_day, output_filename
 	"""
 
 	for home_id in homes:
-		latest_date = getLastDate(output_filename, home_id)
-		all_dates = []
-		if specific_day != "":
-			all_dates.append(specific_day)
-		else:
-			if latest_date is None:  # history
-				all_dates = getAllHistoryDates(cassandra_session, home_id, TBL_POWER, now)
-			else:					 # realtime
-				all_dates = getDatesBetween(latest_date, now)
+		all_dates = getDates(cassandra_session, home_id, specific_days, now, output_filename)
 
 		for date in all_dates:
 			csv_filename = "{}_{}.csv".format(home_id, date)
@@ -185,6 +206,12 @@ def processArguments():
 		help="day in YYYY_MM_DD format"
 	)
 
+	argparser.add_argument(
+		"--date_range", type=str,
+		nargs="*",
+		help="start day and end day. Format : YYYY-MM-DD"
+	)
+
 	return argparser
 
 
@@ -196,6 +223,13 @@ def main():
 	specific_home = args.home
 	specific_day = args.day
 
+	# TODO : check the arguments validity + which arguments can work together
+	specific_days = []
+	if args.date_range:
+		specific_days = args.date_range
+	if args.day:
+		specific_days.append(args.day)
+
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
 	config = getLastRegisteredConfig(cassandra_session)
@@ -203,8 +237,9 @@ def main():
 	now = pd.Timestamp.now()
 
 	print("config id : " + str(config.getConfigID()))
-	print("specific home: " + "/" if specific_home == "" else specific_home)
-	print("specific day: " + "/" if specific_day == "" else specific_day)
+	print("specific home : " + ("/" if not specific_home else specific_home))
+	print("specific days : " + ("/" if not args.date_range else str(args.date_range)))
+	print("specific day : " + ("/" if not specific_day else specific_day))
 
 	homes = getHomes(config, specific_home)
 
@@ -212,7 +247,7 @@ def main():
 		cassandra_session, 
 		now, 
 		homes,
-		specific_day,
+		specific_days,
 		output_filename
 	)
 
