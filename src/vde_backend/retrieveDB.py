@@ -107,14 +107,14 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	return all_dates
 
 
-def processAllHomes(cassandra_session, config, now, specific_day, output_filename):
+def processAllHomes(cassandra_session, now, homes, specific_day, output_filename):
 	""" 
 	save 1 csv file per home, per day
 	- if no data sent for this home yet, we send the whole history
 	- otherwise, we send data from the last sent date to now
 	"""
 
-	for home_id in config.getIds().keys():
+	for home_id in homes:
 		latest_date = getLastDate(output_filename, home_id)
 		all_dates = []
 		if specific_day != "":
@@ -139,6 +139,20 @@ def processAllHomes(cassandra_session, config, now, specific_day, output_filenam
 		print("-----------------------")
 
 
+def getHomes(config, specific_home):
+	""" 
+	if specific home chosen in arguments : only 1 home
+	else : all homes from the config
+	"""
+	homes = []
+	if specific_home != "":
+		homes.append(specific_home)
+	else:
+		homes = config.getIds().keys()
+
+	return homes
+
+
 def processArguments():
 	"""
 	process arguments 
@@ -153,6 +167,14 @@ def processArguments():
 		"output_filename", 
 		type=str, 
 		help="output filename"
+	)
+
+	argparser.add_argument(
+		"--home",
+		type=str,
+		default="",
+		required=False,
+		help="home id"
 	)
 
 	argparser.add_argument(
@@ -171,6 +193,7 @@ def main():
 	argparser = processArguments()
 	args = argparser.parse_args()
 	output_filename = args.output_filename
+	specific_home = args.home
 	specific_day = args.day
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
@@ -180,12 +203,15 @@ def main():
 	now = pd.Timestamp.now()
 
 	print("config id : " + str(config.getConfigID()))
+	print("specific home: " + "/" if specific_home == "" else specific_home)
 	print("specific day: " + "/" if specific_day == "" else specific_day)
+
+	homes = getHomes(config, specific_home)
 
 	processAllHomes(
 		cassandra_session, 
-		config, 
 		now, 
+		homes,
 		specific_day,
 		output_filename
 	)
