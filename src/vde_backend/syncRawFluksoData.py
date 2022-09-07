@@ -269,6 +269,50 @@ def getTimings(tmpo_session, cassandra_session, config, missing_data, now):
 	return timings
 
 
+
+def getCustomTimings(config, custom_timings):
+	""" 
+	Set custom start timing and custom end timing for each home, and each sensor
+	- Same custom timings for each home.
+	"""
+	timings = {}
+	try:
+		for home_id, sensors_ids in config.getIds().items():
+			timings[home_id] = {
+				"start_ts": custom_timings["start_ts"],
+				"end_ts": custom_timings["end_ts"], 
+				"sensors": {}
+			}
+			for sid in sensors_ids:
+				timings[home_id]["sensors"][sid] = setInitSeconds(custom_timings["start_ts"])  # CET
+
+	except:
+		logging.critial("Exception occured in 'getCustomTimings' : ", exc_info=True)
+
+	return timings
+
+
+def processTimings(tmpo_session, cassandra_session, config, missing_data, now, custom_timings):
+	""" 
+	Get the timings for each home 
+	Timings are either custom or determined by the current database state.
+	"""
+	timings = {}
+	if (len(custom_timings) > 0):
+		timings = getCustomTimings(config, custom_timings)
+	else:
+		timings = getTimings(
+			tmpo_session, 
+			cassandra_session,
+			config,
+			missing_data,
+			now
+		)
+
+	return timings
+
+
+
 # ====================================================================================
 
 def generateHome(tmpo_session, hid, home_sensors, since_timing, to_timing):
@@ -615,7 +659,7 @@ def createTables(cassandra_session):
 	createPowerTable(cassandra_session, "power")
 
 
-def sync(cassandra_session):
+def sync(cassandra_session, custom_timings):
 	logging.info("====================== Sync ======================")
 	begin = time.time()
 	
@@ -657,12 +701,13 @@ def sync(cassandra_session):
 	tmpo_session = getTmpoSession(config)
 
 	# STEP 1 : get start and end timings for all homes for the query
-	timings = getTimings(
+	timings = processTimings(
 		tmpo_session,
 		cassandra_session,
 		config,
 		missing_data,
-		now
+		now,
+		custom_timings
 	)
 	timer["timing"] = time.time()
 
@@ -717,7 +762,7 @@ def main():
 	createTables(cassandra_session)
 
 	# then, sync new data in Cassandra
-	sync(cassandra_session)
+	sync(cassandra_session, custom_timings)
 
 
 if __name__ == "__main__":
