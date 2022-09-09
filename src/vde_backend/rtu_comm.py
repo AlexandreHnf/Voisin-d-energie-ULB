@@ -10,7 +10,7 @@ class RTUConnector():
     """
     HTTP driver for ABB RTU 560 series.
     """
-    def __init__(self, addr: str, user: str, pwd: str):
+    def __init__(self, addr: str, user: str, pwd: str, n_retries=10):
         """
         Initialize the RTU HTTP driver.
 
@@ -25,6 +25,7 @@ class RTUConnector():
             To get the measures: http://192.168.0.1/ABBRTU560/hwTree_pdInfoMon?IDNR=0&REF=549&MODE=1
         """
         self.addr = str(addr)
+        self.n_retries = int(n_retries)
         self.auth = requests.auth.HTTPDigestAuth(user, pwd)
         self.sess = requests.Session()
         self.url_index = "http://{}/rtui/index.html".format(self.addr)
@@ -32,16 +33,17 @@ class RTUConnector():
         self.connect()
         self.url_hwinfo = self.get_hw_addr()
 
-    def connect(self, retries=10):
+    def connect(self):
         resp = requests.Response()
-        for _ in range(retries):
+        for _ in range(self.n_retries):
             resp = self.sess.get(self.url_index, auth=self.auth)
             if resp.ok:
                 break
 
             time.sleep(1)
 
-        logging.debug(resp.status_code, self.sess.cookies.get_dict())
+        logging.debug('RTU connect: GET {}'.format(resp.status_code))
+        logging.debug('RTU connect: Cookies {}'.format(self.sess.cookies.get_dict()))
         resp.raise_for_status()
 
     def get_hw_addr(self, prefix="hwTree_pdInfoMon"):
