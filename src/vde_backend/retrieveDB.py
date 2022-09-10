@@ -21,6 +21,7 @@ saved csv files :
 import os
 import os.path
 import argparse
+import sys
 
 # 3rd party packages
 import pandas as pd
@@ -35,7 +36,8 @@ import pyToCassandra as ptc
 from utils import (
 	getDatesBetween, 
 	getLastRegisteredConfig,
-	getHomePowerDataFromCassandra
+	getHomePowerDataFromCassandra,
+	isEarlier
 )
 
 
@@ -174,6 +176,36 @@ def getHomes(config, specific_home):
 	return homes
 
 
+
+def getSpecificDays(specific_day, start_day, end_day):
+	""" 
+	Check if the provided arguments are valid (date format) and
+	return the list of asked timings
+	"""
+	specific_days = []
+
+	try:
+		if start_day and end_day:
+			specific_days = [
+				pd.Timestamp(start_day), 
+				pd.Timestamp(end_day)
+			]
+			if isEarlier(specific_days[1], specific_days[0]):
+				print("Wrong arguments (custom timings) : first timing must be earlier than second timing.")
+				sys.exit(1)
+		if specific_day:
+			if not start_day:
+				specific_days.append(specific_day)
+			else:
+				print("Please choose between a specific day or a date range.")
+				sys.exit(1)
+	except: 
+		print("Wrong arguments.")
+		sys.exit(1)
+
+	return specific_days
+
+
 def processArguments():
 	"""
 	process arguments 
@@ -241,12 +273,7 @@ def main():
 	start_day = args.start
 	end_day = args.end
 
-	# TODO : check the arguments validity + which arguments can work together
-	specific_days = []
-	if start_day and end_day:
-		specific_days = [start_day, end_day]
-	if args.day:
-		specific_days.append(args.day)
+	specific_days = getSpecificDays(specific_day, start_day, end_day)
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
