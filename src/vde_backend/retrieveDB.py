@@ -111,7 +111,7 @@ def getDates(cassandra_session, home_id, specific_days, now, output_filename):
 	""" 
 	Get all dates based on the chosen argument:
 	- if 1 specific date :  [specific_date]
-	- if date range date1 -> dateN : [date1... dateN]
+	- if date range date1 -> [start_day... end_day]
 	- if no specific dates : 
 		- if no data saved yet : all database history
 		- if data already saved : dates between latest date and now
@@ -177,6 +177,11 @@ def getHomes(config, specific_home):
 def processArguments():
 	"""
 	process arguments 
+
+	The purpose of this script is to dump csv from the database in many ways :
+		- real time (get database history if no data saved yet, or get data between last saved date and now)
+		- specific day of data
+		- now also a specific home id and a specific date range
 	
 	arguments : 
 		- sftp config filename (mandatory)
@@ -212,9 +217,15 @@ def processArguments():
 	)
 
 	argparser.add_argument(
-		"--date_range", type=str,
-		nargs="*",
-		help="start day and end day. Format : YYYY-MM-DD"
+		"--start",
+		type=str,
+		help="start day. Format : YYYY-MM-DD"
+	)
+
+	argparser.add_argument(
+		"--end",
+		type=str,
+		help="end day. Format : YYYY-MM-DD"
 	)
 
 	return argparser
@@ -227,11 +238,13 @@ def main():
 	output_filename = args.output_filename
 	specific_home = args.home
 	specific_day = args.day
+	start_day = args.start
+	end_day = args.end
 
 	# TODO : check the arguments validity + which arguments can work together
 	specific_days = []
-	if args.date_range:
-		specific_days = args.date_range
+	if start_day and end_day:
+		specific_days = [start_day, end_day]
 	if args.day:
 		specific_days.append(args.day)
 
@@ -243,7 +256,7 @@ def main():
 
 	print("config id : " + str(config.getConfigID()))
 	print("specific home : " + ("/" if not specific_home else specific_home))
-	print("specific days : " + ("/" if not args.date_range else str(args.date_range)))
+	print("specific range : " + ("/" if not start_day else "{} -> {}".format(start_day, end_day)))
 	print("specific day : " + ("/" if not specific_day else specific_day))
 
 	homes = getHomes(config, specific_home)

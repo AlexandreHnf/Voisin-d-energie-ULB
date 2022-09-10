@@ -292,7 +292,7 @@ def existTable(session, keyspace, table_name):
 
 	r = session.execute(query)
 
-	return (len(r.current_rows) > 0)
+	return len(r.current_rows) > 0
 
 
 # ==========================================================================
