@@ -1,3 +1,4 @@
+import pandas as pd
 import requests
 import time
 
@@ -10,6 +11,8 @@ class RTUConnector():
     """
     HTTP driver for ABB RTU 560 series.
     """
+    datefmt = "%Y-%m-%d, %H:%M:%S"
+
     def __init__(self, addr: str, user: str, pwd: str, n_retries=10):
         """
         Initialize the RTU HTTP driver.
@@ -59,22 +62,29 @@ class RTUConnector():
 
         raise ValueError("RTUConnector.get_hw_addr: no matching URL found for '{}' among {}".format(prefix, ", ".join(links)))
 
-    def iter_values(self, delay_s=5):
-        datefmt = "%Y-%m-%d, %H:%M:%S"
-        while True:
-            resp = self.sess.get(self.url_hwinfo, auth=self.auth)
-            logging.debug(resp.status_code, end='\r')
-            data = BeautifulSoup(resp.text, "html.parser")
-            for row in data.table.find_all("tr"):
-                row = [ c.text for c in row.find_all("td") ]
-                row = row[1:] # name, value, timestamp
-                timestr = row[2] # TIV = time invalid, NSY = not synchronized
-                if "TIV" in timestr:
-                    row[2] = datetime.now()
-                else:
-                    row[2] = datetime.strptime(timestr[1:20], datefmt)
+    def read_values(self):
+        resp = self.sess.get(self.url_hwinfo, auth=self.auth)
+        logging.debug('RTU read: GET {}'.format(resp.status_code))
+        data = BeautifulSoup(resp.text, "html.parser")
+        rows = [
+            [ c.text for c in row.find_all("td") ]
+            for row in data.table.find_all("tr")
+        ]
+        # Position 0 does not contain data.
+        names = [ r[1] for r in rows ]
+        values = [ float(r[2]) for r in rows ]
+        t_strings = { r[3] for r in rows }
+        ts = pd.Timestamp.now(tz='CET')
+        for timestr in t_strings:
+            # TIV = time invalid, NSY = not synchronized
+            if not "TIV" in timestr:
+                ts = pd.to_datetime(
+                    timestr[1:21],
+                    format=self.datefmt
+                ).tz_localize('CET')
+                break # Stop at first valid time.
 
-                yield row
-
-            time.sleep(delay_s)
+        names.append('ts')
+        values.append(ts)
+        return pd.Series(values, index=names)
 
