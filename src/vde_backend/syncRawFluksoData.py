@@ -271,12 +271,11 @@ def getTimings(tmpo_session, cassandra_session, config, missing_data, now):
 
 
 
-def getCustomTimings(config, custom_timings):
+def setCustomTimings(config, timings, custom_timings):
 	""" 
 	Set custom start timing and custom end timing for each home, and each sensor
 	- Same custom timings for each home.
 	"""
-	timings = {}
 	try:
 		for home_id, sensors_ids in config.getIds().items():
 			timings[home_id] = {
@@ -290,7 +289,6 @@ def getCustomTimings(config, custom_timings):
 	except:
 		logging.critial("Exception occured in 'getCustomTimings' : ", exc_info=True)
 
-	return timings
 
 
 def processTimings(tmpo_session, cassandra_session, config, missing_data, now, custom_timings):
@@ -300,7 +298,7 @@ def processTimings(tmpo_session, cassandra_session, config, missing_data, now, c
 	"""
 	timings = {}
 	if (len(custom_timings) > 0):
-		timings = getCustomTimings(config, custom_timings)
+		setCustomTimings(config, timings, custom_timings)
 	else:
 		timings = getTimings(
 			tmpo_session, 
@@ -666,14 +664,13 @@ def sync(cassandra_session, custom_timings):
 	logging.info("====================== Sync ======================")
 
 	# custom mode (custom start and end timings)
-	custom = len(custom_timings) > 0  # custom mode
+	custom = "start_ts" in custom_timings  # custom mode
 	logging.info("- Custom mode :               " + str(custom))
 	begin = time.time()
-	
-	# > timings
-	now = pd.Timestamp.now(tz="CET").replace(microsecond=0)  # remove microseconds for simplicity
 
 	# =============================================================
+
+	now = pd.Timestamp.now(tz="CET").replace(microsecond=0)  # remove microseconds for simplicity
 
 	# > Configuration
 	config = getLastRegisteredConfig(cassandra_session)
@@ -735,17 +732,17 @@ def sync(cassandra_session, custom_timings):
 	showProcessingTimes(begin, setup_time, timer) 
 
 
-def processCustomTimingsArgs(args):
+def processCustomTimings(start, end):
 	""" 
 	Given the custom mode, check if the two provided arguments
 	are valid. Namely, if the timestamp format is ok, and 
 	start ts < end ts
 	"""
 	custom_timings = {}
-	if args.custom:
+	if start:
 		try:
-			custom_timings["start_ts"] = pd.Timestamp((args.custom[0]).replace('_', ' '), tz="CET")
-			custom_timings["end_ts"] = pd.Timestamp((args.custom[1]).replace('_', ' '), tz="CET")
+			custom_timings["start_ts"] = pd.Timestamp(start, tz="CET")
+			custom_timings["end_ts"] = pd.Timestamp(end, tz="CET")
 		except:
 			logging.critical("Wrong argument format - custom timings : ", exc_info=True)
 			sys.exit(1)
@@ -757,7 +754,7 @@ def processCustomTimingsArgs(args):
 	return custom_timings
 
 
-def processArguments():
+def getArguments():
 	""" 
 	process arguments
 	argument : custom mode : choose a interval between 2 specific timings
@@ -768,21 +765,26 @@ def processArguments():
 	)
 
 	argparser.add_argument(
-		"--custom", type=str,
-		nargs="*",
-		help="start timing and end timing. Format : YYYY-MM-DD_HH:MM:SS"
+		"--start", 
+		type=str,
+		help="Start timing. Format : YYYY-mm-ddTHH:MM:SS"
 	)
 
-	return argparser
+	argparser.add_argument(
+		"--end", 
+		type=str,
+		default=str(pd.Timestamp.now()),
+		help="End timing. Format : YYYY-mm-ddTHH:MM:SS"
+	)
+
+	return argparser.parse_args()
 
 
 def main():
-
-	argparser = processArguments()
-	args = argparser.parse_args()
+	args = getArguments()
 
 	# Custom timings argument
-	custom_timings = processCustomTimingsArgs(args)
+	custom_timings = processCustomTimings(args.start, args.end)
 
 	# Cassandra database connection
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
