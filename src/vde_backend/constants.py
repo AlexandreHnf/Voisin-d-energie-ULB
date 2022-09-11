@@ -22,12 +22,13 @@ SFTP_LOCAL_PATH = 	"/opt/vde/sftp_data/" if PROD else "../../output/sftp_data/"
 
 # Log files.
 LOG_FILE = 			"/var/log/vde/prod.log" if PROD else "/var/log/vde/test.log"
-LOG_LEVEL =								"DEBUG" if PROD else "INFO"
+LOG_LEVEL =								"INFO" if PROD else "DEBUG"
 LOG_HANDLER =                           "logfile" if PROD else "stdout"
 
 # credentials
 CASSANDRA_CREDENTIALS_FILE = 			'/opt/vde/cassandra_serv_credentials.json'
 SFTP_CREDENTIALS_FILE = 				'/opt/vde/sftp_credentials.json'
+RTU_CREDENTIALS_FILE = 				'/opt/vde/rtu_credentials.json'
 
 
 # ========================== COMPUTATIONS =====================================
@@ -60,8 +61,11 @@ TBL_RAW =                               "raw"
 TBL_RAW_MISSING =                       "raw_missing"
 TBL_POWER =                             "power"
 TBL_GROUP =                             "group"
+TBL_RTU_DATA =                          "rtu"
 
 
 # ============================= SERVER ======================================
 SERVER_FRONTEND_IP = 					'iridia-vde-frontend.hpda.ulb.ac.be'
 SERVER_BACKEND_IP = 					'iridia-vde-db.hpda.ulb.ac.be'
+RTU_IP_ADDR = 							"192.168.0.4"
+
