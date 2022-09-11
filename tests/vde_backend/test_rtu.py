@@ -14,6 +14,7 @@ import unittest.mock
 logdir = os.path.dirname(constants.LOG_FILE)
 if os.path.exists(logdir):
     import rtu_comm
+    import sync_rtu
 else:
     raise FileNotFoundError('Please create {} before running the tests.'.format(logdir))
 
@@ -83,6 +84,34 @@ class TestRTUDriver(unittest.TestCase):
                 'TENSION PHASE 3-1': 237.319992,
             },
             num_vals,
+        )
+
+    def test_prepare_rtu_row(self):
+        test_vals = pd.Series({
+            'COS PHI': -0.906700,
+            'PUISSANCE ACTIVE': 30720.000000,
+            'PUISSANCE APPARENTE': 34920.000000,
+            'PUISSANCE REACTIVE': -6120.000000,
+            'TENSION PHASE 1-2': 237.500000,
+            'TENSION PHASE 2-3': 237.229996,
+            'TENSION PHASE 3-1': 237.319992,
+            'ts': pd.Timestamp('2022-09-11T17:27:00', tz='CET'),
+        })
+        prep_vals = sync_rtu.prepare_rtu_row(test_vals, '1.1.1.1')
+        self.assertDictEqual(
+            {
+                'ip': '1.1.1.1',
+                'day': '2022-09-11',
+                'ts': pd.Timestamp('2022-09-11T17:27:00', tz='CET'),
+                'cos_phi': -0.906700,
+                'active': 30720.000000,
+                'apparent': 34920.000000,
+                'reactive': -6120.000000,
+                'tension1-2': 237.500000,
+                'tension2-3': 237.229996,
+                'tension3-1': 237.319992,
+            },
+            prep_vals.to_dict()
         )
 
 
