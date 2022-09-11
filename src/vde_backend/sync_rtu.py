@@ -57,6 +57,13 @@ def main():
     rtu = RTUConnector(RTU_IP_ADDR, creds['user'], creds['pwd'])
     rtudat = rtu.read_values()
     rtu_row = prepare_rtu_row(rtudat, rtu.addr)
+    ptc.insert(
+        cassandra_session,
+        CASSANDRA_KEYSPACE,
+        TBL_RTU_DATA,
+        rtu_row.index,
+        rtu_row.values
+    )
 
 
 if __name__ == '__main__':
