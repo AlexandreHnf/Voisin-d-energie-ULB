@@ -4,16 +4,12 @@ __author__ = "Alexandre Heneffe, and Guillaume Levasseur"
 __license__ = "MIT"
 
 
-# standard library
-import json
-
 # 3rd party packages
 import cassandra
 import cassandra.auth
 import cassandra.cluster
 import cassandra.policies
 import logging
-import os.path
 import pandas as pd
 
 # local source
@@ -298,6 +294,15 @@ def existTable(session, keyspace, table_name):
 # ==========================================================================
 
 
+def load_json_credentials(path: str):
+	cred = {}
+	if os.path.exists(path):
+		with open(path) as json_file:
+			cred = json.load(json_file)
+
+	return cred
+
+
 def connectToCluster(keyspace):
 	""" 
 	connect to Cassandra Cluster
@@ -308,13 +313,12 @@ def connectToCluster(keyspace):
 	lbp = cassandra.policies.DCAwareRoundRobinPolicy(local_dc='datacenter1')
 	auth_provider = None
 	try:
-		if os.path.exists(CASSANDRA_CREDENTIALS_FILE):
-			with open(CASSANDRA_CREDENTIALS_FILE) as json_file:
-				cred = json.load(json_file)
-				auth_provider = cassandra.auth.PlainTextAuthProvider(
-					username=cred["username"],
-					password=cred["password"]
-				)
+		cred = load_json_credentials(CASSANDRA_CREDENTIALS_FILE)
+		if len(cred):
+			auth_provider = cassandra.auth.PlainTextAuthProvider(
+				username=cred["username"],
+				password=cred["password"]
+			)
 
 		cluster = cassandra.cluster.Cluster(
 			contact_points=[SERVER_BACKEND_IP, '127.0.0.1',],

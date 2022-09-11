@@ -31,7 +31,6 @@ Constraints :
 
 # standard library
 from datetime import timedelta
-import json
 import os
 import os.path
 import argparse
@@ -52,7 +51,7 @@ import pyToCassandra as ptc
 
 from utils import (
 	logging,
-	getDatesBetween, 
+	getDatesBetween,
 	getLastRegisteredConfig,
 	getHomePowerDataFromCassandra
 )
@@ -105,19 +104,6 @@ def saveDataToCsv(data_df, csv_filename):
 	data_df.to_csv(filepath)
 
 	logging.debug("Successfully Saved flukso data in csv")	
-
-
-def getSftpInfo(sftp_info_filename):
-	""" 
-	Returns a dictionary with the sftp server info : 
-	host, port, username, password, destination file
-	"""
-
-	sftp_info = {}
-	with open(sftp_info_filename) as json_file:
-		sftp_info = json.load(json_file)
-
-	return sftp_info
 
 
 def getSFTPsession(sftp_info):
@@ -306,7 +292,7 @@ def main():
 	sftp_info_filename = args.credentials_filename
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-	sftp_info = getSftpInfo(sftp_info_filename)
+	sftp_info = ptc.load_json_credentials(sftp_info_filename)
 	sftp_session = getSFTPsession(sftp_info)
 
 	config = getLastRegisteredConfig(cassandra_session)
