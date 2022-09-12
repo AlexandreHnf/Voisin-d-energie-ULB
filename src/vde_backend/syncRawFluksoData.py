@@ -408,7 +408,6 @@ def saveHomeMissingData(cassandra_session, config, to_timing, home, saved_sensor
 	Save the first timestamp with no data (nan values) for each sensors of the home
 	"""
 	hid = home.getHomeID()
-	logging.debug("- saving in Cassandra: {} ... ".format(TBL_RAW_MISSING))
 
 	try:
 		config_id = config.getConfigID().isoformat()
@@ -429,13 +428,11 @@ def saveHomeMissingData(cassandra_session, config, to_timing, home, saved_sensor
 								start_ts = timestamp.isoformat()
 								if np.isnan(inc_power_df[sid][i]):
 									values = [sid, config_id, start_ts, end_ts]
-									logging.debug("{} | start : {}, end = {}".format(config_id, start_ts, end_ts))
 									ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, TBL_RAW_MISSING, col_names, values)
 									saved_sensors[sid] = True  # mark that this sensor has missing data
 									# as soon as we find the first ts with null value, we go to next sensor
 									break
 
-		logging.debug("   OK : missing raw data saved.")
 	
 	except:
 		logging.critical("Exception occured in 'saveHomeMissingData' : {} ".format(hid), exc_info=True)
@@ -448,7 +445,6 @@ def saveHomeRawToCassandra(cassandra_session, home, config, timings):
 		home_df : timestamp, sensor_id1, sensor_id2, sensor_id3 ... sensor_idN
 	"""
 	hid = home.getHomeID()
-	logging.debug("- saving in Cassandra: {} ...".format(TBL_RAW))
 
 	try: 
 		insertion_time = pd.Timestamp.now(tz="CET").isoformat()
@@ -478,7 +474,6 @@ def saveHomeRawToCassandra(cassandra_session, home, config, timings):
 
 				ptc.batch_insert(cassandra_session, insert_queries)
 
-		logging.debug("   OK : raw data saved.")
 
 	except:
 		logging.critical("Exception occured in 'saveHomeRawToCassandra' : ", exc_info=True)

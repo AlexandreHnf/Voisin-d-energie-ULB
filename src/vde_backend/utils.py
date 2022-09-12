@@ -6,6 +6,7 @@ __license__ = "MIT"
 
 # standard library
 import os
+import sys
 import math
 from datetime import timedelta
 
@@ -17,10 +18,13 @@ import logging.handlers
 
 # local sources
 from constants import (
+	PROD,
 	CASSANDRA_KEYSPACE, 
 	FREQ, 
 	LOG_LEVEL,
 	LOG_FILE,
+	LOG_HANDLER,
+	TBL_POWER,
 	TBL_SENSORS_CONFIG
 )
 
@@ -50,6 +54,23 @@ def setupLogLevel():
 		return logging.DEBUG
 
 
+def getLogHandler():
+	""" 
+	If prod : rotating logfile handler
+	If dev : only stdout
+	"""
+	if LOG_HANDLER == "logfile":
+		handler = logging.handlers.TimedRotatingFileHandler(
+			LOG_FILE,
+			when='midnight',
+			backupCount=7,
+		)
+	else:  # stdout
+		handler = logging.StreamHandler(stream=sys.stdout)
+	
+	return handler
+
+
 # Create and configure logger
 logging.getLogger("tmpo").setLevel(logging.ERROR)
 logging.getLogger("requests").setLevel(logging.ERROR)
@@ -59,13 +80,7 @@ logging.basicConfig(
 	level = setupLogLevel(),
 	format = "{asctime} {levelname:<8} {filename:<16} {message}",
     style='{',
-	handlers=[
-		logging.handlers.TimedRotatingFileHandler(
-			LOG_FILE,
-			when='midnight',
-			backupCount=7,
-		),
-	]
+	handlers=[getLogHandler()]
 )
 
 
@@ -123,7 +138,6 @@ def getLastRegisteredConfig(cassandra_session):
 		["*"],
 		"insertion_time = '{}'".format(last_config_id),
 	)
-	# print(config_df['insertion_time'].head(5))
 	config = Configuration(last_config_id, config_df.set_index("sensor_id"))
 	return config
 
@@ -153,6 +167,34 @@ def getAllRegisteredConfigs(cassandra_session):
 			configs.append(Configuration(config_id, config.set_index("sensor_id")))
 
 	return configs
+
+
+def getHomePowerDataFromCassandra(cassandra_session, home_id, date, ts_clause=""):
+	""" 
+	Get power data from Power table in Cassandra
+	> for 1 specific home
+	> specific day
+	"""
+
+	where_clause = "home_id = '{}' and day = '{}' {}".format(home_id, date, ts_clause)
+	cols = [
+		"home_id", 
+		"day", 
+		"ts", 
+		"p_cons", 
+		"p_prod", 
+		"p_tot"
+	]
+
+	home_df = ptc.selectQuery(
+		cassandra_session, 
+		CASSANDRA_KEYSPACE, 
+		TBL_POWER, 
+		cols, 
+		where_clause,
+	)
+
+	return home_df
 
 
 def getDatesBetween(start_date, end_date):
@@ -199,7 +241,6 @@ def resample_extend(df, since_timing, to_timing):
 	On the opposite, this function guarrantees that the index of the returned,
 	resampled DataFrame start at since_timing and end at to_timing.
 	"""
-
 	filled_df = (df
 		# Resampling with origin is needed for later reindexing. If indexes are
 		# unaligned, the data is lost, replaced by NaNs.
@@ -214,7 +255,6 @@ def energy2power(energy_df):
 	"""
 	from cumulative energy to power (Watt)
 	"""
-	logging.debug(energy_df.head(10))
 	power_df = energy_df.diff() * 1000
 	power_df.fillna(0, inplace=True)
 	

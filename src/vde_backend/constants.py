@@ -17,11 +17,13 @@ CONFIG_ACCESS_TAB =                     "Export_Access"
 CONFIG_CAPTIONS_TAB =                   "InstallationCaptions"
 
 # Path to local databases.
-TMPO_FILE = 		"/opt/vde/" if PROD else ""
+TMPO_FILE =                             "/opt/vde/" if PROD else ""
 SFTP_LOCAL_PATH = 	"/opt/vde/sftp_data/" if PROD else "../../output/sftp_data/"
 
 # Log files.
 LOG_FILE = 			"/var/log/vde/prod.log" if PROD else "/var/log/vde/test.log"
+LOG_LEVEL =								"DEBUG" if PROD else "INFO"
+LOG_HANDLER =                           "logfile" if PROD else "stdout"
 
 # credentials
 CASSANDRA_CREDENTIALS_FILE = 			'/opt/vde/cassandra_serv_credentials.json'
@@ -63,5 +65,3 @@ TBL_GROUP =                             "group"
 # ============================= SERVER ======================================
 SERVER_FRONTEND_IP = 					'iridia-vde-frontend.hpda.ulb.ac.be'
 SERVER_BACKEND_IP = 					'iridia-vde-db.hpda.ulb.ac.be'
-
-LOG_LEVEL =								"INFO" if PROD else "DEBUG"

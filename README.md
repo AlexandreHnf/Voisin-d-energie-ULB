@@ -95,7 +95,7 @@ List of packages to install (Ubuntu) :
     ```sh
     npm install -g socket.io --save
     ```
-* cassandra-driver
+* cassandra-driver 
     ```sh
     npm install -g cassandra-driver
     ```
@@ -110,23 +110,23 @@ List of packages to install (Ubuntu) :
 
 #### Backend 
 
-* python3
+* python3 (> v3.8.10)
     ```sh
     sudo apt install python3
     ```
-* numpy
+* numpy (> v1.17.4)
     ```sh
     sudo apt install python3-numpy
     ```
-* pandas
+* pandas (> v1.1.0)
     ```sh
     sudo apt install python3-pandas
     ```
-* tmpo (<a href="https://github.com/flukso/tmpo-py"><strong>tmpo repository</strong></a>)
+* tmpo (<a href="https://github.com/flukso/tmpo-py"><strong>tmpo repository</strong></a>) (v0.2.10)
     ```sh
     sudo pip3 install tmpo
     ```
-* cassandra-driver 
+* cassandra-driver (> v3.25.0)
     ```sh
     sudo -H pip3 install cassandra-driver
     ```
@@ -148,6 +148,7 @@ List of packages to install (Ubuntu) :
     sudo pip install cqlsh 
 
 
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 
 <!-- USAGE EXAMPLES -->
@@ -216,13 +217,17 @@ Here are the list of all the executable scripts aswell as their arguments :
 
 <br />
 
-* **Remark** : All the scripts are using constants that are defined in the _constants.py_ file. However, this file is a symbolic link to another file, which can either be _constants_dev.py_ (development) or _constants_prod.py_ (production) depending on the environment. The repository only contains the production version of the constants file. To obtain the development version, we have to proceed like this : 
-	1. Copy the _constants_prod.py_ file in the same directory
-	2. Change the constants according to the system (paths, ...)
-	3. Create a symbolic link to _constants.py_
-		```sh
-		sudo ln -s constants_prod.py constants.py
-		```
+* retrieveDB : The script allows to get power data from Cassandra database into csv files. 1 file = 1 home and 1 specific day.
+  ```sh
+  retrieveDB.py [--home HOME_ID] [--day DAY] [--date_range DATE1 DATE2] output_filename
+  ```
+  * The --day argument is the specific day we can query. It has to be in the form : YYYY_MM_DD
+    *  If no specific day is specified, then the script automatically retrieve data from the last saved date based on the previous local files for each home. If no data has been saved for a home yet, the script will take all the history available in the database for that home.
+  * The --home argument allows to save data of 1 home specifically
+  * The --date_range argument allows to select a start date and an end date and retrieve the data for all dates between these two dates (can be combined with --home).  
+  * The output_filename argument is the directory path where the csv data files will be saved.
+
+<br />
 
 <br />
 
@@ -232,16 +237,10 @@ Here are the list of all the executable scripts aswell as their arguments :
 
 Distributed under the MIT License. See `LICENSE.txt` for more information.
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-
-
 <!-- CONTACT -->
 ## Contact
 
-Alexandre Heneffe - alexandre.heneffe@ulb.be
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
+* Alexandre Heneffe - alexandre.heneffe@ulb.be
+* Guillaume Levasseur - guillaume.levasseur@ulb.be
 
 <p align="right">(<a href="#top">back to top</a>)</p>
