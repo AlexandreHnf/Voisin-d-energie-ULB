@@ -31,7 +31,6 @@ Constraints :
 
 # standard library
 from datetime import timedelta
-from dis import dis
 import json
 import os
 import os.path
@@ -54,7 +53,8 @@ import pyToCassandra as ptc
 from utils import (
 	logging,
 	getDatesBetween, 
-	getLastRegisteredConfig
+	getLastRegisteredConfig,
+	getHomePowerDataFromCassandra
 )
 
 
@@ -105,36 +105,6 @@ def saveDataToCsv(data_df, csv_filename):
 	data_df.to_csv(filepath)
 
 	logging.debug("Successfully Saved flukso data in csv")	
-
-
-def getHomePowerDataFromCassandra(cassandra_session, home_id, date, moment, table_name):
-	""" 
-	Get power data from Power table in Cassandra
-	> for 1 specific home
-	> specific timings
-	"""
-
-	# all data before of after noon
-	ts_clause = "ts {} '{} {}'".format(moment, date, NOON)  
-	where_clause = "home_id = '{}' and day = '{}' and {}".format(home_id, date, ts_clause)
-	cols = [
-		"home_id", 
-		"day", 
-		"ts", 
-		"p_cons", 
-		"p_prod", 
-		"p_tot"
-	]
-
-	home_df = ptc.selectQuery(
-		cassandra_session, 
-		CASSANDRA_KEYSPACE, 
-		table_name, 
-		cols, 
-		where_clause,
-	)
-
-	return home_df
 
 
 def getSftpInfo(sftp_info_filename):
@@ -248,25 +218,23 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	from that first date, return the list of dates until now.
 	"""
 
-	# TODO : use limit 1 to be more efficient
 	# get first date available for this home 
 	where_clause = "home_id = '{}'".format(home_id)
-	cols = ["home_id", "day"]
-	result_df = ptc.selectQuery(
+	cols = ["day"]
+	date_df = ptc.selectQuery(
 		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
 		where_clause, 
-		limit=None,
+		limit=1,
 		allow_filtering=True,
-		distinct=True
+		distinct=False
 	)
 
 	all_dates = []
-	if len(result_df) > 0:
-		first_date = pd.Timestamp(list(result_df.groupby('day').groups.keys())[0])
-		del result_df
+	if len(date_df) > 0:
+		first_date = pd.Timestamp(date_df.iat[0,0])
 
 		all_dates = getDatesBetween(first_date, now)
 
@@ -301,12 +269,13 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 					home_id, 
 					date, 
 					moment, 
-					TBL_POWER
+					TBL_POWER,
+					ts_clause = "AND ts {} '{} {}'".format(moment, date, NOON)
 				)
 				
 				saveDataToCsv(home_data.set_index("home_id"), csv_filename)  # first save csv locally
 				if PROD:
-					sendFileToSFTP(sftp_session, csv_filename, sftp_info)								 # then, send to sftp server
+					sendFileToSFTP(sftp_session, csv_filename, sftp_info) # then, send to sftp server
 
 		logging.debug("-----------------------")
 

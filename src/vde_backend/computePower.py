@@ -37,7 +37,6 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config):
 		=> contains cons_prod_df : timestamp, P_cons, P_prod, P_tot
 	"""
 	hid = home.getHomeID()
-	logging.debug("- saving in Cassandra: {} ...".format(TBL_POWER))
 
 	try: 
 		insertion_time = pd.Timestamp.now(tz="CET").isoformat()
@@ -82,7 +81,6 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config):
 		
 			ptc.batch_insert(cassandra_session, insert_queries)
 		
-		logging.debug("   OK : power data saved.")
 	except:
 		logging.critial("Exception occured in 'saveHomePowerDataToCassandra' : {}".format(hid), exc_info=True)
 

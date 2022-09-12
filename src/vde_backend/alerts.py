@@ -10,7 +10,6 @@ Script to trigger an alert whenever something went wrong in the power data
 	- if some signs are incorrect/incoherent 
 		- if we see negative consumption values
 		- if we see positive production values
-		- if we see photovoltaic values during the night
 """
 
 # standard library
@@ -22,9 +21,11 @@ from datetime import timedelta
 
 # local source
 import pyToCassandra as ptc
-from utils import getLastRegisteredConfig
+from utils import(
+	getLastRegisteredConfig,
+	getHomePowerDataFromCassandra
+)
 from constants import (
-	TBL_POWER, 
 	CASSANDRA_KEYSPACE
 )
 
@@ -53,31 +54,12 @@ def sendMail(mail_filename):
 	pass 
 
 
-def getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name):
-	""" 
-	Get power data from Power table in Cassandra
-	> for 1 specific home
-	> for 1 specific day
-	"""
 
-	where_clause = "home_id = {} and day = '{}'".format("'"+home_id+"'", date)
-	cols = ["home_id", "day", "ts", "p_cons", "p_prod", "p_tot"]
-	home_df = ptc.selectQuery(
-		cassandra_session, 
-		CASSANDRA_KEYSPACE, 
-		table_name, 
-		cols, 
-		where_clause
-	)
-
-	return home_df
-
-
-def checkMissing(cassandra_session, home_id, date, table_name):
+def checkMissing(cassandra_session, home_id, date):
 	""" 
 	Check if there are a lot of missing data in one day of power data for a home
 	"""
-	home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name)
+	home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date)
 
 	count_zero = 0
 	if len(home_df) > 0:
@@ -90,14 +72,14 @@ def checkMissing(cassandra_session, home_id, date, table_name):
 	return count_zero, len(home_df)
 
 
-def checkSigns(cassandra_session, home_id, date, table_name):
+def checkSigns(cassandra_session, home_id, date):
 	""" 
 	Check if the signs are coherent in power data based on 2 criterion : 
-	Signs are incorrect if :
+	Signs are incorrect if there are :
 	- negative consumption values
 	- positive production values
 	"""
-	home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date, table_name)
+	home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date)
 
 	ok = True
 	if len(home_df) > 0:
@@ -130,15 +112,12 @@ def getHomesWithMissingData(cassandra_session, config, yesterday):
 	"""
 	
 	to_alert = {}
-	ids = config.getIds()
-	for home_id, sensor_ids in ids.items():
-		# print(home_id)
-		nb_zeros, tot_len = checkMissing(cassandra_session, home_id, yesterday, TBL_POWER)
+	for home_id in config.getIds().keys():
+		nb_zeros, tot_len = checkMissing(cassandra_session, home_id, yesterday)
 
 		percentage = 0
 		if nb_zeros > 0:
 			percentage = (100 * nb_zeros) / tot_len
-		# print("nb 0 : {}, tot len : {}, {}%".format(nb_zeros, tot_len, percentage))
 		if percentage >= MISSING_ALERT_THRESHOLD:  # if at least 80% of the rows are 0s, then alert
 			to_alert[home_id] = round(percentage, 1) 
 	
@@ -151,10 +130,8 @@ def getHomesWithIncorrectSigns(cassandra_session, config, yesterday):
 	If some signs are incorrect, we send an alert by email
 	"""
 	to_alert = {}
-	ids = config.getIds()
-	for home_id in ids.keys():
-		# print(home_id)
-		ok, info = checkSigns(cassandra_session, home_id, yesterday, TBL_POWER)
+	for home_id in config.getIds().keys():
+		ok, info = checkSigns(cassandra_session, home_id, yesterday)
 		if not ok:
 			to_alert[home_id] = info
 
@@ -211,7 +188,7 @@ def main():
 
 	last_config = getLastRegisteredConfig(cassandra_session)
 	now = pd.Timestamp.now(tz="CET")
-	yesterday = getYesterday(now)  # TODO : handle multiple past dates
+	yesterday = getYesterday(now)
 	print("yesterday : ", yesterday)
 
 	if mode == "missing":
@@ -223,11 +200,12 @@ def main():
 			print(mail_content)
 			writeMailToFile(mail_content, "alert_missing.txt")
 			sendMail("alert_missing.txt")
+
 	elif mode == "sign":
 		to_alert = getHomesWithIncorrectSigns(cassandra_session, last_config, yesterday)
 		if len(to_alert) > 0:
-			threshold = "> {} ".format(SIGN_THRESHOLD)
-			legend = "'home id ' > {'config id (insertion time): ': \n"
+			threshold = "{} ".format(SIGN_THRESHOLD)
+			legend = "'home id ' > \n"
 			legend += "{'cons_neg = is there any negative consumption values ?', \n"
 			legend += "'prod_pos = is there any positive production values ?'}}"
 			mail_content = getMailText("There are incorrect signs", threshold, legend, to_alert, yesterday)

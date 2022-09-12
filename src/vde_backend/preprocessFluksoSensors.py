@@ -13,6 +13,7 @@ import pandas as pd
 
 # local source
 from constants import (
+	TBL_POWER,
 	TBL_SENSORS_CONFIG, 
 	CASSANDRA_KEYSPACE, 
 	CONFIG_SENSORS_TAB, 
@@ -375,8 +376,9 @@ def main():
 	processConfig(cassandra_session, config_path, new_config_df, now)
 
 	# then, compare new config with previous configs and recompute data if necessary
-	print("> Recompute previous data... ")
-	recomputeData(cassandra_session)
+	if (ptc.existTable(cassandra_session, CASSANDRA_KEYSPACE, TBL_POWER)):
+		print("> Recompute previous data... ")
+		recomputeData(cassandra_session)
 
 
 
