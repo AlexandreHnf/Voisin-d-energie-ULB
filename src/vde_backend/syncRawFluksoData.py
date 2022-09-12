@@ -287,7 +287,7 @@ def setCustomTimings(config, timings, custom_timings):
 				timings[home_id]["sensors"][sid] = setInitSeconds(custom_timings["start_ts"])  # CET
 
 	except:
-		logging.critial("Exception occured in 'getCustomTimings' : ", exc_info=True)
+		logging.critical("Exception occured in 'setCustomTimings' : ", exc_info=True)
 
 
 
