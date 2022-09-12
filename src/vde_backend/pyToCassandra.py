@@ -10,6 +10,7 @@ import cassandra.auth
 import cassandra.cluster
 import cassandra.policies
 import logging
+import os.path
 import pandas as pd
 
 # local source
