@@ -56,7 +56,8 @@ from constants import (
 	TBL_RAW, 
 	FREQ, 
 	TBL_RAW_MISSING,
-	TMPO_FILE
+	TMPO_FILE,
+	TBL_POWER
 )
 
 
@@ -655,9 +656,9 @@ def createTables(cassandra_session):
 	"""
 	create the necessary tables for the flukso data synchronization
 	""" 
-	createRawFluksoTable(cassandra_session, "raw")
-	createRawMissingTable(cassandra_session, "raw_missing")
-	createPowerTable(cassandra_session, "power")
+	createRawFluksoTable(cassandra_session, TBL_RAW)
+	createRawMissingTable(cassandra_session, TBL_RAW_MISSING)
+	createPowerTable(cassandra_session, TBL_POWER)
 
 
 def sync(cassandra_session, custom_timings):
