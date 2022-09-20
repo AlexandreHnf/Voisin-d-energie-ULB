@@ -9,6 +9,7 @@ import cassandra
 import cassandra.auth
 import cassandra.cluster
 import cassandra.policies
+import json
 import logging
 import os.path
 import pandas as pd
