@@ -198,7 +198,7 @@ def getMoments(dates, default_moment):
 	return moments
 
 
-def getAllHistoryDates(cassandra_session, home_id, table_name, now):
+def getAllHistoryDates(home_id, table_name, now):
 	""" 
 	For a home, get the first timestamp available in the db, and 
 	from that first date, return the list of dates until now.
@@ -208,7 +208,6 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	where_clause = "home_id = '{}'".format(home_id)
 	cols = ["day"]
 	date_df = ptc.selectQuery(
-		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
@@ -227,7 +226,7 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	return all_dates
 
 
-def processAllHomes(cassandra_session, sftp_session, config, default_date, moment, moment_now, now, sftp_info):
+def processAllHomes(sftp_session, config, default_date, moment, moment_now, now, sftp_info):
 	""" 
 	send 1 csv file per home, per day moment (AM or PM) to the sftp server
 	- if no data sent for this home yet, we send the whole history
@@ -240,7 +239,7 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 		all_dates = [default_date]
 		moments = {default_date: [moment]}
 		if latest_date is None:  # history
-			all_dates = getAllHistoryDates(cassandra_session, home_id, TBL_POWER, now)
+			all_dates = getAllHistoryDates(home_id, TBL_POWER, now)
 			moments = getMoments(all_dates, moment_now)
 		else:					 # realtime
 			all_dates = getDatesBetween(latest_date, now)
@@ -251,7 +250,6 @@ def processAllHomes(cassandra_session, sftp_session, config, default_date, momen
 				csv_filename = getCsvFilename(home_id, date, moment)
 				logging.debug(csv_filename)
 				home_data = getHomePowerDataFromCassandra(
-					cassandra_session, 
 					home_id, 
 					date, 
 					moment, 
@@ -291,11 +289,10 @@ def main():
 	args = argparser.parse_args()
 	sftp_info_filename = args.credentials_filename
 
-	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 	sftp_info = ptc.load_json_credentials(sftp_info_filename)
 	sftp_session = getSFTPsession(sftp_info)
 
-	config = getLastRegisteredConfig(cassandra_session)
+	config = getLastRegisteredConfig()
 
 	now = pd.Timestamp.now()
 	default_date, moment, moment_now = getdateToQuery(now)
@@ -307,7 +304,6 @@ def main():
 
 
 	processAllHomes(
-		cassandra_session, 
 		sftp_session, 
 		config, 
 		default_date, 

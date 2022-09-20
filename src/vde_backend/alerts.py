@@ -55,11 +55,11 @@ def sendMail(mail_filename):
 
 
 
-def checkMissing(cassandra_session, home_id, date):
+def checkMissing(home_id, date):
 	""" 
 	Check if there are a lot of missing data in one day of power data for a home
 	"""
-	home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date)
+	home_df = getHomePowerDataFromCassandra(home_id, date)
 
 	count_zero = 0
 	if len(home_df) > 0:
@@ -72,14 +72,14 @@ def checkMissing(cassandra_session, home_id, date):
 	return count_zero, len(home_df)
 
 
-def checkSigns(cassandra_session, home_id, date):
+def checkSigns(home_id, date):
 	""" 
 	Check if the signs are coherent in power data based on 2 criterion : 
 	Signs are incorrect if there are :
 	- negative consumption values
 	- positive production values
 	"""
-	home_df = getHomePowerDataFromCassandra(cassandra_session, home_id, date)
+	home_df = getHomePowerDataFromCassandra(home_id, date)
 
 	ok = True
 	if len(home_df) > 0:
@@ -105,7 +105,7 @@ def checkSigns(cassandra_session, home_id, date):
 	return ok, info
 
 
-def getHomesWithMissingData(cassandra_session, config, yesterday):
+def getHomesWithMissingData(config, yesterday):
 	""" 
 	For each home, check if power data has a lot of missing data, 
 	if the percentage of missing data is non negligeable, we send an alert by email
@@ -113,7 +113,7 @@ def getHomesWithMissingData(cassandra_session, config, yesterday):
 	
 	to_alert = {}
 	for home_id in config.getIds().keys():
-		nb_zeros, tot_len = checkMissing(cassandra_session, home_id, yesterday)
+		nb_zeros, tot_len = checkMissing(home_id, yesterday)
 
 		percentage = 0
 		if nb_zeros > 0:
@@ -124,14 +124,14 @@ def getHomesWithMissingData(cassandra_session, config, yesterday):
 	return to_alert
 
 
-def getHomesWithIncorrectSigns(cassandra_session, config, yesterday):
+def getHomesWithIncorrectSigns(config, yesterday):
 	""" 
 	For each home, we check if power data are correct w.r.t the signs
 	If some signs are incorrect, we send an alert by email
 	"""
 	to_alert = {}
 	for home_id in config.getIds().keys():
-		ok, info = checkSigns(cassandra_session, home_id, yesterday)
+		ok, info = checkSigns(home_id, yesterday)
 		if not ok:
 			to_alert[home_id] = info
 
@@ -184,15 +184,13 @@ def main():
 	args = argparser.parse_args()
 	mode = args.mode
 
-	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-
-	last_config = getLastRegisteredConfig(cassandra_session)
+	last_config = getLastRegisteredConfig()
 	now = pd.Timestamp.now(tz="CET")
 	yesterday = getYesterday(now)
 	print("yesterday : ", yesterday)
 
 	if mode == "missing":
-		to_alert = getHomesWithMissingData(cassandra_session, last_config, yesterday)
+		to_alert = getHomesWithMissingData(last_config, yesterday)
 		if len(to_alert) > 0:
 			threshold = "{} %".format(MISSING_ALERT_THRESHOLD)
 			legend = "'home id' > percentage of missing data for 1 day"
@@ -202,7 +200,7 @@ def main():
 			sendMail("alert_missing.txt")
 
 	elif mode == "sign":
-		to_alert = getHomesWithIncorrectSigns(cassandra_session, last_config, yesterday)
+		to_alert = getHomesWithIncorrectSigns(last_config, yesterday)
 		if len(to_alert) > 0:
 			threshold = "{} ".format(SIGN_THRESHOLD)
 			legend = "'home id ' > \n"

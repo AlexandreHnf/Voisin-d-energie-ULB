@@ -51,14 +51,12 @@ def prepare_rtu_row(vals: pd.Series, ip: str):
 
 
 def main():
-    cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-    create_rtu_table(cassandra_session)
+    create_rtu_table()
     creds = ptc.load_json_credentials(RTU_CREDENTIALS_FILE)
     rtu = RTUConnector(RTU_IP_ADDR, creds['user'], creds['pwd'])
     rtudat = rtu.read_values()
     rtu_row = prepare_rtu_row(rtudat, rtu.addr)
     ptc.insert(
-        cassandra_session,
         CASSANDRA_KEYSPACE,
         TBL_RTU_DATA,
         rtu_row.index,
