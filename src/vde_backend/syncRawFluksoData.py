@@ -70,7 +70,7 @@ from sensor import Sensor
 # ====================================================================================
 
 
-def createRawFluksoTable(cassandra_session, table_name):
+def createRawFluksoTable(table_name):
 	""" 
 	create a cassandra table for the raw flukso data
 	"""
@@ -85,7 +85,6 @@ def createRawFluksoTable(cassandra_session, table_name):
 	]
 
 	ptc.createTable(
-		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		columns, 
@@ -95,7 +94,7 @@ def createRawFluksoTable(cassandra_session, table_name):
 	)
 
 
-def createPowerTable(cassandra_session, table_name):
+def createPowerTable(table_name):
 	""" 
 	create a cassandra table for the power data
 	"""
@@ -112,7 +111,6 @@ def createPowerTable(cassandra_session, table_name):
 	]
 
 	ptc.createTable(
-		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		power_cols, 
@@ -122,7 +120,7 @@ def createPowerTable(cassandra_session, table_name):
 	)
 
 
-def createRawMissingTable(cassandra_session, table_name):
+def createRawMissingTable(table_name):
 	""" 
 	Raw missing table contains timestamps range where there is missing data
 	from a specific query given a specific configuration of the sensors 
@@ -136,7 +134,6 @@ def createRawMissingTable(cassandra_session, table_name):
 	]
 
 	ptc.createTable(
-		cassandra_session, 
 		CASSANDRA_KEYSPACE,
 		table_name, 
 		cols, 
@@ -149,7 +146,7 @@ def createRawMissingTable(cassandra_session, table_name):
 # ====================================================================================
 
 
-def getLastRegisteredTimestamp(cassandra_session, table_name, sensor_id):
+def getLastRegisteredTimestamp(table_name, sensor_id):
 	""" 
 	get the last registered timestamp of the raw table
 	- None if no timestamp in the table
@@ -166,7 +163,6 @@ def getLastRegisteredTimestamp(cassandra_session, table_name, sensor_id):
 	# get last date available for this home
 	where_clause = "sensor_id = '{}' ORDER BY day DESC".format(sensor_id)
 	dates_df = ptc.selectQuery(
-		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		["day"],
@@ -177,7 +173,6 @@ def getLastRegisteredTimestamp(cassandra_session, table_name, sensor_id):
 	if len(dates_df) > 0:
 		last_date = dates_df.iat[0,0]
 		ts_df = ptc.selectQuery(
-			cassandra_session,
 			CASSANDRA_KEYSPACE,
 			table_name,
 			["ts"],
@@ -206,7 +201,7 @@ def getInitialTimestamp(tmpo_session, sid, now):
 	return initial_ts
 
 
-def getSensorTimings(tmpo_session, cassandra_session, missing_data, sid, now):
+def getSensorTimings(tmpo_session, missing_data, sid, now):
 	"""
 	For each sensor, we get start timing, forming the interval of time we have to
 	query to tmpo
@@ -223,7 +218,7 @@ def getSensorTimings(tmpo_session, cassandra_session, missing_data, sid, now):
 		start_ts = missing_data.loc[sid]["start_ts"] - timedelta(seconds=FREQ[0]) 
 		sensor_start_ts = start_ts  # sensor start timing = missing data first timestamp
 	else:  # if no missing data for this sensor
-		default_timing = getLastRegisteredTimestamp(cassandra_session, TBL_RAW, sid)  # None or tz-naive CET
+		default_timing = getLastRegisteredTimestamp(TBL_RAW, sid)  # None or tz-naive CET
 		if default_timing is None:  # if no raw data registered for this sensor yet
 			# we take its first tmpo timestamp
 			initial_ts = getInitialTimestamp(tmpo_session, sid, now)
@@ -234,7 +229,7 @@ def getSensorTimings(tmpo_session, cassandra_session, missing_data, sid, now):
 	return sensor_start_ts
 
 
-def getTimings(tmpo_session, cassandra_session, config, missing_data, now):
+def getTimings(tmpo_session, config, missing_data, now):
 	"""
 	For each home, get the start timing for the query based on the missing data table
 	(containing for each sensor the first timestamp with missing data from the previous query)
@@ -252,7 +247,7 @@ def getTimings(tmpo_session, cassandra_session, config, missing_data, now):
 			timings[home_id] = {"start_ts": now, "end_ts": now, "sensors": {}}
 
 			for sid in sensors_ids:  # for each sensor of this home
-				sensor_start_ts = getSensorTimings(tmpo_session, cassandra_session, missing_data, sid, now)
+				sensor_start_ts = getSensorTimings(tmpo_session, missing_data, sid, now)
 
 				# if 'start_ts' is older (in the past) than the current start_ts
 				if sensor_start_ts is not None and isEarlier(sensor_start_ts, timings[home_id]["start_ts"]):
@@ -292,7 +287,7 @@ def setCustomTimings(config, timings, custom_timings):
 
 
 
-def processTimings(tmpo_session, cassandra_session, config, missing_data, now, custom_timings):
+def processTimings(tmpo_session, config, missing_data, now, custom_timings):
 	""" 
 	Get the timings for each home 
 	Timings are either custom or determined by the current database state.
@@ -303,7 +298,6 @@ def processTimings(tmpo_session, cassandra_session, config, missing_data, now, c
 	else:
 		timings = getTimings(
 			tmpo_session, 
-			cassandra_session,
 			config,
 			missing_data,
 			now
@@ -404,7 +398,7 @@ def getFluksoData(sensor_file, path=""):
 # ====================================================================================
 
 
-def saveHomeMissingData(cassandra_session, config, to_timing, home, saved_sensors):
+def saveHomeMissingData(config, to_timing, home, saved_sensors):
 	"""
 	Save the first timestamp with no data (nan values) for each sensors of the home
 	"""
@@ -429,7 +423,7 @@ def saveHomeMissingData(cassandra_session, config, to_timing, home, saved_sensor
 								start_ts = timestamp.isoformat()
 								if np.isnan(inc_power_df[sid][i]):
 									values = [sid, config_id, start_ts, end_ts]
-									ptc.insert(cassandra_session, CASSANDRA_KEYSPACE, TBL_RAW_MISSING, col_names, values)
+									ptc.insert(CASSANDRA_KEYSPACE, TBL_RAW_MISSING, col_names, values)
 									saved_sensors[sid] = True  # mark that this sensor has missing data
 									# as soon as we find the first ts with null value, we go to next sensor
 									break
@@ -439,7 +433,7 @@ def saveHomeMissingData(cassandra_session, config, to_timing, home, saved_sensor
 		logging.critical("Exception occured in 'saveHomeMissingData' : {} ".format(hid), exc_info=True)
 
 
-def saveHomeRawToCassandra(cassandra_session, home, config, timings):
+def saveHomeRawToCassandra(home, config, timings):
 	"""
 	Save raw flukso flukso data to Cassandra table
 	Save per sensor : 1 row = 1 sensor + 1 timestamp + 1 power value
@@ -470,10 +464,10 @@ def saveHomeRawToCassandra(cassandra_session, home, config, timings):
 						insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, TBL_RAW, col_names, values)
 
 						if (i + 1) % INSERTS_PER_BATCH == 0:
-							ptc.batch_insert(cassandra_session, insert_queries)
+							ptc.batch_insert(insert_queries)
 							insert_queries = ""
 
-				ptc.batch_insert(cassandra_session, insert_queries)
+				ptc.batch_insert(insert_queries)
 
 
 	except:
@@ -527,7 +521,7 @@ def getIntermediateTimings(start_ts, end_ts):
 	return intermediate_timings
 
 
-def saveDataThreads(cassandra_session, home, config, timings, now, saved_sensors, custom):
+def saveDataThreads(home, config, timings, now, saved_sensors, custom):
 	""" 
 	Threads to save data to different Cassandra tables
 	-> raw data in raw table
@@ -539,7 +533,7 @@ def saveDataThreads(cassandra_session, home, config, timings, now, saved_sensors
 	# save raw flukso data in cassandra
 	t1 = Thread(
 		target = saveHomeRawToCassandra, 
-		args=(cassandra_session, home, config, timings)
+		args=(home, config, timings)
 	)
 	threads.append(t1)
 	t1.start()
@@ -548,7 +542,7 @@ def saveDataThreads(cassandra_session, home, config, timings, now, saved_sensors
 		# save missing raw data in cassandra
 		t2 = Thread(
 			target = saveHomeMissingData, 
-			args = (cassandra_session, config, now, home, saved_sensors)
+			args = (config, now, home, saved_sensors)
 		)
 		threads.append(t2)
 		t2.start()
@@ -556,7 +550,7 @@ def saveDataThreads(cassandra_session, home, config, timings, now, saved_sensors
 	# save power flukso data in cassandra
 	t3 = Thread(
 		target = saveHomePowerDataToCassandra, 
-		args = (cassandra_session, home, config)
+		args = (home, config)
 	)
 	threads.append(t3)
 	t3.start()
@@ -566,7 +560,7 @@ def saveDataThreads(cassandra_session, home, config, timings, now, saved_sensors
 		t.join()
 
 
-def processHomes(cassandra_session, tmpo_session, config, timings, now, custom):
+def processHomes(tmpo_session, config, timings, now, custom):
 	""" 
 	For each home, we first create the home object containing
 	all the tmpo queries and series computation
@@ -598,7 +592,6 @@ def processHomes(cassandra_session, tmpo_session, config, timings, now, custom):
 				)
 
 				saveDataThreads(
-					cassandra_session, 
 					home, 
 					config, 
 					timings, 
@@ -652,16 +645,16 @@ def showProcessingTimes(begin, setup_time, t):
 	))
 
 
-def createTables(cassandra_session):
+def createTables():
 	"""
 	create the necessary tables for the flukso data synchronization
 	""" 
-	createRawFluksoTable(cassandra_session, TBL_RAW)
-	createRawMissingTable(cassandra_session, TBL_RAW_MISSING)
-	createPowerTable(cassandra_session, TBL_POWER)
+	createRawFluksoTable(TBL_RAW)
+	createRawMissingTable(TBL_RAW_MISSING)
+	createPowerTable(TBL_POWER)
 
 
-def sync(cassandra_session, custom_timings):
+def sync(custom_timings):
 	logging.info("====================== Sync ======================")
 
 	# custom mode (custom start and end timings)
@@ -674,9 +667,8 @@ def sync(cassandra_session, custom_timings):
 	now = pd.Timestamp.now(tz="CET").replace(microsecond=0)  # remove microseconds for simplicity
 
 	# > Configuration
-	config = getLastRegisteredConfig(cassandra_session)
+	config = getLastRegisteredConfig()
 	missing_data = ptc.selectQuery(
-		cassandra_session,
 		CASSANDRA_KEYSPACE,
 		TBL_RAW_MISSING,
 		["*"],
@@ -692,7 +684,7 @@ def sync(cassandra_session, custom_timings):
 
 	if not custom:
 		#truncate existing rows in Raw missing table
-		ptc.deleteRows(cassandra_session, CASSANDRA_KEYSPACE, TBL_RAW_MISSING)
+		ptc.deleteRows(CASSANDRA_KEYSPACE, TBL_RAW_MISSING)
 
 	# Timer
 	config_id = config.getConfigID()
@@ -710,7 +702,6 @@ def sync(cassandra_session, custom_timings):
 	# STEP 1 : get start and end timings for all homes for the query
 	timings = processTimings(
 		tmpo_session,
-		cassandra_session,
 		config,
 		missing_data,
 		now,
@@ -724,7 +715,7 @@ def sync(cassandra_session, custom_timings):
 	logging.info("Generating homes data, getting Flukso data and save in Cassandra...")
 
 	# STEP 2 : process all homes data, and save in database
-	processHomes(cassandra_session, tmpo_session, config, timings, now, custom)
+	processHomes(tmpo_session, config, timings, now, custom)
 
 	timer["homes"] = time.time()
 
@@ -787,14 +778,11 @@ def main():
 	# Custom timings argument
 	custom_timings = processCustomTimings(args.start, args.end)
 
-	# Cassandra database connection
-	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-
 	# first, create tables if needed : 
-	createTables(cassandra_session)
+	createTables()
 
 	# then, sync new data in Cassandra
-	sync(cassandra_session, custom_timings)
+	sync(custom_timings)
 
 
 if __name__ == "__main__":

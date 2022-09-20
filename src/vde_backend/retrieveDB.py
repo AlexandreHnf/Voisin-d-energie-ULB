@@ -80,7 +80,7 @@ def getLastDate(output_file, home_id):
 	return latest_date
 
 
-def getAllHistoryDates(cassandra_session, home_id, table_name, now):
+def getAllHistoryDates(home_id, table_name, now):
 	""" 
 	For a home, get the first timestamp available in the db, and 
 	from that first date, return the list of dates until now.
@@ -90,7 +90,6 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	where_clause = "home_id = '{}'".format(home_id)
 	cols = ["day"]
 	date_df = ptc.selectQuery(
-		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
@@ -109,7 +108,7 @@ def getAllHistoryDates(cassandra_session, home_id, table_name, now):
 	return all_dates
 
 
-def getDates(cassandra_session, home_id, specific_days, now, output_filename):
+def getDates(home_id, specific_days, now, output_filename):
 	""" 
 	Get all dates based on the chosen argument:
 	- if 1 specific date :  [specific_date]
@@ -131,14 +130,14 @@ def getDates(cassandra_session, home_id, specific_days, now, output_filename):
 	else:
 		latest_date = getLastDate(output_filename, home_id)
 		if latest_date is None:  # history
-			all_dates = getAllHistoryDates(cassandra_session, home_id, TBL_POWER, now)
+			all_dates = getAllHistoryDates(home_id, TBL_POWER, now)
 		else:					 # realtime
 			all_dates = getDatesBetween(latest_date, now)
 
 	return all_dates
 
 
-def processAllHomes(cassandra_session, now, homes, specific_days, output_filename):
+def processAllHomes(now, homes, specific_days, output_filename):
 	""" 
 	save 1 csv file per home, per day
 	- if no data sent for this home yet, we send the whole history
@@ -146,13 +145,12 @@ def processAllHomes(cassandra_session, now, homes, specific_days, output_filenam
 	"""
 
 	for home_id in homes:
-		all_dates = getDates(cassandra_session, home_id, specific_days, now, output_filename)
+		all_dates = getDates(home_id, specific_days, now, output_filename)
 
 		for date in all_dates:
 			csv_filename = "{}_{}.csv".format(home_id, date)
 			print(csv_filename)
 			home_data = getHomePowerDataFromCassandra(
-				cassandra_session, 
 				home_id, 
 				date
 			)
@@ -275,9 +273,7 @@ def main():
 
 	specific_days = getSpecificDays(specific_day, start_day, end_day)
 
-	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-
-	config = getLastRegisteredConfig(cassandra_session)
+	config = getLastRegisteredConfig()
 
 	now = pd.Timestamp.now()
 
@@ -289,7 +285,6 @@ def main():
 	homes = getHomes(config, specific_home)
 
 	processAllHomes(
-		cassandra_session, 
 		now, 
 		homes,
 		specific_days,

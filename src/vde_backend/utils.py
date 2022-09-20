@@ -26,7 +26,7 @@ from constants import (
 	LOG_FILE,
 	LOG_HANDLER,
 	TBL_POWER,
-	TBL_SENSORS_CONFIG
+	TBL_SENSORS_CONFIG,
 )
 
 from sensorConfig import Configuration
@@ -117,12 +117,11 @@ def setInitSeconds(ts):
 	return ts
 
 
-def getLastRegisteredConfig(cassandra_session):
+def getLastRegisteredConfig():
 	"""
 	Get the last registered config based on insertion time
 	"""
 	latest_configs = ptc.groupbyQuery(
-		cassandra_session,
 		CASSANDRA_KEYSPACE,
 		TBL_SENSORS_CONFIG,
 		column='insertion_time',
@@ -133,7 +132,6 @@ def getLastRegisteredConfig(cassandra_session):
 	)
 	last_config_id = latest_configs.max().max().tz_localize('UTC')
 	config_df = ptc.selectQuery(
-		cassandra_session,
 		CASSANDRA_KEYSPACE,
 		TBL_SENSORS_CONFIG,
 		["*"],
@@ -143,7 +141,7 @@ def getLastRegisteredConfig(cassandra_session):
 	return config
 
 
-def getAllRegisteredConfigs(cassandra_session):
+def getAllRegisteredConfigs():
 	""" 
 	Get all configs present in the system
 	returns a list of config ids
@@ -152,7 +150,6 @@ def getAllRegisteredConfigs(cassandra_session):
 		-> possible solution : select distinct insertion_time, home_id, sensor_id to reduce the nb of queried lines
 	"""
 	all_configs_df = ptc.selectQuery(
-		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		TBL_SENSORS_CONFIG,
 		["*"], 
@@ -170,7 +167,7 @@ def getAllRegisteredConfigs(cassandra_session):
 	return configs
 
 
-def getHomePowerDataFromCassandra(cassandra_session, home_id, date, ts_clause=""):
+def getHomePowerDataFromCassandra(home_id, date, ts_clause=""):
 	""" 
 	Get power data from Power table in Cassandra
 	> for 1 specific home
@@ -188,7 +185,6 @@ def getHomePowerDataFromCassandra(cassandra_session, home_id, date, ts_clause=""
 	]
 
 	home_df = ptc.selectQuery(
-		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		TBL_POWER, 
 		cols, 
@@ -272,8 +268,7 @@ def getTimeSpent(time_begin, time_end):
 
 
 def main():
-	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-	config = getLastRegisteredConfig(cassandra_session)
+	config = getLastRegisteredConfig()
 	print(config.getSensorsConfig())
 
 
