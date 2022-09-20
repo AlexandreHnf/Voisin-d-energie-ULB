@@ -247,12 +247,14 @@ def recomputePowerData(cassandra_session, new_config, homes):
 			for date in all_dates:
 				# get raw data from previous config
 				home_rawdata = getHomeRawData(cassandra_session, sensors_df, date)
-				# recompute power data with new config info : consumption, production, total
-				home_powers = getHomeConsumptionProductionDf(home_rawdata, hid, sensors_df)
+				# Check if raw data is not empty
+				if len(home_rawdata) > 0:
+					# recompute power data with new config info : consumption, production, total
+					home_powers = getHomeConsumptionProductionDf(home_rawdata, hid, sensors_df)
 
-				# save (overwrite) to cassandra table
-				if len(home_powers) > 0:
-					saveRecomputedPowersToCassandra(cassandra_session, new_config_id, home_powers)
+					# save (overwrite) to cassandra table
+					if len(home_powers) > 0:
+						saveRecomputedPowersToCassandra(cassandra_session, new_config_id, home_powers)
 
 
 # ====================================================================================
