@@ -24,6 +24,36 @@ from constants import (
 )
 
 
+def load_json_credentials(path: str):
+	cred = {}
+	if os.path.exists(path):
+		with open(path) as json_file:
+			cred = json.load(json_file)
+
+	return cred
+
+
+# ==========================================================================
+
+
+def createKeyspace(session, keyspace_name):
+	""" 
+	Create a new keyspace in the Cassandra database
+
+	command : CREATE KEYSPACE <keyspace> WITH REPLICATION = 
+				{'class': <replication_class>, 'replication_factor': <replication_factor>}
+	"""
+	# to create a new keyspace :
+	keyspace_query = "CREATE KEYSPACE {} WITH REPLICATION = {{'class' : '{}', 'replication_factor': {}}};"
+	keyspace_query = keyspace_query.format(
+		keyspace_name,
+		CASSANDRA_REPLICATION_STRATEGY,
+		CASSANDRA_REPLICATION_FACTOR,
+	)
+	logging.debug(keyspace_query)
+	session.execute(keyspace_query)
+
+
 def connectToCluster(keyspace):
 	""" 
 	connect to Cassandra Cluster
@@ -85,24 +115,6 @@ def getRightFormat(values):
 			res.append(str(v))
 	
 	return res
-
-
-def createKeyspace(keyspace_name):
-	""" 
-	Create a new keyspace in the Cassandra database
-
-	command : CREATE KEYSPACE <keyspace> WITH REPLICATION = 
-				{'class': <replication_class>, 'replication_factor': <replication_factor>}
-	"""
-	# to create a new keyspace :
-	keyspace_query = "CREATE KEYSPACE {} WITH REPLICATION = {{'class' : '{}', 'replication_factor': {}}};"
-	keyspace_query = keyspace_query.format(
-		keyspace_name,
-		CASSANDRA_REPLICATION_STRATEGY,
-		CASSANDRA_REPLICATION_FACTOR,
-	)
-	logging.debug(keyspace_query)
-	SESSION.execute(keyspace_query)
 
 
 def deleteRows(keyspace, table_name):
@@ -331,16 +343,3 @@ def existTable(keyspace, table_name):
 	r = SESSION.execute(query)
 
 	return len(r.current_rows) > 0
-
-
-# ==========================================================================
-
-
-def load_json_credentials(path: str):
-	cred = {}
-	if os.path.exists(path):
-		with open(path) as json_file:
-			cred = json.load(json_file)
-
-	return cred
-
