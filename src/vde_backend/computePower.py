@@ -165,7 +165,7 @@ def saveRecomputedPowersToCassandra(cassandra_session, new_config_id, cons_prod_
 	]
 	insert_queries = ""
 	nb_inserts = 0
-	print(cons_prod_df)
+	
 	for _, row in cons_prod_df.iterrows():
 		values = list(row)
 		values[2] = values[2].isoformat() # timestamp (ts)
