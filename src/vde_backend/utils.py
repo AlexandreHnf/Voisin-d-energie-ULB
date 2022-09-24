@@ -119,6 +119,8 @@ def setInitSeconds(ts):
 def getLastRegisteredConfig(cassandra_session):
 	"""
 	Get the last registered config based on insertion time
+	Condition : the TBL_SENSORS_CONFIG is not empty
+	It it is empty, then we return None
 	"""
 	latest_configs = ptc.groupbyQuery(
 		cassandra_session,
@@ -130,6 +132,8 @@ def getLastRegisteredConfig(cassandra_session):
 		allow_filtering=False,
 		tz="UTC"
 	)
+	if len(latest_configs) == 0:
+		return None
 	last_config_id = latest_configs.max().max().tz_localize('UTC')
 	config_df = ptc.selectQuery(
 		cassandra_session,

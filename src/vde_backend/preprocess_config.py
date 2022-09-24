@@ -22,6 +22,7 @@ from constants import (
 )
 
 import pyToCassandra as ptc
+from sensorConfig import Configuration
 from computePower import recomputePowerData
 from utils import getLastRegisteredConfig
 
@@ -44,7 +45,7 @@ def get_sheet_data(config_file_path, sheet_name):
 		sys.exit(1)
 
 
-def getFluksosDic(installation_ids_df):
+def get_fluksos_dic(installation_ids_df):
 	""" 
 	Return a dictionary of the form : 
 	key = flukso id, value = installation id 
@@ -61,7 +62,7 @@ def getFluksosDic(installation_ids_df):
 	return fluksos
 
 
-def getInstallationsIds(flukso_ids, fluksos):
+def get_installations_ids(flukso_ids, fluksos):
 	""" 
 	return a list of all the installations ids in the excel column, but
 	only those whose fluksos are available. (an id can appear several times)
@@ -76,13 +77,12 @@ def getInstallationsIds(flukso_ids, fluksos):
 	return installation_id_col
 
 
-def get_config_df(config_file_path):
+def get_config_df(config_file_path, index_name=""):
 	"""
 	read the excel sheet containing the flukso ids, the sensors ids, the tokens
 	and compact them into a simpler usable dataframe
 	columns : home_id, phase, flukso_id, sensor_id, token, net, con, pro
 	"""
-	print("Config file : ", config_file_path)
 	sensors_df = get_sheet_data(config_file_path, CONFIG_SENSORS_TAB)
 	config_df = pd.DataFrame(
 		columns=[
@@ -109,6 +109,9 @@ def get_config_df(config_file_path):
 	config_df.fillna(0, inplace=True)
 
 	config_df.sort_values(by=["home_id"])
+
+	if index_name:
+		config_df = config_df.set_index(index_name)
 
 	return config_df
 
@@ -313,7 +316,16 @@ def create_table_group(cassandra_session, table_name):
 # ==========================================================================
 
 
-def process_config(cassandra_session, config_file_path, new_config_df, now):
+def create_tables(cassandra_session):
+	""" 
+	create tables if necessary (if they do not already exist)
+	"""
+	create_table_sensor_config(cassandra_session, "sensors_config")
+	create_table_access(cassandra_session, "access")
+	create_table_group(cassandra_session, "group")
+
+
+def save_config(cassandra_session, config_file_path, new_config_df, now):
 	""" 
 	Given a compact dataframe with a configuration, write
 	the right data to Cassandra 
@@ -321,11 +333,6 @@ def process_config(cassandra_session, config_file_path, new_config_df, now):
 	- login info in access table
 	- group captions in group table
 	"""
-
-	# first, create tables if necessary (if they do not already exist)
-	create_table_sensor_config(cassandra_session, "sensors_config")
-	create_table_access(cassandra_session, "access")
-	create_table_group(cassandra_session, "group")
 
 	# > fill config tables using excel configuration file
 	print("> Writing new config in cassandra...")
@@ -340,6 +347,59 @@ def process_config(cassandra_session, config_file_path, new_config_df, now):
 
 # ==========================================================================
 
+
+def compare_configs(c1_path, c1, c2_path, c2):
+	""" 
+	Go through the 2 config home ids and sensors ids
+	and detect new changes
+	TODO : count changes 
+	"""
+
+	print("--------------------------------------------------")
+	print("Old config : " + (c1_path if c1_path else "Last registered config"))
+	print(c1)
+	print("New config : " + c2_path)
+	print(c2)
+
+	if c1:
+		for hid, sids in c1.getHomeSensors().items():
+			print("{} : ".format(hid), end="")
+			if hid in c2.getHomeSensors():
+				new_sids = c2.getHomeSensors()[hid]
+				if set(sids) == set(new_sids):
+					print("Same sensor ids")
+				else:
+					print("New sensors ids : ")
+					# sensors ids from new config not present in the other config
+					print([sid for sid in new_sids if sid not in sids])
+			else:
+				print("New home")
+	print("--------------------------------------------------")
+
+
+def get_configs(cassandra_session, config_old_path, config_new_path, now):
+	""" 
+	We can compare either 2 configs from 2 excel files or
+	compare the last registered configuration in the Cassandra database with
+	a excel config file
+	"""
+	old_config = None
+	if not config_old_path:
+		old_config = getLastRegisteredConfig(cassandra_session)
+	else:
+		old_config = Configuration(
+			now, 
+			get_config_df(config_old_path, "sensor_id")
+		)
+	new_config = Configuration(
+		now, 
+		get_config_df(config_new_path, "sensor_id")
+	)
+	
+	return old_config, new_config
+
+
+
 def process_arguments():
 
 	argparser = argparse.ArgumentParser(
@@ -347,10 +407,18 @@ def process_arguments():
 		formatter_class=argparse.RawDescriptionHelpFormatter,
 	)
 
+	# mandatory argument
 	argparser.add_argument(
 		"config", 
 		type=str,
-		help="Path to the config excel file"
+		help="Path to the new config excel file. Format : ConfigurationNN_YYYYmmdd.xlsx"
+	)
+
+	# optional argument
+	argparser.add_argument(
+		"--diff",
+		type=str,
+		help="Path to another config excel file. Format : ConfigurationNN_YYYYmmdd.xlsx"
 	)
 
 	return argparser
@@ -360,24 +428,37 @@ def main():
 	# > arguments
 	argparser = process_arguments()
 	args = argparser.parse_args()
-	config_path = args.config
+	new_config_path = args.config
+	old_config_path = args.diff
 
 	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
 
-	# > get the useful flukso sensors data in a compact dataframe
-	new_config_df = get_config_df(config_path)
-	print("nb sensors : ", len(new_config_df))
-
 	# Define the current time once for consistency of the insert time between tables.
 	now = pd.Timestamp.now(tz="CET")
+
+	create_tables(cassandra_session)
 	
-	process_config(cassandra_session, config_path, new_config_df, now)
+	old_config, new_config = get_configs(
+		cassandra_session,
+		old_config_path, 
+		new_config_path,
+		now
+	)
+
+	compare_configs(old_config_path, old_config, new_config_path, new_config)
+
+	# > get the useful flukso sensors data in a compact dataframe
+	new_config_df = get_config_df(new_config_path)
+	print("nb sensors : ", len(new_config_df))
+
+	"""
+	save_config(cassandra_session, new_config_path, new_config_df, now)
 
 	# then, compare new config with previous configs and recompute data if necessary
 	if (ptc.existTable(cassandra_session, CASSANDRA_KEYSPACE, TBL_POWER)):
 		print("> Recompute previous data... ")
 		recompute_data(cassandra_session)
-
+	"""
 
 
 if __name__ == "__main__":
