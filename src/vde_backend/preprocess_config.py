@@ -120,9 +120,13 @@ def recompute_data(cassandra_session):
 	""" 
 	Recompute the power data according to the latest configuration.
 	"""
-	new_config = getLastRegisteredConfig(cassandra_session)
-	changed_homes = new_config.getSensorsConfig()["home_id"].unique()
-	recomputePowerData(cassandra_session, new_config, changed_homes)
+
+	# only recompute if 'power' table exists
+	if ptc.existTable(cassandra_session, CASSANDRA_KEYSPACE, TBL_POWER):
+		print("> Recompute previous data... ")
+		new_config = getLastRegisteredConfig(cassandra_session)
+		changed_homes = new_config.getSensorsConfig()["home_id"].unique()
+		recomputePowerData(cassandra_session, new_config, changed_homes)
 
 
 def write_sensors_config_cassandra(cassandra_session, new_config, now):
@@ -348,11 +352,12 @@ def save_config(cassandra_session, config_file_path, new_config, now):
 # ==========================================================================
 
 
-def compare_configs(c1_path, c1, c2_path, c2):
+def check_changes(c1_path, c1, c2_path, c2):
 	""" 
 	Go through the 2 config home ids and sensors ids
 	and detect new changes
-	TODO : count changes 
+
+	return the number of changes
 	"""
 
 	print("--------------------------------------------------")
@@ -361,7 +366,9 @@ def compare_configs(c1_path, c1, c2_path, c2):
 	print("New config : " + c2_path)
 	print(c2)
 
-	if c1:
+	nb_changes = 0
+
+	if c1 and c2:
 		for hid, sids in c1.getHomeSensors().items():
 			print("{} : ".format(hid), end="")
 			if hid in c2.getHomeSensors():
@@ -372,39 +379,53 @@ def compare_configs(c1_path, c1, c2_path, c2):
 					print("New sensors ids : ")
 					# sensors ids from new config not present in the other config
 					print([sid for sid in new_sids if sid not in sids])
+					nb_changes += 1
 			else:
 				print("New home")
+				nb_changes += 1
+	print("Number of changes : " + str(nb_changes))
 	print("--------------------------------------------------")
 
+	return nb_changes
 
-def process_configs(cassandra_session, old_config_path, new_config_path, now):
+
+def process_configs(cassandra_session, c1_path, c2_path, now):
 	""" 
-	
+	Given 2 configuration paths
+	c1_path = old path, can be empty
+	c2_path = new path, cannot be empty
+	if c1_path and c2_path = both excel file paths => just check new changes
+	else : compare new config with last registered config in Cassandra
+		if new changes are detected, we can save the new config
 	"""
 	save = False
 	new_config = Configuration(
 		now,
-		get_config_df(new_config_path, "sensor_id")
+		get_config_df(c2_path, "sensor_id")
 	)
 
-	if not old_config_path:
+	if not c1_path:  
+		# we consider the last registered config
 		last_config = getLastRegisteredConfig(cassandra_session)
 		if not last_config:
 			# no comparisons
 			save = True
 		else:
-			compare_configs(old_config_path, last_config, new_config_path, new_config)
-			save = True 
+			nb_changes = check_changes(c1_path, last_config, c2_path, new_config)
+			if nb_changes > 0:  # only save is there are novelties
+				save = True 
 	else:
 		# just compare 2 configurations from 2 files
 		other_config = Configuration(
 			now, 
-			get_config_df(new_config_path, "sensor_id")
+			get_config_df(c2_path, "sensor_id")
 		)
-		compare_configs(old_config_path, other_config, new_config_path, new_config)
-
+		check_changes(c1_path, other_config, c2_path, new_config)
+	
 	if save:
-		save_config(cassandra_session, new_config_path, new_config, now)
+		save_config(cassandra_session, c2_path, new_config, now)
+		# then, recompute data if necessary
+		recompute_data(cassandra_session)
 
 
 def process_arguments():
@@ -445,15 +466,12 @@ def main():
 
 	create_tables(cassandra_session)
 
-	process_configs(cassandra_session, old_config_path, new_config_path, now)
-
-	"""
-	# then, compare new config with previous configs and recompute data if necessary
-	if (ptc.existTable(cassandra_session, CASSANDRA_KEYSPACE, TBL_POWER)):
-		print("> Recompute previous data... ")
-		recompute_data(cassandra_session)
-	"""
-
+	process_configs(
+		cassandra_session, 
+		old_config_path, 
+		new_config_path, 
+		now
+	)
 
 
 if __name__ == "__main__":

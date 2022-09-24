@@ -290,9 +290,9 @@ def existTable(session, keyspace, table_name):
 	query += "and table_name = '{}' ".format(table_name)
 	query += "ALLOW FILTERING;"
 
-	r = session.execute(query)
+	res_df = selectResToDf(session, query)
 
-	return len(r.current_rows) > 0
+	return len(res_df) > 0
 
 
 # ==========================================================================
