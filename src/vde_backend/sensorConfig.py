@@ -11,6 +11,20 @@ class Configuration:
 
 		self.ids = self.getHomeSensors()    # all home ids (installation ids)
 
+	def __str__(self):
+		""" 
+		Display Configuration stats/information
+		"""
+
+		s = "- Number of Homes :           "
+		s += str(self.getNbHomes()) + "\n"
+		s += "- Number of Fluksos :         "
+		s += str(len(set(self.getSensorsConfig().flukso_id))) + "\n"
+		s += "- Number of Fluksos sensors : "
+		s += str(len(self.getSensorsConfig())) + "\n"
+
+		return s
+
 	def getNbHomes(self):
 		return len(self.ids)
 
