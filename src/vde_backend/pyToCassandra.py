@@ -84,7 +84,7 @@ def connectToCluster(keyspace):
 		session.set_keyspace(keyspace)
 	except cassandra.InvalidRequest:
 		# Create the keyspace if it does not exist.
-		createKeyspace(keyspace)
+		createKeyspace(session, keyspace)
 		session.set_keyspace(keyspace)
 	except:
 		logging.critical("Exception occured in 'connectToCluster' cassandra: ", exc_info=True)
