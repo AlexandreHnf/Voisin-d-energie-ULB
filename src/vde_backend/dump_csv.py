@@ -169,7 +169,7 @@ def get_homes(config, specific_home):
 	if specific_home != "":
 		homes.append(specific_home)
 	else:
-		homes = config.getIds().keys()
+		homes = config.get_ids().keys()
 
 	return homes
 
@@ -277,7 +277,7 @@ def main():
 
 	now = pd.Timestamp.now()
 
-	print("config id : " + str(config.getConfigID()))
+	print("config id : " + str(config.get_config_id()))
 	print("specific home : " + ("/" if not specific_home else specific_home))
 	print("specific range : " + ("/" if not start_day else "{} -> {}".format(start_day, end_day)))
 	print("specific day : " + ("/" if not specific_day else specific_day))

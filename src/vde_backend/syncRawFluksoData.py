@@ -245,7 +245,7 @@ def getTimings(tmpo_session, config, missing_data, now):
 	"""
 	timings = {}
 	try: 
-		ids = config.getIds()
+		ids = config.get_ids()
 		for home_id, sensors_ids in ids.items():
 			# start_ts = earliest timestamp among all sensors of this home
 			timings[home_id] = {"start_ts": now, "end_ts": now, "sensors": {}}
@@ -283,7 +283,7 @@ def setCustomTimings(config, timings, custom_timings):
 	- Same custom timings for each home.
 	"""
 	try:
-		for home_id, sensors_ids in config.getIds().items():
+		for home_id, sensors_ids in config.get_ids().items():
 			timings[home_id] = {
 				"start_ts": custom_timings["start_ts"],
 				"end_ts": custom_timings["end_ts"], 
@@ -351,7 +351,7 @@ def testSession(sensors_config):
 	if not path:
 		path = getProgDir()
 
-	for sid, row in sensors_config.getSensorsConfig().iterrows():
+	for sid, row in sensors_config.get_sensors_config().iterrows():
 		try:
 			logging.debug("{}, {}".format(sid, row["sensor_token"]))
 			tmpo_session = tmpo.Session(path)
@@ -373,7 +373,7 @@ def getTmpoSession(config):
 	logging.info("tmpo path : " + path)
 
 	tmpo_session = tmpo.Session(path)
-	for sid, row in config.getSensorsConfig().iterrows():
+	for sid, row in config.get_sensors_config().iterrows():
 		tmpo_session.add(sid, row["sensor_token"])
 
 	logging.info("> tmpo synchronization...")
@@ -415,7 +415,7 @@ def saveHomeMissingData(config, to_timing, home, saved_sensors):
 	hid = home.getHomeID()
 
 	try:
-		config_id = config.getConfigID().isoformat()
+		config_id = config.get_config_id().isoformat()
 
 		col_names = ["sensor_id", "config_id", "start_ts", "end_ts"]
 		
@@ -453,7 +453,7 @@ def saveHomeRawToCassandra(home, config, timings):
 
 	try: 
 		insertion_time = pd.Timestamp.now(tz="CET").isoformat()
-		config_id = config.getConfigID().isoformat()
+		config_id = config.get_config_id().isoformat()
 
 		power_df = home.getRawDF()
 		power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1)  # add date column
@@ -578,7 +578,7 @@ def processHomes(tmpo_session, config, timings, now, custom):
 	"""
 
 	# for each home
-	for hid, home_sensors in config.getSensorsConfig().groupby("home_id"):
+	for hid, home_sensors in config.get_sensors_config().groupby("home_id"):
 		saved_sensors = {}  # for missing data, to check if sensors missing data already saved
 		# if home has a start timestamp and a end timestamp
 		if timings[hid]["start_ts"] is not None and timings[hid]["end_ts"] is not None:
@@ -623,13 +623,13 @@ def showConfigInfo(config):
 	"""
 
 	logging.info("- Number of Homes :           {}".format(
-		str(config.getNbHomes())
+		str(config.get_nb_homes())
 	))
 	logging.info("- Number of Fluksos :         {}".format(
-		str(len(set(config.getSensorsConfig().flukso_id)))
+		str(len(set(config.get_sensors_config().flukso_id)))
 	))
 	logging.info("- Number of Fluksos sensors : {}".format(
-		str(len(config.getSensorsConfig()))
+		str(len(config.get_sensors_config()))
 	))
 
 
@@ -693,7 +693,7 @@ def sync(custom_timings):
 	# =========================================================
 
 	# Timer
-	config_id = config.getConfigID()
+	config_id = config.get_config_id()
 	logging.info("- Config :                    " + str(config_id))
 	timer = {"start": time.time()}
 

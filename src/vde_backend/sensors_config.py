@@ -1,4 +1,4 @@
-__title__ = "sensorConfig"
+__title__ = "sensors_config"
 __version__ = "2.0.0"
 __author__ = "Alexandre Heneffe"
 __license__ = "MIT"
@@ -9,29 +9,29 @@ class Configuration:
 		self.config_id = config_id          # config insertion date
 		self.sconfig_df = sconfig_df        # dataframe with the whole config
 
-		self.ids = self.getHomeSensors()    # all home ids (installation ids)
+		self.ids = self.get_home_sensors()    # all home ids (installation ids)
 
-	def getNbHomes(self):
+	def get_nb_homes(self):
 		return len(self.ids)
 
-	def getConfigID(self):
+	def get_config_id(self):
 		return self.config_id
 
-	def getFirstSensorId(self):
+	def get_first_sensor_id(self):
 		""" 
 		Get the first sensor id of the list of sensors
 		-> useful when all sensors of a home share the same property for ex.
 		"""
 		return self.ids[list(self.ids.keys())[0]][0]
 
-	def getSensorsConfig(self):
+	def get_sensors_config(self):
 		""" 
 		get a dataframe with columns : 
 		- home_id, phase, fluksid, sensor_id, sensor_token, net, con, pro
 		"""
 		return self.sconfig_df
 
-	def getHomeSensors(self):
+	def get_home_sensors(self):
 		""" 
 		return a dictionary with
 		key : home id, value : list of sensor ids
@@ -42,5 +42,5 @@ class Configuration:
 		
 		return ids
 
-	def getIds(self):
+	def get_ids(self):
 		return self.ids

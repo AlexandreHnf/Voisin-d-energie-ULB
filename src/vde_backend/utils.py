@@ -29,7 +29,7 @@ from constants import (
 	TBL_SENSORS_CONFIG,
 )
 
-from sensorConfig import Configuration
+from sensors_config import Configuration
 import pyToCassandra as ptc
 
 
@@ -269,7 +269,7 @@ def getTimeSpent(time_begin, time_end):
 
 def main():
 	config = getLastRegisteredConfig()
-	print(config.getSensorsConfig())
+	print(config.get_sensors_config())
 
 
 if __name__ == '__main__':

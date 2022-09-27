@@ -24,7 +24,7 @@ from constants import (
 )
 
 import pyToCassandra as ptc
-from sensorConfig import Configuration
+from sensors_config import Configuration
 from computePower import recomputePowerData
 from utils import getLastRegisteredConfig
 
@@ -122,7 +122,7 @@ def recomputeData():
 	Recompute the power data according to the latest configuration.
 	"""
 	new_config = getLastRegisteredConfig()
-	changed_homes = new_config.getSensorsConfig()["home_id"].unique()
+	changed_homes = new_config.get_sensors_config()["home_id"].unique()
 	recomputePowerData(new_config, changed_homes)
 
 

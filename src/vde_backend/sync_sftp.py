@@ -233,7 +233,7 @@ def process_all_homes(sftp_session, config, default_date, moment, moment_now, no
 	- otherwise, we send data from the last sent date to now
 	"""
 
-	ids = config.getIds()
+	ids = config.get_ids()
 	for home_id in ids.keys():
 		latest_date = get_last_date(sftp_session, home_id)
 		all_dates = [default_date]
@@ -297,7 +297,7 @@ def main():
 	now = pd.Timestamp.now()
 	default_date, moment, moment_now = get_date_to_query(now)
 
-	logging.debug("config id : " + str(config.getConfigID()))
+	logging.debug("config id : " + str(config.get_config_id()))
 	logging.debug("date : " + default_date)
 	logging.debug("moment : " + moment)
 	logging.debug("moment now : " + moment_now)

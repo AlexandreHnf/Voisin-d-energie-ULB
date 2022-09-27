@@ -108,7 +108,7 @@ def get_homes_with_missing_data(config, yesterday):
 	"""
 	
 	to_alert = {}
-	for home_id in config.getIds().keys():
+	for home_id in config.get_ids().keys():
 		nb_zeros, tot_len = check_missing(home_id, yesterday)
 
 		percentage = 0
@@ -126,7 +126,7 @@ def get_homes_with_incorrect_signs(config, yesterday):
 	If some signs are incorrect, we send an alert by email
 	"""
 	to_alert = {}
-	for home_id in config.getIds().keys():
+	for home_id in config.get_ids().keys():
 		ok, info = check_signs(home_id, yesterday)
 		if not ok:
 			to_alert[home_id] = info

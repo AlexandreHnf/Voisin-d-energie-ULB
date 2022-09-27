@@ -40,7 +40,7 @@ def saveHomePowerDataToCassandra(home, config):
 
 	try: 
 		insertion_time = pd.Timestamp.now(tz="CET").isoformat()
-		config_id = config.getConfigID().isoformat()
+		config_id = config.get_config_id().isoformat()
 
 		cons_prod_df = home.getConsProdDF()
 		# add date column
@@ -229,8 +229,8 @@ def recomputePowerData(new_config, homes):
 	Given a configuration, recompute all power data for all select homes
 	based on the existing raw data stored in Cassandra.
 	"""
-	config_by_home = new_config.getSensorsConfig().groupby("home_id")  # group by home
-	new_config_id = new_config.getConfigID().isoformat()
+	config_by_home = new_config.get_sensors_config().groupby("home_id")  # group by home
+	new_config_id = new_config.get_config_id().isoformat()
 	if len(homes) == 0:
 		homes = list(config_by_home.groups.keys())
 
