@@ -216,7 +216,10 @@ def getSensorTimings(tmpo_session, missing_data, sid, now):
 	if sid in missing_data['sensor_id']:  # if there is missing data for this sensor
 		# CET timezone (minus a certain offset to avoid losing first ts)
 		sensor_start_ts = (
-			missing_data.groupby('sensor_id').get_group(sid)["start_ts"] - timedelta(seconds=FREQ[0])
+			missing_data
+			.groupby('sensor_id')
+			.get_group(sid)["start_ts"]
+			- timedelta(seconds=FREQ[0])
 		) # sensor start timing = missing data first timestamp
 	else:  # if no missing data for this sensor
 		default_timing = getLastRegisteredTimestamp(TBL_RAW, sid)  # None or tz-naive CET
