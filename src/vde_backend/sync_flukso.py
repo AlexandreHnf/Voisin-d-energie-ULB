@@ -60,7 +60,7 @@ from constants import (
 )
 
 
-import pyToCassandra as ptc
+import py_to_cassandra as ptc
 from compute_power import save_home_power_data_to_cassandra
 from sensor import Sensor
 
@@ -83,7 +83,7 @@ def create_raw_flukso_table(table_name):
 		"power FLOAT"
 	]
 
-	ptc.createTable(
+	ptc.create_table(
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		columns, 
@@ -109,7 +109,7 @@ def create_power_table(table_name):
 		"config_id TIMESTAMP"
 	]
 
-	ptc.createTable(
+	ptc.create_table(
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		power_cols, 
@@ -132,7 +132,7 @@ def create_raw_missing_table(table_name):
 		"end_ts TIMESTAMP"
 	]
 
-	ptc.createTable(
+	ptc.create_table(
 		CASSANDRA_KEYSPACE,
 		table_name, 
 		cols, 
@@ -161,7 +161,7 @@ def get_last_registered_timestamp(table_name, sensor_id):
 	"""
 	# get last date available for this home
 	where_clause = "sensor_id = '{}' ORDER BY day DESC".format(sensor_id)
-	dates_df = ptc.selectQuery(
+	dates_df = ptc.select_query(
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		["day"],
@@ -171,7 +171,7 @@ def get_last_registered_timestamp(table_name, sensor_id):
 
 	if len(dates_df) > 0:
 		last_date = dates_df.iat[0,0]
-		ts_df = ptc.selectQuery(
+		ts_df = ptc.select_query(
 			CASSANDRA_KEYSPACE,
 			table_name,
 			["ts"],
@@ -266,7 +266,7 @@ def get_timings(tmpo_session, config, missing_data, now):
 			if timings[home_id]["start_ts"] is now:  # no data to recover from this home 
 				timings[home_id]["start_ts"] = None
 		#truncate existing rows in Raw missing table
-		ptc.deleteRows(CASSANDRA_KEYSPACE, TBL_RAW_MISSING)
+		ptc.delete_rows(CASSANDRA_KEYSPACE, TBL_RAW_MISSING)
 		logging.debug("Missing raw table deleted")
 
 	except:
@@ -470,7 +470,7 @@ def save_home_raw_data(home, config, timings):
 						ts = timestamp.isoformat()
 						power = date_rows[sid][i]
 						values = [sid, date, ts, insertion_time, config_id, power]
-						insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, TBL_RAW, col_names, values)
+						insert_queries += ptc.get_insert_query(CASSANDRA_KEYSPACE, TBL_RAW, col_names, values)
 
 						if (i + 1) % INSERTS_PER_BATCH == 0:
 							ptc.batch_insert(insert_queries)
@@ -677,7 +677,7 @@ def sync(custom_timings):
 
 	# > Configuration
 	config = get_last_registered_config()
-	missing_data = ptc.selectQuery(
+	missing_data = ptc.select_query(
 		CASSANDRA_KEYSPACE,
 		TBL_RAW_MISSING,
 		["*"],

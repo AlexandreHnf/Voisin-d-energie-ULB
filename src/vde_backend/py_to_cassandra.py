@@ -1,4 +1,4 @@
-__title__ = "pyToCassandra"
+__title__ = "py_to_cassandra"
 __version__ = "2.0.0"
 __author__ = "Alexandre Heneffe, and Guillaume Levasseur"
 __license__ = "MIT"
@@ -36,7 +36,7 @@ def load_json_credentials(path: str):
 # ==========================================================================
 
 
-def createKeyspace(session, keyspace_name):
+def create_keyspace(session, keyspace_name):
 	""" 
 	Create a new keyspace in the Cassandra database
 
@@ -54,7 +54,7 @@ def createKeyspace(session, keyspace_name):
 	session.execute(keyspace_query)
 
 
-def connectToCluster(keyspace):
+def connect_to_cluster(keyspace):
 	""" 
 	connect to Cassandra Cluster
 	- either locally : simple, ip = 127.0.0.1:9042, by default
@@ -84,19 +84,19 @@ def connectToCluster(keyspace):
 		session.set_keyspace(keyspace)
 	except cassandra.InvalidRequest:
 		# Create the keyspace if it does not exist.
-		createKeyspace(session, keyspace)
+		create_keyspace(session, keyspace)
 		session.set_keyspace(keyspace)
 	except:
-		logging.critical("Exception occured in 'connectToCluster' cassandra: ", exc_info=True)
+		logging.critical("Exception occured in 'connect_to_cluster' cassandra: ", exc_info=True)
 		exit(57)
 
 	return session
 
 
-SESSION = connectToCluster(CASSANDRA_KEYSPACE)
+SESSION = connect_to_cluster(CASSANDRA_KEYSPACE)
 
 
-def getRightFormat(values):
+def get_right_format(values):
 	""" 
 	Get the right string format given a list of values 
 	used by 'insert'
@@ -117,7 +117,7 @@ def getRightFormat(values):
 	return res
 
 
-def deleteRows(keyspace, table_name):
+def delete_rows(keyspace, table_name):
 	""" 
 	delete all rows of a table
 	"""
@@ -135,12 +135,12 @@ def insert(keyspace, table, columns, values):
 	query = "INSERT INTO {}".format(keyspace)
 	query += ".{} ".format(table)
 	query += "({}) ".format(",".join(columns))
-	query += "VALUES ({});".format(",".join(getRightFormat(values)))
+	query += "VALUES ({});".format(",".join(get_right_format(values)))
 	logging.debug("===> insert query :" + query)
 	SESSION.execute(query)
 
 
-def getInsertQuery(keyspace, table, columns, values):
+def get_insert_query(keyspace, table, columns, values):
 	""" 
 	Get the prepared statement for an insert query
 
@@ -150,7 +150,7 @@ def getInsertQuery(keyspace, table, columns, values):
 	query = "INSERT INTO {}".format(keyspace)
 	query += ".{} ".format(table)
 	query += "({}) ".format(",".join(columns))
-	query += "VALUES ({});".format(",".join(getRightFormat(values)))
+	query += "VALUES ({});".format(",".join(get_right_format(values)))
 
 	return query
 
@@ -169,7 +169,7 @@ def batch_insert(inserts):
 	SESSION.execute(query)
 
 
-def getOrdering(ordering):
+def get_ordering(ordering):
 	""" 
 	ordering format : {"column_name": "ASC", "column_name2": "DESC"}
 	"""
@@ -183,7 +183,7 @@ def getOrdering(ordering):
 	return res
 
 
-def createTable(keyspace, table_name, columns, primary_keys, clustering_keys, ordering):
+def create_table(keyspace, table_name, columns, primary_keys, clustering_keys, ordering):
 	""" 
 	Create a new table in the database 
 	columns = [column name type, ...]
@@ -197,7 +197,7 @@ def createTable(keyspace, table_name, columns, primary_keys, clustering_keys, or
 	query += "({}, ".format(",".join(columns))
 	query += "PRIMARY KEY (({})".format(','.join(primary_keys))
 	query += "{})) ".format(',' + ','.join(clustering_keys) if len(clustering_keys) else '')
-	query += "{};".format(getOrdering(ordering))
+	query += "{};".format(get_ordering(ordering))
 
 	SESSION.execute(query)
 	logging.debug("===> create table query : " + query)
@@ -205,12 +205,12 @@ def createTable(keyspace, table_name, columns, primary_keys, clustering_keys, or
 
 def pandas_factory(colnames, rows):
 	""" 
-	used by 'selectResToDf'
+	used by 'select_res_to_df'
 	"""
 	return pd.DataFrame(rows, columns=colnames)
 
 
-def convertColumnsTimezones(df, tz):
+def convert_columns_timezones(df, tz):
 	""" 
 	Given a queried dataframe from Cassandra, convert
 	the timezone of columns containing timestamps
@@ -234,7 +234,7 @@ def convertColumnsTimezones(df, tz):
 			df[col_name] = df[col_name].dt.tz_localize("UTC").dt.tz_convert(tz)
 
 
-def selectResToDf(query):
+def select_res_to_df(query):
 	""" 
 	process a select query and returns a pandas DataFrame
 	with the result of the query 
@@ -249,7 +249,7 @@ def selectResToDf(query):
 	return df
 
 
-def selectQuery(
+def select_query(
 		keyspace, 
 		table_name, 
 		columns, 
@@ -283,15 +283,15 @@ def selectQuery(
 	query += "{};".format(allow_filtering)
 
 	logging.debug("===> select query : " + query)
-	res_df = selectResToDf(query)
+	res_df = select_res_to_df(query)
 	if len(res_df) > 0:
 		# remark: the date column in tables is in CET timezone
-		convertColumnsTimezones(res_df, tz)
+		convert_columns_timezones(res_df, tz)
 
 	return res_df
 
 
-def groupbyQuery(
+def groupby_query(
 		keyspace, 
 		table_name, 
 		column,
@@ -323,15 +323,15 @@ def groupbyQuery(
 		allow_filtering,
 	)
 	logging.debug("===> groupby query : " + query)
-	res_df = selectResToDf(query)
+	res_df = select_res_to_df(query)
 	if len(res_df) > 0:
 		# remark: the date column in tables is in CET timezone
-		convertColumnsTimezones(res_df, tz)
+		convert_columns_timezones(res_df, tz)
 
 	return res_df
 
 
-def existTable(keyspace, table_name):
+def exist_table(keyspace, table_name):
 	""" 
 	Check if a table exists in the cluster given a certain keyspace
 	"""

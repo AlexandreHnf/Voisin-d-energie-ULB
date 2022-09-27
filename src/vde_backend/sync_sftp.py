@@ -47,7 +47,7 @@ from constants import (
 	CASSANDRA_KEYSPACE, 
 	TBL_POWER
 )
-import pyToCassandra as ptc
+import py_to_cassandra as ptc
 
 from utils import (
 	logging,
@@ -207,7 +207,7 @@ def get_all_history_dates(home_id, table_name, now):
 	# get first date available for this home 
 	where_clause = "home_id = '{}'".format(home_id)
 	cols = ["day"]
-	date_df = ptc.selectQuery(
+	date_df = ptc.select_query(
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 

@@ -23,7 +23,7 @@ from constants import (
 	CONFIG_CAPTIONS_TAB
 )
 
-import pyToCassandra as ptc
+import py_to_cassandra as ptc
 from sensors_config import Configuration
 from compute_power import recompute_power_data
 from utils import get_last_registered_config
@@ -236,7 +236,7 @@ def createTableSensorConfig(table_name):
 		"pro FLOAT"
 	]
 
-	ptc.createTable(
+	ptc.create_table(
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
@@ -257,7 +257,7 @@ def createTableGroupsConfig(table_name):
 		"homes LIST<TEXT>"
 	]
 
-	ptc.createTable(
+	ptc.create_table(
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
@@ -277,7 +277,7 @@ def createTableAccess(table_name):
 		"installations LIST<TEXT>"
 	]
 
-	ptc.createTable(
+	ptc.create_table(
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
@@ -297,7 +297,7 @@ def createTableGroup(table_name):
 		"caption TEXT"
 	]
 
-	ptc.createTable(
+	ptc.create_table(
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
@@ -369,7 +369,7 @@ def main():
 	processConfig(config_path, new_config_df, now)
 
 	# then, compare new config with previous configs and recompute data if necessary
-	if (ptc.existTable(CASSANDRA_KEYSPACE, TBL_POWER)):
+	if (ptc.exist_table(CASSANDRA_KEYSPACE, TBL_POWER)):
 		print("> Recompute previous data... ")
 		recomputeData()
 

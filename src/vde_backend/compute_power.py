@@ -18,7 +18,7 @@ from constants import (
 	TBL_POWER, 
 	TBL_RAW
 )
-import pyToCassandra as ptc
+import py_to_cassandra as ptc
 from utils import (
 	get_dates_between, 
 	get_last_registered_config
@@ -66,7 +66,7 @@ def save_home_power_data_to_cassandra(home, config):
 				ts = timestamp.isoformat()
 				# [:-1] to avoid date column
 				values = [hid, date, ts] + list(row)[:-1] + [insertion_time, config_id]  
-				insert_queries += ptc.getInsertQuery(
+				insert_queries += ptc.get_insert_query(
 					CASSANDRA_KEYSPACE, 
 					TBL_POWER, 
 					col_names, 
@@ -101,7 +101,7 @@ def get_home_raw_data(sensors_df, day):
 
 	for sid in sensors_df.index:
 		where_clause = "sensor_id = '{}' and day = '{}'".format(sid, day)
-		raw_data_df = ptc.selectQuery(
+		raw_data_df = ptc.select_query(
 			CASSANDRA_KEYSPACE, 
 			TBL_RAW,
 			["sensor_id, day, ts, power"], 
@@ -170,7 +170,7 @@ def save_recomputed_powers_to_cassandra(new_config_id, cons_prod_df):
 		values[2] = values[2].isoformat() # timestamp (ts)
 		values.append(new_config_id)  # isoformat
 		values.append(insertion_time)
-		insert_queries += ptc.getInsertQuery(
+		insert_queries += ptc.get_insert_query(
 			CASSANDRA_KEYSPACE, 
 			TBL_POWER, 
 			col_names, 
@@ -193,7 +193,7 @@ def get_data_dates_from_home(sensors_df):
 	now = pd.Timestamp.now()
 	first_date = now
 	for sensor_id in list(sensors_df.index):  # sensor ids
-		first_date_df = ptc.selectQuery(
+		first_date_df = ptc.select_query(
 			CASSANDRA_KEYSPACE,
 			TBL_RAW,
 			["day"],
@@ -214,7 +214,7 @@ def exist_home_power_data(home_id, date):
 	return True if there is at least 1 row of data for this home, 
 	given the specified date.
 	"""
-	first_date_df = ptc.selectQuery(
+	first_date_df = ptc.select_query(
 		CASSANDRA_KEYSPACE,
 		TBL_POWER,
 		["p_cons"],

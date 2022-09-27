@@ -29,7 +29,7 @@ from constants import (
 )
 
 from sensors_config import Configuration
-import pyToCassandra as ptc
+import py_to_cassandra as ptc
 
 
 def setup_log_level():
@@ -120,7 +120,7 @@ def get_last_registered_config():
 	"""
 	Get the last registered config based on insertion time
 	"""
-	latest_configs = ptc.groupbyQuery(
+	latest_configs = ptc.groupby_query(
 		CASSANDRA_KEYSPACE,
 		TBL_SENSORS_CONFIG,
 		column='insertion_time',
@@ -130,7 +130,7 @@ def get_last_registered_config():
 		tz="UTC"
 	)
 	last_config_id = latest_configs.max().max().tz_localize('UTC')
-	config_df = ptc.selectQuery(
+	config_df = ptc.select_query(
 		CASSANDRA_KEYSPACE,
 		TBL_SENSORS_CONFIG,
 		["*"],
@@ -148,7 +148,7 @@ def get_all_registered_configs():
 	POTENTIAL ISSUE : if the whole config table does not fit in memory
 		-> possible solution : select distinct insertion_time, home_id, sensor_id to reduce the nb of queried lines
 	"""
-	all_configs_df = ptc.selectQuery(
+	all_configs_df = ptc.select_query(
 		CASSANDRA_KEYSPACE, 
 		TBL_SENSORS_CONFIG,
 		["*"], 
@@ -183,7 +183,7 @@ def get_home_power_data_from_cassandra(home_id, date, ts_clause=""):
 		"p_tot"
 	]
 
-	home_df = ptc.selectQuery(
+	home_df = ptc.select_query(
 		CASSANDRA_KEYSPACE, 
 		TBL_POWER, 
 		cols, 
