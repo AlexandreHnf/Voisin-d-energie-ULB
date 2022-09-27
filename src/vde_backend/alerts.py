@@ -20,7 +20,6 @@ import pandas as pd
 from datetime import timedelta
 
 # local source
-import pyToCassandra as ptc
 from utils import(
 	getLastRegisteredConfig,
 	getHomePowerDataFromCassandra
@@ -30,7 +29,7 @@ SIGN_THRESHOLD = 15
 MISSING_ALERT_THRESHOLD = 10
 
 
-def getMailText(problem_title, threshold, legend, to_alert, date):
+def get_mail_text(problem_title, threshold, legend, to_alert, date):
 	""" 
 	create a alert txt with specific details (to send a mail)
 	"""
@@ -45,14 +44,14 @@ def getMailText(problem_title, threshold, legend, to_alert, date):
 	return txt 
 
 
-def sendMail(mail_filename):
+def send_mail(mail_filename):
 
 	# TODO : only send mail if there is an alert containing issues
 	pass 
 
 
 
-def checkMissing(home_id, date):
+def check_missing(home_id, date):
 	""" 
 	Check if there are a lot of missing data in one day of power data for a home
 	"""
@@ -69,7 +68,7 @@ def checkMissing(home_id, date):
 	return count_zero, len(home_df)
 
 
-def checkSigns(home_id, date):
+def check_signs(home_id, date):
 	""" 
 	Check if the signs are coherent in power data based on 2 criterion : 
 	Signs are incorrect if there are :
@@ -102,7 +101,7 @@ def checkSigns(home_id, date):
 	return ok, info
 
 
-def getHomesWithMissingData(config, yesterday):
+def get_homes_with_missing_data(config, yesterday):
 	""" 
 	For each home, check if power data has a lot of missing data, 
 	if the percentage of missing data is non negligeable, we send an alert by email
@@ -110,7 +109,7 @@ def getHomesWithMissingData(config, yesterday):
 	
 	to_alert = {}
 	for home_id in config.getIds().keys():
-		nb_zeros, tot_len = checkMissing(home_id, yesterday)
+		nb_zeros, tot_len = check_missing(home_id, yesterday)
 
 		percentage = 0
 		if nb_zeros > 0:
@@ -121,21 +120,21 @@ def getHomesWithMissingData(config, yesterday):
 	return to_alert
 
 
-def getHomesWithIncorrectSigns(config, yesterday):
+def get_homes_with_incorrect_signs(config, yesterday):
 	""" 
 	For each home, we check if power data are correct w.r.t the signs
 	If some signs are incorrect, we send an alert by email
 	"""
 	to_alert = {}
 	for home_id in config.getIds().keys():
-		ok, info = checkSigns(home_id, yesterday)
+		ok, info = check_signs(home_id, yesterday)
 		if not ok:
 			to_alert[home_id] = info
 
 	return to_alert
 
 
-def getYesterday(now):
+def get_yesterday(now):
 	""" 
 	Given the timestamp of today, get the previous day's date.
 	-> YYYY-MM-DD
@@ -146,7 +145,7 @@ def getYesterday(now):
 	return yesterday
 
 
-def writeMailToFile(mail_content, filename):
+def write_mail_to_file(mail_content, filename):
 	""" 
 	Write mail content to a simple txt file
 	"""
@@ -156,7 +155,7 @@ def writeMailToFile(mail_content, filename):
 
 # ========================================================================================
 
-def processArguments():
+def process_arguments():
 	"""
 	process arguments 
 	argument : what to monitor : missing data or signs
@@ -177,36 +176,40 @@ def processArguments():
 
 def main():
 
-	argparser = processArguments()
+	argparser = process_arguments()
 	args = argparser.parse_args()
 	mode = args.mode
 
 	last_config = getLastRegisteredConfig()
 	now = pd.Timestamp.now(tz="CET")
-	yesterday = getYesterday(now)
+	yesterday = get_yesterday(now)
 	print("yesterday : ", yesterday)
 
 	if mode == "missing":
-		to_alert = getHomesWithMissingData(last_config, yesterday)
+		to_alert = get_homes_with_missing_data(last_config, yesterday)
 		if len(to_alert) > 0:
 			threshold = "{} %".format(MISSING_ALERT_THRESHOLD)
 			legend = "'home id' > percentage of missing data for 1 day"
-			mail_content = getMailText("There is missing data", threshold, legend, to_alert, yesterday)
+			mail_content = get_mail_text(
+				"There is missing data", 
+				threshold, legend, to_alert, yesterday)
 			print(mail_content)
-			writeMailToFile(mail_content, "alert_missing.txt")
-			sendMail("alert_missing.txt")
+			write_mail_to_file(mail_content, "alert_missing.txt")
+			send_mail("alert_missing.txt")
 
 	elif mode == "sign":
-		to_alert = getHomesWithIncorrectSigns(last_config, yesterday)
+		to_alert = get_homes_with_incorrect_signs(last_config, yesterday)
 		if len(to_alert) > 0:
 			threshold = "{} ".format(SIGN_THRESHOLD)
 			legend = "'home id ' > \n"
 			legend += "{'cons_neg = is there any negative consumption values ?', \n"
 			legend += "'prod_pos = is there any positive production values ?'}}"
-			mail_content = getMailText("There are incorrect signs", threshold, legend, to_alert, yesterday)
+			mail_content = get_mail_text(
+				"There are incorrect signs", 
+				threshold, legend, to_alert, yesterday)
 			print(mail_content)
-			writeMailToFile(mail_content, "alert_signs.txt")
-			sendMail("alert_signs.txt")
+			write_mail_to_file(mail_content, "alert_signs.txt")
+			send_mail("alert_signs.txt")
 
 
 
