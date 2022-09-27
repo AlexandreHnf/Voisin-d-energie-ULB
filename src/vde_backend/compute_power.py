@@ -36,13 +36,13 @@ def save_home_power_data_to_cassandra(home, config):
 	- home : Home object 
 		=> contains cons_prod_df : timestamp, P_cons, P_prod, P_tot
 	"""
-	hid = home.getHomeID()
+	hid = home.get_home_id()
 
 	try: 
 		insertion_time = pd.Timestamp.now(tz="CET").isoformat()
 		config_id = config.get_config_id().isoformat()
 
-		cons_prod_df = home.getConsProdDF()
+		cons_prod_df = home.get_cons_prod_df()
 		# add date column
 		cons_prod_df['date'] = cons_prod_df.apply(lambda row: str(row.name.date()), axis=1) 
 		by_day_df = cons_prod_df.groupby("date")  # group by date

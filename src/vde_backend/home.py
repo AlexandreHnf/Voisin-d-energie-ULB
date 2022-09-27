@@ -14,12 +14,11 @@ import logging
 # local sources
 from utils import (
 	energy2power,
-	resample_extend,
-	setInitSeconds
+	resample_extend
 )
 
 
-def getLocalTimestampsIndex(df):
+def get_local_timestamps_index(df):
 	"""
 	set timestamps to local timezone
 	"""
@@ -42,45 +41,45 @@ class Home:
 		self.since_timing = since_timing.tz_convert("UTC")
 		self.to_timing = to_timing.tz_convert("UTC")
 		self.home_id = home_id
-		self.columns_names = self.getColumnsNames()
+		self.columns_names = self.get_columns_names()
 
 		self.len_raw = 0
 		self.len_nan = 0
 		self.nb_nan = 0
 
-		self.energy_df = self.getEnergyRawDf()
-		self.raw_df = self.createFluksoRawDF()
-		self.incomplete_raw_df = self.findIncompleteRawDf()
-		self.cons_prod_df = self.getConsumptionProductionDF()
+		self.energy_df = self.get_energy_raw_df()
+		self.raw_df = self.create_flukso_raw_df()
+		self.incomplete_raw_df = self.find_incomplete_raw_df()
+		self.cons_prod_df = self.get_consumption_production_df()
 
-	def getRawDF(self):
+	def get_raw_df(self):
 		return self.raw_df
 
-	def getIncompletePowerDF(self):
+	def get_incomplete_power_df(self):
 		return self.incomplete_raw_df
 
-	def getConsProdDF(self):
+	def get_cons_prod_df(self):
 		return self.cons_prod_df
 
-	def getHomeID(self):
+	def get_home_id(self):
 		return self.home_id
 
-	def setHomeID(self, hid):
+	def set_home_id(self, hid):
 		self.home_id = hid
 
-	def getNbFluksoSensors(self):
+	def get_nb_flukso_sensors(self):
 		return len(self.raw_df.columns)
 
-	def getSinceTiming(self):
+	def get_since_timing(self):
 		return self.since_timing
 
-	def getToTiming(self):
+	def get_to_timing(self):
 		return self.to_timing
 
-	def getColumnsTotal(self):
+	def get_columns_total(self):
 		return self.raw_df.sum(axis=0, numeric_only=True)
 
-	def showQueryInfo(self):
+	def show_query_info(self):
 		""" 
 		show number of rows received in total with the tmpo query
 		+ the number of ligns containing NaN values + the total number of NaN values in the
@@ -92,7 +91,7 @@ class Home:
 			self.nb_nan
 		))
 
-	def getFluksoNames(self):
+	def get_flukso_names(self):
 		"""
 		ex : CDB007 :> {FL08000436: [Main, ...], FL08000437: [Phase L2, ...]}
 		"""
@@ -105,16 +104,16 @@ class Home:
 				flukso_names[self.sensors_config.flukso_id[i]].append(phase)
 		return flukso_names
 
-	def getAggregatedDataPerFlukso(self):
+	def get_aggregated_data_per_flukso(self):
 		fluksos_df = pd.DataFrame()
-		flukso_names = self.getFluksoNames()
+		flukso_names = self.get_flukso_names()
 		for fid, phases in flukso_names.items():
 			fluksos_df["{}:{}".format(self.home_id, fid)] = self.raw_df.loc[:, phases].sum(axis=1)
 			j = 1
 
 		return fluksos_df
 
-	def getColumnsNames(self):
+	def get_columns_names(self):
 		""" 
 		get columns names of the form : 
 		[flukso sensor1, flukso sensor2, ...]
@@ -127,7 +126,7 @@ class Home:
 		return col_names
 
 
-	def createSeries(self):
+	def create_series(self):
 		"""
 		create a list of time series from the sensors data
 		"""
@@ -140,20 +139,20 @@ class Home:
 		return data_dfs
 
 	
-	def getEnergyRawDf(self):
+	def get_energy_raw_df(self):
 		"""
 		Get a dataframe with all the raw cumulative energy series from each sensor
 		of the home 
 		1 column = 1 sensor
 		"""
-		data_dfs = self.createSeries()  # list of series, one per flukso sensor
+		data_dfs = self.create_series()  # list of series, one per flukso sensor
 		energy_df = pd.concat(data_dfs, axis=1)  # combined series
 		del data_dfs
 
 		return energy_df
 
 
-	def findIncompleteRawDf(self):
+	def find_incomplete_raw_df(self):
 		""" 
 		From the cumulative energy dataframe, 
 		1) fill the gaps in the timestamps with NaN values
@@ -168,11 +167,11 @@ class Home:
 
 		incomplete_raw_df.index = pd.DatetimeIndex(incomplete_raw_df.index, name="time")
 		# convert all timestamps to local timezone (CET)
-		incomplete_raw_df.index = getLocalTimestampsIndex(incomplete_raw_df)
+		incomplete_raw_df.index = get_local_timestamps_index(incomplete_raw_df)
 		return incomplete_raw_df
 
 
-	def createFluksoRawDF(self):
+	def create_flukso_raw_df(self):
 		"""
 		create a dataframe where the colums are the phases of the Flukso and the rows are the
 		data : 
@@ -185,7 +184,7 @@ class Home:
 		# timestamps column
 		raw_df.index = pd.DatetimeIndex(raw_df.index, name="time", ambiguous='NaT')
 		# convert all timestamps to local timezone (CET)
-		local_timestamps = getLocalTimestampsIndex(raw_df)
+		local_timestamps = get_local_timestamps_index(raw_df)
 		raw_df.index = local_timestamps
 		self.len_raw = len(raw_df.index)
 		raw_df.fillna(0, inplace=True)
@@ -197,7 +196,7 @@ class Home:
 		return raw_df
 
 
-	def getConsumptionProductionDF(self):
+	def get_consumption_production_df(self):
 		""" 
 		P_cons = P_tot - P_prod
 		P_net = P_prod + P_cons
@@ -223,7 +222,7 @@ class Home:
 		return cons_prod_df
 
 
-	def getColNamesWithID(self, df, home_id):
+	def get_col_names_with_id(self, df, home_id):
 		col_names = df.columns
 		new_col_names = {}
 		for col_name in col_names:
@@ -232,16 +231,16 @@ class Home:
 		return new_col_names
 
 
-	def appendFluksoData(self, raw_df, home_id):
+	def append_flukso_data(self, raw_df, home_id):
 		# print(len(self.raw_df), len(raw_df))
 
 		if not self.home_id in self.raw_df.columns[0]:
 			self.raw_df = self.raw_df.rename(
-				self.getColNamesWithID(self.raw_df, self.home_id), axis=1
+				self.get_col_names_with_id(self.raw_df, self.home_id), axis=1
 			)
-		raw_df = raw_df.rename(self.getColNamesWithID(raw_df, home_id), axis=1)
+		raw_df = raw_df.rename(self.get_col_names_with_id(raw_df, home_id), axis=1)
 		self.raw_df = self.raw_df.join(raw_df)
 
 
-	def addConsProd(self, cons_prod_df):
+	def add_cons_prod(self, cons_prod_df):
 		self.cons_prod_df = self.cons_prod_df.add(cons_prod_df, fill_value=0)

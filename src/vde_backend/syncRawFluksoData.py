@@ -337,7 +337,7 @@ def generateHome(tmpo_session, hid, home_sensors, since_timing, to_timing):
 		sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
 
 	home = Home(home_sensors, since_timing, to_timing, hid, sensors)
-	home.showQueryInfo()
+	home.show_query_info()
 
 	return home
 
@@ -412,14 +412,14 @@ def saveHomeMissingData(config, to_timing, home, saved_sensors):
 	"""
 	Save the first timestamp with no data (nan values) for each sensors of the home
 	"""
-	hid = home.getHomeID()
+	hid = home.get_home_id()
 
 	try:
 		config_id = config.get_config_id().isoformat()
 
 		col_names = ["sensor_id", "config_id", "start_ts", "end_ts"]
 		
-		inc_power_df = home.getIncompletePowerDF()
+		inc_power_df = home.get_incomplete_power_df()
 		if len(inc_power_df) > 0:
 			sensors_ids = inc_power_df.columns
 			for sid in sensors_ids:
@@ -449,13 +449,13 @@ def saveHomeRawToCassandra(home, config, timings):
 	Save per sensor : 1 row = 1 sensor + 1 timestamp + 1 power value
 		home_df : timestamp, sensor_id1, sensor_id2, sensor_id3 ... sensor_idN
 	"""
-	hid = home.getHomeID()
+	hid = home.get_home_id()
 
 	try: 
 		insertion_time = pd.Timestamp.now(tz="CET").isoformat()
 		config_id = config.get_config_id().isoformat()
 
-		power_df = home.getRawDF()
+		power_df = home.get_raw_df()
 		power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1)  # add date column
 		by_day_df = power_df.groupby("date")  # group by date
 
