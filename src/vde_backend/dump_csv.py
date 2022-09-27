@@ -1,4 +1,4 @@
-__title__ = "retrieveDB"
+__title__ = "dump_csv"
 __version__ = "1.0.0"
 __author__ = "Alexandre Heneffe"
 __license__ = "MIT"
@@ -44,7 +44,7 @@ from utils import (
 # ==============================================================================
 
 
-def saveDataToCsv(data_df, csv_filename, output_filename):
+def save_data_to_csv(data_df, csv_filename, output_filename):
 	""" 
 	Save to csv
 	"""
@@ -58,7 +58,7 @@ def saveDataToCsv(data_df, csv_filename, output_filename):
 	print("Successfully Saved data in csv")	
 
 
-def getLastDate(output_file, home_id):
+def get_last_date(output_file, home_id):
 	""" 
 	Get the last filename sent to the sftp server in order
 	to know which date to start the new query from.
@@ -80,7 +80,7 @@ def getLastDate(output_file, home_id):
 	return latest_date
 
 
-def getAllHistoryDates(home_id, table_name, now):
+def get_all_history_dates(home_id, table_name, now):
 	""" 
 	For a home, get the first timestamp available in the db, and 
 	from that first date, return the list of dates until now.
@@ -108,7 +108,7 @@ def getAllHistoryDates(home_id, table_name, now):
 	return all_dates
 
 
-def getDates(home_id, specific_days, now, output_filename):
+def get_dates(home_id, specific_days, now, output_filename):
 	""" 
 	Get all dates based on the chosen argument:
 	- if 1 specific date :  [specific_date]
@@ -128,16 +128,16 @@ def getDates(home_id, specific_days, now, output_filename):
 				pd.Timestamp(specific_days[1])
 			)
 	else:
-		latest_date = getLastDate(output_filename, home_id)
+		latest_date = get_last_date(output_filename, home_id)
 		if latest_date is None:  # history
-			all_dates = getAllHistoryDates(home_id, TBL_POWER, now)
+			all_dates = get_all_history_dates(home_id, TBL_POWER, now)
 		else:					 # realtime
 			all_dates = getDatesBetween(latest_date, now)
 
 	return all_dates
 
 
-def processAllHomes(now, homes, specific_days, output_filename):
+def process_all_homes(now, homes, specific_days, output_filename):
 	""" 
 	save 1 csv file per home, per day
 	- if no data sent for this home yet, we send the whole history
@@ -145,7 +145,7 @@ def processAllHomes(now, homes, specific_days, output_filename):
 	"""
 
 	for home_id in homes:
-		all_dates = getDates(home_id, specific_days, now, output_filename)
+		all_dates = get_dates(home_id, specific_days, now, output_filename)
 
 		for date in all_dates:
 			csv_filename = "{}_{}.csv".format(home_id, date)
@@ -155,12 +155,12 @@ def processAllHomes(now, homes, specific_days, output_filename):
 				date
 			)
 			
-			saveDataToCsv(home_data.set_index("home_id"), csv_filename, output_filename)
+			save_data_to_csv(home_data.set_index("home_id"), csv_filename, output_filename)
 
 		print("-----------------------")
 
 
-def getHomes(config, specific_home):
+def get_homes(config, specific_home):
 	""" 
 	if specific home chosen in arguments : only 1 home
 	else : all homes from the config
@@ -175,7 +175,7 @@ def getHomes(config, specific_home):
 
 
 
-def getSpecificDays(specific_day, start_day, end_day):
+def get_specific_days(specific_day, start_day, end_day):
 	""" 
 	Check if the provided arguments are valid (date format) and
 	return the list of asked timings
@@ -204,7 +204,7 @@ def getSpecificDays(specific_day, start_day, end_day):
 	return specific_days
 
 
-def processArguments():
+def process_arguments():
 	"""
 	process arguments 
 
@@ -263,7 +263,7 @@ def processArguments():
 
 def main():
 
-	argparser = processArguments()
+	argparser = process_arguments()
 	args = argparser.parse_args()
 	output_filename = args.output_filename
 	specific_home = args.home
@@ -271,7 +271,7 @@ def main():
 	start_day = args.start
 	end_day = args.end
 
-	specific_days = getSpecificDays(specific_day, start_day, end_day)
+	specific_days = get_specific_days(specific_day, start_day, end_day)
 
 	config = getLastRegisteredConfig()
 
@@ -282,9 +282,9 @@ def main():
 	print("specific range : " + ("/" if not start_day else "{} -> {}".format(start_day, end_day)))
 	print("specific day : " + ("/" if not specific_day else specific_day))
 
-	homes = getHomes(config, specific_home)
+	homes = get_homes(config, specific_home)
 
-	processAllHomes(
+	process_all_homes(
 		now, 
 		homes,
 		specific_days,
