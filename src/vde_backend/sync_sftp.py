@@ -1,4 +1,4 @@
-__title__ = "syncSftp"
+__title__ = "sync_sftp"
 __version__ = "2.0.0"
 __author__ = "Alexandre Heneffe, and Guillaume Levasseur"
 __license__ = "MIT"
@@ -65,7 +65,7 @@ PM = 								">"
 NOON = 								"10:00:00.000000+0000"  # in UTC = 12:00:00 in CET
 
 
-def getdateToQuery(now):
+def get_date_to_query(now):
 	""" 
 	Based on the timestamp of the moment the query is triggered, 
 	determine which day to query
@@ -86,12 +86,12 @@ def getdateToQuery(now):
 	return date, moment, moment_now
 
 
-def getCsvFilename(home_id, date, moment):
+def get_csv_filename(home_id, date, moment):
 	part = "AM" if moment == AM else "PM"
 	return "{}_{}_{}.csv".format(home_id, date, part)
 	
 
-def saveDataToCsv(data_df, csv_filename):
+def save_data_to_csv(data_df, csv_filename):
 	""" 
 	Save to csv
 	"""
@@ -106,7 +106,7 @@ def saveDataToCsv(data_df, csv_filename):
 	logging.debug("Successfully Saved flukso data in csv")	
 
 
-def getSFTPsession(sftp_info):
+def get_sftp_session(sftp_info):
 	""" 
 	connect to the sftp server
 	"""
@@ -127,7 +127,7 @@ def getSFTPsession(sftp_info):
 
 
 
-def listFilesSFTP(sftp_session):
+def list_files_sftp(sftp_session):
 	""" 
 	return the list of 
 	"""
@@ -142,7 +142,7 @@ def listFilesSFTP(sftp_session):
 	return sftp_filenames
 
 
-def getLastDate(sftp_session, home_id):
+def get_last_date(sftp_session, home_id):
 	""" 
 	Get the last filename sent to the sftp server in order
 	to know which date to start the new query from.
@@ -163,7 +163,7 @@ def getLastDate(sftp_session, home_id):
 	return latest_date
 
 
-def sendFileToSFTP(sftp_session, filename, sftp_info):
+def send_file_to_sftp(sftp_session, filename, sftp_info):
 	""" 
 	Send csv file to the sftp server
 	"""
@@ -178,7 +178,7 @@ def sendFileToSFTP(sftp_session, filename, sftp_info):
 
 
 
-def getMoments(dates, default_moment):
+def get_moments(dates, default_moment):
 	""" 
 	Given a list of dates, define the moments of each day to query
 	one moment = AM or PM
@@ -198,7 +198,7 @@ def getMoments(dates, default_moment):
 	return moments
 
 
-def getAllHistoryDates(home_id, table_name, now):
+def get_all_history_dates(home_id, table_name, now):
 	""" 
 	For a home, get the first timestamp available in the db, and 
 	from that first date, return the list of dates until now.
@@ -226,7 +226,7 @@ def getAllHistoryDates(home_id, table_name, now):
 	return all_dates
 
 
-def processAllHomes(sftp_session, config, default_date, moment, moment_now, now, sftp_info):
+def process_all_homes(sftp_session, config, default_date, moment, moment_now, now, sftp_info):
 	""" 
 	send 1 csv file per home, per day moment (AM or PM) to the sftp server
 	- if no data sent for this home yet, we send the whole history
@@ -235,19 +235,19 @@ def processAllHomes(sftp_session, config, default_date, moment, moment_now, now,
 
 	ids = config.getIds()
 	for home_id in ids.keys():
-		latest_date = getLastDate(sftp_session, home_id)
+		latest_date = get_last_date(sftp_session, home_id)
 		all_dates = [default_date]
 		moments = {default_date: [moment]}
 		if latest_date is None:  # history
-			all_dates = getAllHistoryDates(home_id, TBL_POWER, now)
-			moments = getMoments(all_dates, moment_now)
+			all_dates = get_all_history_dates(home_id, TBL_POWER, now)
+			moments = get_moments(all_dates, moment_now)
 		else:					 # realtime
 			all_dates = getDatesBetween(latest_date, now)
-			moments = getMoments(all_dates, moment_now)
+			moments = get_moments(all_dates, moment_now)
 
 		for date in moments:
 			for moment in moments[date]:
-				csv_filename = getCsvFilename(home_id, date, moment)
+				csv_filename = get_csv_filename(home_id, date, moment)
 				logging.debug(csv_filename)
 				home_data = getHomePowerDataFromCassandra(
 					home_id, 
@@ -257,14 +257,14 @@ def processAllHomes(sftp_session, config, default_date, moment, moment_now, now,
 					ts_clause = "AND ts {} '{} {}'".format(moment, date, NOON)
 				)
 				
-				saveDataToCsv(home_data.set_index("home_id"), csv_filename)  # first save csv locally
+				save_data_to_csv(home_data.set_index("home_id"), csv_filename)  # first save csv locally
 				if PROD:
-					sendFileToSFTP(sftp_session, csv_filename, sftp_info) # then, send to sftp server
+					send_file_to_sftp(sftp_session, csv_filename, sftp_info) # then, send to sftp server
 
 		logging.debug("-----------------------")
 
 
-def processArguments():
+def process_arguments():
 	"""
 	process arguments 
 	argument : sftp config filename
@@ -285,17 +285,17 @@ def processArguments():
 
 def main():
 
-	argparser = processArguments()
+	argparser = process_arguments()
 	args = argparser.parse_args()
 	sftp_info_filename = args.credentials_filename
 
 	sftp_info = ptc.load_json_credentials(sftp_info_filename)
-	sftp_session = getSFTPsession(sftp_info)
+	sftp_session = get_sftp_session(sftp_info)
 
 	config = getLastRegisteredConfig()
 
 	now = pd.Timestamp.now()
-	default_date, moment, moment_now = getdateToQuery(now)
+	default_date, moment, moment_now = get_date_to_query(now)
 
 	logging.debug("config id : " + str(config.getConfigID()))
 	logging.debug("date : " + default_date)
@@ -303,7 +303,7 @@ def main():
 	logging.debug("moment now : " + moment_now)
 
 
-	processAllHomes(
+	process_all_homes(
 		sftp_session, 
 		config, 
 		default_date, 
