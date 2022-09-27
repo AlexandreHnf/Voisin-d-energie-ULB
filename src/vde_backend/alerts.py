@@ -25,9 +25,6 @@ from utils import(
 	getLastRegisteredConfig,
 	getHomePowerDataFromCassandra
 )
-from constants import (
-	CASSANDRA_KEYSPACE
-)
 
 SIGN_THRESHOLD = 15
 MISSING_ALERT_THRESHOLD = 10
