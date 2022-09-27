@@ -121,7 +121,7 @@ class Home:
 		col_names = []
 
 		for sensor in self.sensors:
-			col_names.append(sensor.getSensorID())
+			col_names.append(sensor.get_sensor_id())
 		
 		return col_names
 
@@ -133,7 +133,7 @@ class Home:
 		data_dfs = []
 
 		for sensor in self.sensors:
-			s = sensor.getSerie()
+			s = sensor.get_serie()
 			data_dfs.append(s)
 
 		return data_dfs

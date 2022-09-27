@@ -1,4 +1,4 @@
-__title__ = "sensors"
+__title__ = "sensor"
 __version__ = "2.0.0"
 __author__ = "Alexandre Heneffe, and Guillaume Levasseur"
 __license__ = "MIT"
@@ -13,8 +13,7 @@ import pandas as pd
 
 # local sources
 from utils import (
-	setInitSeconds,
-	time_range,
+	time_range
 )
 
 
@@ -31,13 +30,13 @@ class Sensor:
 		self.since_timing = since_timing.tz_convert("UTC")
 		self.to_timing = to_timing.tz_convert("UTC")
 
-	def getFluksoID(self):
+	def get_flukso_id(self):
 		return self.flukso_id
 	
-	def getSensorID(self):
+	def get_sensor_id(self):
 		return self.sensor_id
 
-	def getSerie(self):
+	def get_serie(self):
 		""" 
 		# since_timing and to_timing = UTC timezone for tmpo query
 		"""
