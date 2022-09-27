@@ -21,8 +21,8 @@ from datetime import timedelta
 
 # local source
 from utils import(
-	getLastRegisteredConfig,
-	getHomePowerDataFromCassandra
+	get_last_registered_config,
+	get_home_power_data_from_cassandra
 )
 
 SIGN_THRESHOLD = 15
@@ -55,7 +55,7 @@ def check_missing(home_id, date):
 	""" 
 	Check if there are a lot of missing data in one day of power data for a home
 	"""
-	home_df = getHomePowerDataFromCassandra(home_id, date)
+	home_df = get_home_power_data_from_cassandra(home_id, date)
 
 	count_zero = 0
 	if len(home_df) > 0:
@@ -75,7 +75,7 @@ def check_signs(home_id, date):
 	- negative consumption values
 	- positive production values
 	"""
-	home_df = getHomePowerDataFromCassandra(home_id, date)
+	home_df = get_home_power_data_from_cassandra(home_id, date)
 
 	ok = True
 	if len(home_df) > 0:
@@ -180,7 +180,7 @@ def main():
 	args = argparser.parse_args()
 	mode = args.mode
 
-	last_config = getLastRegisteredConfig()
+	last_config = get_last_registered_config()
 	now = pd.Timestamp.now(tz="CET")
 	yesterday = get_yesterday(now)
 	print("yesterday : ", yesterday)

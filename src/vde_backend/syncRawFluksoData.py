@@ -27,11 +27,11 @@ import tmpo
 
 from utils import (
 	logging,
-	getLastRegisteredConfig,
-	getProgDir,
-	getTimeSpent,
-	isEarlier,
-	setInitSeconds,
+	get_last_registered_config,
+	get_prog_dir,
+	get_time_spent,
+	is_earlier,
+	set_init_seconds,
 	read_sensor_info,
 )
 
@@ -257,12 +257,12 @@ def getTimings(tmpo_session, config, missing_data, now):
 				# if 'start_ts' is older (in the past) than the current start_ts
 				for ts in sensor_start_ts:
 					logging.debug(f"sensors start ts : {ts}")
-					if ts is not None and isEarlier(ts, timings[home_id]["start_ts"]):
+					if ts is not None and is_earlier(ts, timings[home_id]["start_ts"]):
 							timings[home_id]["start_ts"] = ts
 
 					if ts is not None and str(ts.tz) == "None":
 							ts = ts.tz_localize("CET") # ensures a CET timezone
-					timings[home_id]["sensors"][sid] = setInitSeconds(ts)  # CET
+					timings[home_id]["sensors"][sid] = set_init_seconds(ts)  # CET
 
 			if timings[home_id]["start_ts"] is now:  # no data to recover from this home 
 				timings[home_id]["start_ts"] = None
@@ -290,7 +290,7 @@ def setCustomTimings(config, timings, custom_timings):
 				"sensors": {}
 			}
 			for sid in sensors_ids:
-				timings[home_id]["sensors"][sid] = setInitSeconds(custom_timings["start_ts"])  # CET
+				timings[home_id]["sensors"][sid] = set_init_seconds(custom_timings["start_ts"])  # CET
 
 	except:
 		logging.critical("Exception occured in 'setCustomTimings' : ", exc_info=True)
@@ -349,7 +349,7 @@ def testSession(sensors_config):
 	"""
 	path = TMPO_FILE
 	if not path:
-		path = getProgDir()
+		path = get_prog_dir()
 
 	for sid, row in sensors_config.get_sensors_config().iterrows():
 		try:
@@ -369,7 +369,7 @@ def getTmpoSession(config):
 	"""
 	path = TMPO_FILE
 	if not path:
-		path = getProgDir()
+		path = get_prog_dir()
 	logging.info("tmpo path : " + path)
 
 	tmpo_session = tmpo.Session(path)
@@ -393,7 +393,7 @@ def getFluksoData(sensor_file, path=""):
 	from a csv file containing the sensors configurations
 	"""
 	if not path:
-		path = getProgDir()
+		path = get_prog_dir()
 
 	sensors = read_sensor_info(path, sensor_file)
 	tmpo_session = tmpo.Session(path)
@@ -467,7 +467,7 @@ def saveHomeRawToCassandra(home, config, timings):
 				insert_queries = ""
 				for i, timestamp in enumerate(date_rows[sid].index):
 					# if the timestamp > the sensor's defined start timing
-					if isEarlier(timings[hid]["sensors"][sid], timestamp):
+					if is_earlier(timings[hid]["sensors"][sid], timestamp):
 						ts = timestamp.isoformat()
 						power = date_rows[sid][i]
 						values = [sid, date, ts, insertion_time, config_id, power]
@@ -583,8 +583,8 @@ def processHomes(tmpo_session, config, timings, now, custom):
 		# if home has a start timestamp and a end timestamp
 		if timings[hid]["start_ts"] is not None and timings[hid]["end_ts"] is not None:
 			# set init seconds (for tmpo query), might set timings earlier than planned (not a problem)
-			start_timing = setInitSeconds(timings[hid]["start_ts"])
-			end_timing = setInitSeconds(timings[hid]["end_ts"])
+			start_timing = set_init_seconds(timings[hid]["start_ts"])
+			end_timing = set_init_seconds(timings[hid]["end_ts"])
 			intermediate_timings = getIntermediateTimings(start_timing, end_timing)
 			displayHomeInfo(hid, start_timing, end_timing)
 
@@ -641,17 +641,17 @@ def showProcessingTimes(begin, setup_time, t):
 
 	logging.info("--------------------- Timings --------------------")
 	logging.info("> Setup time :                     {}.".format(
-		getTimeSpent(begin, setup_time)
+		get_time_spent(begin, setup_time)
 	))
 	logging.info("> Timings computation :            {}.".format(
-		getTimeSpent(t["start"], t["timing"])
+		get_time_spent(t["start"], t["timing"])
 	))
 	logging.info("> Generate homes + saving in db :  {}.".format(
-		getTimeSpent(t["timing"], t["homes"])
+		get_time_spent(t["timing"], t["homes"])
 	))
 
 	logging.info("> Total Processing time :          {}.".format(
-		getTimeSpent(begin, time.time())
+		get_time_spent(begin, time.time())
 	))
 
 
@@ -677,7 +677,7 @@ def sync(custom_timings):
 	now = pd.Timestamp.now(tz="CET").replace(microsecond=0)  # remove microseconds for simplicity
 
 	# > Configuration
-	config = getLastRegisteredConfig()
+	config = get_last_registered_config()
 	missing_data = ptc.selectQuery(
 		CASSANDRA_KEYSPACE,
 		TBL_RAW_MISSING,
@@ -745,7 +745,7 @@ def processCustomTimings(start, end):
 			logging.critical("Wrong argument format - custom timings : ", exc_info=True)
 			sys.exit(1)
 
-		if isEarlier(custom_timings["end_ts"], custom_timings["start_ts"]):
+		if is_earlier(custom_timings["end_ts"], custom_timings["start_ts"]):
 			logging.critical("Wrong arguments (custom timings) : first timing must be earlier than second timing")
 			sys.exit(1)
 

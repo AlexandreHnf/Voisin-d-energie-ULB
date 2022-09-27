@@ -20,8 +20,8 @@ from constants import (
 )
 import pyToCassandra as ptc
 from utils import (
-	getDatesBetween, 
-	getLastRegisteredConfig
+	get_dates_between, 
+	get_last_registered_config
 )
 
 
@@ -204,7 +204,7 @@ def get_data_dates_from_home(sensors_df):
 			if pd.Timestamp(first_date_df.iat[0,0]) < first_date:
 				first_date = pd.Timestamp(first_date_df.iat[0,0])
 
-	all_dates = getDatesBetween(first_date, now)
+	all_dates = get_dates_between(first_date, now)
 	return all_dates
 
 
@@ -258,7 +258,7 @@ def recompute_power_data(new_config, homes):
 
 
 def main():
-	last_config = getLastRegisteredConfig()
+	last_config = get_last_registered_config()
 	recompute_power_data(last_config, [])
 
 

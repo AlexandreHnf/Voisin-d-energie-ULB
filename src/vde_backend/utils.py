@@ -19,7 +19,6 @@ import logging.handlers
 
 # local sources
 from constants import (
-	PROD,
 	CASSANDRA_KEYSPACE, 
 	FREQ, 
 	LOG_LEVEL,
@@ -33,7 +32,7 @@ from sensors_config import Configuration
 import pyToCassandra as ptc
 
 
-def setupLogLevel():
+def setup_log_level():
 	""" 
 	set logging level based on a constant
 	levels : 
@@ -55,7 +54,7 @@ def setupLogLevel():
 		return logging.DEBUG
 
 
-def getLogHandler():
+def get_log_handler():
 	""" 
 	If prod : rotating logfile handler
 	If dev : only stdout
@@ -78,14 +77,14 @@ logging.getLogger("requests").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 logging.basicConfig(
-	level = setupLogLevel(),
+	level = setup_log_level(),
 	format = "{asctime} {levelname:<8} {filename:<16} {message}",
     style='{',
-	handlers=[getLogHandler()]
+	handlers=[get_log_handler()]
 )
 
 
-def getProgDir():
+def get_prog_dir():
 	import __main__
 	main_path = os.path.abspath(__main__.__file__)
 	main_path = os.path.dirname(main_path) + os.sep
@@ -105,7 +104,7 @@ def read_sensor_info(path, sensor_file):
 	return sensors
 
 
-def setInitSeconds(ts):
+def set_init_seconds(ts):
 	"""
 	SS = 00 if M even, 04 if odd
 	"""
@@ -117,7 +116,7 @@ def setInitSeconds(ts):
 	return ts
 
 
-def getLastRegisteredConfig():
+def get_last_registered_config():
 	"""
 	Get the last registered config based on insertion time
 	"""
@@ -141,7 +140,7 @@ def getLastRegisteredConfig():
 	return config
 
 
-def getAllRegisteredConfigs():
+def get_all_registered_configs():
 	""" 
 	Get all configs present in the system
 	returns a list of config ids
@@ -167,7 +166,7 @@ def getAllRegisteredConfigs():
 	return configs
 
 
-def getHomePowerDataFromCassandra(home_id, date, ts_clause=""):
+def get_home_power_data_from_cassandra(home_id, date, ts_clause=""):
 	""" 
 	Get power data from Power table in Cassandra
 	> for 1 specific home
@@ -194,7 +193,7 @@ def getHomePowerDataFromCassandra(home_id, date, ts_clause=""):
 	return home_df
 
 
-def getDatesBetween(start_date, end_date):
+def get_dates_between(start_date, end_date):
 	""" 
 	get the list of dates between 2 given dates
 	"""
@@ -212,11 +211,11 @@ def getDatesBetween(start_date, end_date):
 	return dates
 
 
-def toEpochs(time):
+def to_epochs(time):
 	return int(math.floor(time.value / 1e9))
 
 
-def isEarlier(ts1, ts2):
+def is_earlier(ts1, ts2):
 	""" 
 	check if timestamp 'ts1' is earlier/older than timestamp 'ts2'
 	"""
@@ -260,7 +259,7 @@ def energy2power(energy_df):
 	return power_df
 
 
-def getTimeSpent(time_begin, time_end):
+def get_time_spent(time_begin, time_end):
 	""" 
 	Get the time spent in seconds between 2 timings (1 timing = time.time())
 	"""
@@ -268,7 +267,7 @@ def getTimeSpent(time_begin, time_end):
 
 
 def main():
-	config = getLastRegisteredConfig()
+	config = get_last_registered_config()
 	print(config.get_sensors_config())
 
 

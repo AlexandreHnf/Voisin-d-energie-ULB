@@ -34,10 +34,10 @@ from constants import (
 import pyToCassandra as ptc
 
 from utils import (
-	getDatesBetween, 
-	getLastRegisteredConfig,
-	getHomePowerDataFromCassandra,
-	isEarlier
+	get_dates_between, 
+	get_last_registered_config,
+	get_home_power_data_from_cassandra,
+	is_earlier
 )
 
 
@@ -103,7 +103,7 @@ def get_all_history_dates(home_id, table_name, now):
 	if len(date_df) > 0:
 		first_date = pd.Timestamp(date_df.iat[0,0])
 
-		all_dates = getDatesBetween(first_date, now)
+		all_dates = get_dates_between(first_date, now)
 
 	return all_dates
 
@@ -123,7 +123,7 @@ def get_dates(home_id, specific_days, now, output_filename):
 		if len(specific_days) == 1:
 			all_dates.append(specific_days[0])
 		elif len(specific_days) == 2:
-			all_dates = getDatesBetween(
+			all_dates = get_dates_between(
 				pd.Timestamp(specific_days[0]), 
 				pd.Timestamp(specific_days[1])
 			)
@@ -132,7 +132,7 @@ def get_dates(home_id, specific_days, now, output_filename):
 		if latest_date is None:  # history
 			all_dates = get_all_history_dates(home_id, TBL_POWER, now)
 		else:					 # realtime
-			all_dates = getDatesBetween(latest_date, now)
+			all_dates = get_dates_between(latest_date, now)
 
 	return all_dates
 
@@ -150,7 +150,7 @@ def process_all_homes(now, homes, specific_days, output_filename):
 		for date in all_dates:
 			csv_filename = "{}_{}.csv".format(home_id, date)
 			print(csv_filename)
-			home_data = getHomePowerDataFromCassandra(
+			home_data = get_home_power_data_from_cassandra(
 				home_id, 
 				date
 			)
@@ -188,7 +188,7 @@ def get_specific_days(specific_day, start_day, end_day):
 				pd.Timestamp(start_day), 
 				pd.Timestamp(end_day)
 			]
-			if isEarlier(specific_days[1], specific_days[0]):
+			if is_earlier(specific_days[1], specific_days[0]):
 				print("Wrong arguments (custom timings) : first timing must be earlier than second timing.")
 				sys.exit(1)
 		if specific_day:
@@ -273,7 +273,7 @@ def main():
 
 	specific_days = get_specific_days(specific_day, start_day, end_day)
 
-	config = getLastRegisteredConfig()
+	config = get_last_registered_config()
 
 	now = pd.Timestamp.now()
 

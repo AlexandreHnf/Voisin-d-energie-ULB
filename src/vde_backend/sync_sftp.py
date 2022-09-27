@@ -51,9 +51,9 @@ import pyToCassandra as ptc
 
 from utils import (
 	logging,
-	getDatesBetween,
-	getLastRegisteredConfig,
-	getHomePowerDataFromCassandra
+	get_dates_between,
+	get_last_registered_config,
+	get_home_power_data_from_cassandra
 )
 
 
@@ -221,7 +221,7 @@ def get_all_history_dates(home_id, table_name, now):
 	if len(date_df) > 0:
 		first_date = pd.Timestamp(date_df.iat[0,0])
 
-		all_dates = getDatesBetween(first_date, now)
+		all_dates = get_dates_between(first_date, now)
 
 	return all_dates
 
@@ -242,14 +242,14 @@ def process_all_homes(sftp_session, config, default_date, moment, moment_now, no
 			all_dates = get_all_history_dates(home_id, TBL_POWER, now)
 			moments = get_moments(all_dates, moment_now)
 		else:					 # realtime
-			all_dates = getDatesBetween(latest_date, now)
+			all_dates = get_dates_between(latest_date, now)
 			moments = get_moments(all_dates, moment_now)
 
 		for date in moments:
 			for moment in moments[date]:
 				csv_filename = get_csv_filename(home_id, date, moment)
 				logging.debug(csv_filename)
-				home_data = getHomePowerDataFromCassandra(
+				home_data = get_home_power_data_from_cassandra(
 					home_id, 
 					date, 
 					moment, 
@@ -292,7 +292,7 @@ def main():
 	sftp_info = ptc.load_json_credentials(sftp_info_filename)
 	sftp_session = get_sftp_session(sftp_info)
 
-	config = getLastRegisteredConfig()
+	config = get_last_registered_config()
 
 	now = pd.Timestamp.now()
 	default_date, moment, moment_now = get_date_to_query(now)
