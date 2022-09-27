@@ -1,4 +1,4 @@
-__title__ = "syncRawFluksoData"
+__title__ = "sync_flukso"
 __version__ = "2.0.0"
 __author__ = "Alexandre Heneffe, and Guillaume Levasseur"
 __license__ = "MIT"
@@ -13,7 +13,6 @@ Script to fetch Fluksometer data using the tmpo protocol and
 
 # standard library
 from datetime import timedelta
-import os
 import time
 import argparse
 import sys
@@ -70,7 +69,7 @@ from sensor import Sensor
 # ====================================================================================
 
 
-def createRawFluksoTable(table_name):
+def create_raw_flukso_table(table_name):
 	""" 
 	create a cassandra table for the raw flukso data
 	"""
@@ -94,7 +93,7 @@ def createRawFluksoTable(table_name):
 	)
 
 
-def createPowerTable(table_name):
+def create_power_table(table_name):
 	""" 
 	create a cassandra table for the power data
 	"""
@@ -120,7 +119,7 @@ def createPowerTable(table_name):
 	)
 
 
-def createRawMissingTable(table_name):
+def create_raw_missing_table(table_name):
 	""" 
 	Raw missing table contains timestamps range where there is missing data
 	from a specific query given a specific configuration of the sensors 
@@ -146,7 +145,7 @@ def createRawMissingTable(table_name):
 # ====================================================================================
 
 
-def getLastRegisteredTimestamp(table_name, sensor_id):
+def get_last_registered_timestamp(table_name, sensor_id):
 	""" 
 	get the last registered timestamp of the raw table
 	- None if no timestamp in the table
@@ -184,7 +183,7 @@ def getLastRegisteredTimestamp(table_name, sensor_id):
 	return None
 
 
-def getInitialTimestamp(tmpo_session, sid, now):
+def get_initial_timestamp(tmpo_session, sid, now):
 	""" 
 	get the first ever registered timestamp for a sensor using tmpo Session
 	if no such timestamp (None), return an arbitrary timing (ex: since 4min)
@@ -201,7 +200,7 @@ def getInitialTimestamp(tmpo_session, sid, now):
 	return initial_ts
 
 
-def getSensorTimings(tmpo_session, missing_data, sid, now):
+def get_sensor_timings(tmpo_session, missing_data, sid, now):
 	"""
 	For each sensor, we get start timing, forming the interval of time we have to
 	query to tmpo
@@ -222,10 +221,10 @@ def getSensorTimings(tmpo_session, missing_data, sid, now):
 			- timedelta(seconds=FREQ[0])
 		) # sensor start timing = missing data first timestamp
 	else:  # if no missing data for this sensor
-		default_timing = getLastRegisteredTimestamp(TBL_RAW, sid)  # None or tz-naive CET
+		default_timing = get_last_registered_timestamp(TBL_RAW, sid)  # None or tz-naive CET
 		if default_timing is None:  # if no raw data registered for this sensor yet
 			# we take its first tmpo timestamp
-			initial_ts = getInitialTimestamp(tmpo_session, sid, now)
+			initial_ts = get_initial_timestamp(tmpo_session, sid, now)
 			sensor_start_ts = initial_ts
 		else:
 			sensor_start_ts = default_timing
@@ -233,7 +232,7 @@ def getSensorTimings(tmpo_session, missing_data, sid, now):
 	return sensor_start_ts
 
 
-def getTimings(tmpo_session, config, missing_data, now):
+def get_timings(tmpo_session, config, missing_data, now):
 	"""
 	For each home, get the start timing for the query based on the missing data table
 	(containing for each sensor the first timestamp with missing data from the previous query)
@@ -251,7 +250,7 @@ def getTimings(tmpo_session, config, missing_data, now):
 			timings[home_id] = {"start_ts": now, "end_ts": now, "sensors": {}}
 
 			for sid in sensors_ids:  # for each sensor of this home
-				sensor_start_ts = getSensorTimings(tmpo_session, missing_data, sid, now)
+				sensor_start_ts = get_sensor_timings(tmpo_session, missing_data, sid, now)
 				if type(sensor_start_ts) is not pd.Series:
 					sensor_start_ts = [sensor_start_ts]
 				# if 'start_ts' is older (in the past) than the current start_ts
@@ -271,13 +270,13 @@ def getTimings(tmpo_session, config, missing_data, now):
 		logging.debug("Missing raw table deleted")
 
 	except:
-		logging.critical("Exception occured in 'getTimings' : ", exc_info=True)
+		logging.critical("Exception occured in 'get_timings' : ", exc_info=True)
 
 	return timings
 
 
 
-def setCustomTimings(config, timings, custom_timings):
+def set_custom_timings(config, timings, custom_timings):
 	""" 
 	Set custom start timing and custom end timing for each home, and each sensor
 	- Same custom timings for each home.
@@ -293,20 +292,20 @@ def setCustomTimings(config, timings, custom_timings):
 				timings[home_id]["sensors"][sid] = set_init_seconds(custom_timings["start_ts"])  # CET
 
 	except:
-		logging.critical("Exception occured in 'setCustomTimings' : ", exc_info=True)
+		logging.critical("Exception occured in 'set_custom_timings' : ", exc_info=True)
 
 
 
-def processTimings(tmpo_session, config, missing_data, now, custom_timings):
+def process_timings(tmpo_session, config, missing_data, now, custom_timings):
 	""" 
 	Get the timings for each home 
 	Timings are either custom or determined by the current database state.
 	"""
 	timings = {}
 	if (len(custom_timings) > 0):
-		setCustomTimings(config, timings, custom_timings)
+		set_custom_timings(config, timings, custom_timings)
 	else:
-		timings = getTimings(
+		timings = get_timings(
 			tmpo_session, 
 			config,
 			missing_data,
@@ -319,7 +318,7 @@ def processTimings(tmpo_session, config, missing_data, now, custom_timings):
 
 # ====================================================================================
 
-def generateHome(tmpo_session, hid, home_sensors, since_timing, to_timing):
+def generate_home(tmpo_session, hid, home_sensors, since_timing, to_timing):
 	""" 
 	Given a start timing and an end timing, generate a Home object containing the
 	result of the query between these 2 timings. 
@@ -342,7 +341,7 @@ def generateHome(tmpo_session, hid, home_sensors, since_timing, to_timing):
 	return home
 
 
-def testSession(sensors_config):
+def test_session(sensors_config):
 	""" 
 	test each sensor and see if tmpo accepts or refuses the sensor when
 	syncing
@@ -363,7 +362,7 @@ def testSession(sensors_config):
 			continue
 
 
-def getTmpoSession(config):
+def get_tmpo_session(config):
 	"""
 	Get tmpo (via api) session with all the sensors in it
 	"""
@@ -387,7 +386,7 @@ def getTmpoSession(config):
 	return tmpo_session
 
 
-def getFluksoData(sensor_file, path=""):
+def get_flukso_data(sensor_file, path=""):
 	"""
 	get Flukso tmpo session (via API) + sensors info (IDs, ...)
 	from a csv file containing the sensors configurations
@@ -408,7 +407,7 @@ def getFluksoData(sensor_file, path=""):
 # ====================================================================================
 
 
-def saveHomeMissingData(config, to_timing, home, saved_sensors):
+def save_home_missing_data(config, to_timing, home, saved_sensors):
 	"""
 	Save the first timestamp with no data (nan values) for each sensors of the home
 	"""
@@ -440,10 +439,10 @@ def saveHomeMissingData(config, to_timing, home, saved_sensors):
 
 	
 	except:
-		logging.critical("Exception occured in 'saveHomeMissingData' : {} ".format(hid), exc_info=True)
+		logging.critical("Exception occured in 'save_home_missing_data' : {} ".format(hid), exc_info=True)
 
 
-def saveHomeRawToCassandra(home, config, timings):
+def save_home_raw_data(home, config, timings):
 	"""
 	Save raw flukso flukso data to Cassandra table
 	Save per sensor : 1 row = 1 sensor + 1 timestamp + 1 power value
@@ -481,12 +480,12 @@ def saveHomeRawToCassandra(home, config, timings):
 
 
 	except:
-		logging.critical("Exception occured in 'saveHomeRawToCassandra' : ", exc_info=True)
+		logging.critical("Exception occured in 'save_home_raw_data' : ", exc_info=True)
 
 
 # ====================================================================================
 
-def displayHomeInfo(home_id, start_ts, end_ts):
+def display_home_info(home_id, start_ts, end_ts):
 	""" 
 	Display some info during the execution of a query for logging. Can be activated by
 	turning the logging mode to 'INFO' 
@@ -514,7 +513,7 @@ def displayHomeInfo(home_id, start_ts, end_ts):
 		logging.info("> {} | no data to recover".format(home_id))
 
 
-def getIntermediateTimings(start_ts, end_ts):
+def get_intermediate_timings(start_ts, end_ts):
 	""" 
 	Given 2 timestamps, generate the intermediate timings
 	- interval duration = 1 day
@@ -531,7 +530,7 @@ def getIntermediateTimings(start_ts, end_ts):
 	return intermediate_timings
 
 
-def saveDataThreads(home, config, timings, now, saved_sensors, custom):
+def save_data_threads(home, config, timings, now, saved_sensors, custom):
 	""" 
 	Threads to save data to different Cassandra tables
 	-> raw data in raw table
@@ -542,7 +541,7 @@ def saveDataThreads(home, config, timings, now, saved_sensors, custom):
 	threads = []
 	# save raw flukso data in cassandra
 	t1 = Thread(
-		target = saveHomeRawToCassandra, 
+		target = save_home_raw_data, 
 		args=(home, config, timings)
 	)
 	threads.append(t1)
@@ -551,7 +550,7 @@ def saveDataThreads(home, config, timings, now, saved_sensors, custom):
 	if not custom:  # in custom mode, no need to save missing data (in the past)
 		# save missing raw data in cassandra
 		t2 = Thread(
-			target = saveHomeMissingData, 
+			target = save_home_missing_data, 
 			args = (config, now, home, saved_sensors)
 		)
 		threads.append(t2)
@@ -570,7 +569,7 @@ def saveDataThreads(home, config, timings, now, saved_sensors, custom):
 		t.join()
 
 
-def processHomes(tmpo_session, config, timings, now, custom):
+def process_homes(tmpo_session, config, timings, now, custom):
 	""" 
 	For each home, we first create the home object containing
 	all the tmpo queries and series computation
@@ -585,15 +584,15 @@ def processHomes(tmpo_session, config, timings, now, custom):
 			# set init seconds (for tmpo query), might set timings earlier than planned (not a problem)
 			start_timing = set_init_seconds(timings[hid]["start_ts"])
 			end_timing = set_init_seconds(timings[hid]["end_ts"])
-			intermediate_timings = getIntermediateTimings(start_timing, end_timing)
-			displayHomeInfo(hid, start_timing, end_timing)
+			intermediate_timings = get_intermediate_timings(start_timing, end_timing)
+			display_home_info(hid, start_timing, end_timing)
 
 			for i in range(len(intermediate_timings)-1):  # query day by day
 				start_ts = intermediate_timings[i]
 				to_ts = intermediate_timings[i+1]
 
 				# generate home
-				home = generateHome(
+				home = generate_home(
 					tmpo_session, 
 					hid, 
 					home_sensors, 
@@ -601,7 +600,7 @@ def processHomes(tmpo_session, config, timings, now, custom):
 					to_ts
 				)
 
-				saveDataThreads(
+				save_data_threads(
 					home, 
 					config, 
 					timings, 
@@ -617,7 +616,7 @@ def processHomes(tmpo_session, config, timings, now, custom):
 # ====================================================================================
 
 
-def showConfigInfo(config):
+def show_config_info(config):
 	""" 
 	Display Configuration stats/information
 	"""
@@ -633,7 +632,7 @@ def showConfigInfo(config):
 	))
 
 
-def showProcessingTimes(begin, setup_time, t):
+def show_processing_times(begin, setup_time, t):
 	"""
 	Display processing time for each step of 1 query
 	t = timer (dictionary with running timings)
@@ -655,13 +654,13 @@ def showProcessingTimes(begin, setup_time, t):
 	))
 
 
-def createTables():
+def create_tables():
 	"""
 	create the necessary tables for the flukso data synchronization
 	""" 
-	createRawFluksoTable(TBL_RAW)
-	createRawMissingTable(TBL_RAW_MISSING)
-	createPowerTable(TBL_POWER)
+	create_raw_flukso_table(TBL_RAW)
+	create_raw_missing_table(TBL_RAW_MISSING)
+	create_power_table(TBL_POWER)
 
 
 def sync(custom_timings):
@@ -698,15 +697,15 @@ def sync(custom_timings):
 	timer = {"start": time.time()}
 
 	# Config information
-	showConfigInfo(config)
+	show_config_info(config)
 
 	logging.info("---------------------- Tmpo -----------------------")
 
 	# TMPO synchronization
-	tmpo_session = getTmpoSession(config)
+	tmpo_session = get_tmpo_session(config)
 
 	# STEP 1 : get start and end timings for all homes for the query
-	timings = processTimings(
+	timings = process_timings(
 		tmpo_session,
 		config,
 		missing_data,
@@ -721,16 +720,16 @@ def sync(custom_timings):
 	logging.info("Generating homes data, getting Flukso data and save in Cassandra...")
 
 	# STEP 2 : process all homes data, and save in database
-	processHomes(tmpo_session, config, timings, now, custom)
+	process_homes(tmpo_session, config, timings, now, custom)
 
 	timer["homes"] = time.time()
 
 	# =========================================================
 
-	showProcessingTimes(begin, setup_time, timer) 
+	show_processing_times(begin, setup_time, timer) 
 
 
-def processCustomTimings(start, end):
+def process_custom_timings(start, end):
 	""" 
 	Given the custom mode, check if the two provided arguments
 	are valid. Namely, if the timestamp format is ok, and 
@@ -752,7 +751,7 @@ def processCustomTimings(start, end):
 	return custom_timings
 
 
-def getArguments():
+def get_arguments():
 	""" 
 	process arguments
 	argument : custom mode : choose a interval between 2 specific timings
@@ -779,13 +778,13 @@ def getArguments():
 
 
 def main():
-	args = getArguments()
+	args = get_arguments()
 
 	# Custom timings argument
-	custom_timings = processCustomTimings(args.start, args.end)
+	custom_timings = process_custom_timings(args.start, args.end)
 
 	# first, create tables if needed : 
-	createTables()
+	create_tables()
 
 	# then, sync new data in Cassandra
 	sync(custom_timings)
