@@ -62,7 +62,7 @@ from constants import (
 
 
 import pyToCassandra as ptc
-from computePower import saveHomePowerDataToCassandra
+from compute_power import save_home_power_data_to_cassandra
 from sensor import Sensor
 
 # ====================================================================================
@@ -559,7 +559,7 @@ def saveDataThreads(home, config, timings, now, saved_sensors, custom):
 
 	# save power flukso data in cassandra
 	t3 = Thread(
-		target = saveHomePowerDataToCassandra, 
+		target = save_home_power_data_to_cassandra, 
 		args = (home, config)
 	)
 	threads.append(t3)

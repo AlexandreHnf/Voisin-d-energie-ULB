@@ -25,7 +25,7 @@ from constants import (
 
 import pyToCassandra as ptc
 from sensors_config import Configuration
-from computePower import recomputePowerData
+from compute_power import recompute_power_data
 from utils import getLastRegisteredConfig
 
 
@@ -123,7 +123,7 @@ def recomputeData():
 	"""
 	new_config = getLastRegisteredConfig()
 	changed_homes = new_config.get_sensors_config()["home_id"].unique()
-	recomputePowerData(new_config, changed_homes)
+	recompute_power_data(new_config, changed_homes)
 
 
 def writeSensorsConfigCassandra(new_config_df, now):

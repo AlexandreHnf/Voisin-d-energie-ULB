@@ -1,4 +1,4 @@
-__title__ = "computePower"
+__title__ = "compute_power"
 __version__ = "2.0.0"
 __author__ = "Alexandre Heneffe, and Guillaume Levasseur"
 __license__ = "MIT"
@@ -30,7 +30,7 @@ from utils import (
 # ====================================================================================
 
 
-def saveHomePowerDataToCassandra(home, config):
+def save_home_power_data_to_cassandra(home, config):
 	""" 
 	save power flukso data to cassandra : P_cons, P_prod, P_tot
 	- home : Home object 
@@ -82,7 +82,7 @@ def saveHomePowerDataToCassandra(home, config):
 			ptc.batch_insert(insert_queries)
 		
 	except:
-		logging.critial("Exception occured in 'saveHomePowerDataToCassandra' : {}".format(hid), exc_info=True)
+		logging.critical("Exception occured in 'save_home_power_data_to_cassandra' : {}".format(hid), exc_info=True)
 
 
 # =====================================================================================
@@ -90,7 +90,7 @@ def saveHomePowerDataToCassandra(home, config):
 # =====================================================================================
 
 
-def getHomeRawData(sensors_df, day):
+def get_home_raw_data(sensors_df, day):
 	""" 
 	get raw flukso data from cassandra given a certain day
 	return dictionary of the format : 
@@ -113,7 +113,7 @@ def getHomeRawData(sensors_df, day):
 	return home_rawdata
 
 
-def getHomeConsumptionProductionDf(home_rawdata, home_id, sensors_df):
+def get_home_consumption_production_df(home_rawdata, home_id, sensors_df):
 	""" 
 	compute power data from raw data (coming from cassandra 'raw' table) : 
 	P_cons = P_tot - P_prod
@@ -143,7 +143,7 @@ def getHomeConsumptionProductionDf(home_rawdata, home_id, sensors_df):
 	return cons_prod_df
 
 
-def saveRecomputedPowersToCassandra(new_config_id, cons_prod_df):
+def save_recomputed_powers_to_cassandra(new_config_id, cons_prod_df):
 	""" 
 	Save the powers (P_cons, P_prod, P_tot) of the raw data
 	of some period of time in Cassandra for 1 specific home
@@ -185,7 +185,7 @@ def saveRecomputedPowersToCassandra(new_config_id, cons_prod_df):
 	ptc.batch_insert(insert_queries)
 
 
-def getDataDatesFromHome(sensors_df):
+def get_data_dates_from_home(sensors_df):
 	""" 
 	From a home, query the first date in the raw data.
 	then, return all dates between the first date and now.
@@ -208,7 +208,7 @@ def getDataDatesFromHome(sensors_df):
 	return all_dates
 
 
-def existHomePowerData(home_id, date):
+def exist_home_power_data(home_id, date):
 	""" 
 	From a home, query the first date in the raw data.
 	return True if there is at least 1 row of data for this home, 
@@ -224,7 +224,7 @@ def existHomePowerData(home_id, date):
 	return len(first_date_df) > 0
 
 
-def recomputePowerData(new_config, homes):
+def recompute_power_data(new_config, homes):
 	""" 
 	Given a configuration, recompute all power data for all select homes
 	based on the existing raw data stored in Cassandra.
@@ -237,21 +237,21 @@ def recomputePowerData(new_config, homes):
 	for hid in homes:
 		sensors_df = config_by_home.get_group(hid) # new config
 		# first select all dates registered for this home
-		all_dates = getDataDatesFromHome(sensors_df)
+		all_dates = get_data_dates_from_home(sensors_df)
 
-		if len(all_dates) > 0 and existHomePowerData(hid, all_dates[0]):
+		if len(all_dates) > 0 and exist_home_power_data(hid, all_dates[0]):
 			# then, for each day, recompute data and store it in the database (overwrite existing data)
 			for date in all_dates:
 				# get raw data from previous config
-				home_rawdata = getHomeRawData(sensors_df, date)
+				home_rawdata = get_home_raw_data(sensors_df, date)
 				# Check if raw data is not empty
 				if len(home_rawdata) > 0:
 					# recompute power data with new config info : consumption, production, total
-					home_powers = getHomeConsumptionProductionDf(home_rawdata, hid, sensors_df)
+					home_powers = get_home_consumption_production_df(home_rawdata, hid, sensors_df)
 
 					# save (overwrite) to cassandra table
 					if len(home_powers) > 0:
-						saveRecomputedPowersToCassandra(new_config_id, home_powers)
+						save_recomputed_powers_to_cassandra(new_config_id, home_powers)
 
 
 # ====================================================================================
@@ -259,7 +259,7 @@ def recomputePowerData(new_config, homes):
 
 def main():
 	last_config = getLastRegisteredConfig()
-	recomputePowerData(last_config, [])
+	recompute_power_data(last_config, [])
 
 
 if __name__ == "__main__":
