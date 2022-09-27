@@ -13,6 +13,8 @@ import pandas as pd
 
 # local source
 from constants import (
+	TBL_ACCESS,
+	TBL_GROUP,
 	TBL_POWER,
 	TBL_SENSORS_CONFIG, 
 	CASSANDRA_KEYSPACE, 
@@ -318,19 +320,19 @@ def processConfig(config_file_path, new_config_df, now):
 	"""
 
 	# first, create tables if necessary (if they do not already exist)
-	createTableSensorConfig("sensors_config")
-	createTableAccess("access")
-	createTableGroup("group")
+	createTableSensorConfig(TBL_SENSORS_CONFIG)
+	createTableAccess(TBL_ACCESS)
+	createTableGroup(TBL_GROUP)
 
 	# > fill config tables using excel configuration file
 	print("> Writing new config in cassandra...")
 	writeSensorsConfigCassandra(new_config_df, now)
 
 	# write login and group ids to 'access' cassandra table
-	writeAccessDataCassandra(config_file_path, "access")
+	writeAccessDataCassandra(config_file_path, TBL_ACCESS)
 
 	# write group captions to 'group' cassandra table 
-	writeGroupCaptionsToCassandra(config_file_path, "group")
+	writeGroupCaptionsToCassandra(config_file_path, TBL_GROUP)
 
 
 # ==========================================================================
