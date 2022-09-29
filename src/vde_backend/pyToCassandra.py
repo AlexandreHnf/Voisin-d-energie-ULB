@@ -111,6 +111,8 @@ def getRightFormat(values):
 			for vv in v:
 				l += "'" + vv + "',"
 			res.append(l[:-1] + "]")
+		elif "isoformat" in dir(v):
+			res.append("'" + v.isoformat() + "'")
 		else:
 			res.append(str(v))
 	
