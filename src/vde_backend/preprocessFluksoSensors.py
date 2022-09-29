@@ -141,10 +141,9 @@ def writeSensorsConfigCassandra(new_config_df, now):
 		"con", 
 		"pro"
 	]
-	insertion_time = now.isoformat()
 
 	for _, row in new_config_df.iterrows():
-		values = [insertion_time] + list(row)
+		values = [now] + list(row)
 		ptc.insert(
 			CASSANDRA_KEYSPACE, 
 			TBL_SENSORS_CONFIG, 

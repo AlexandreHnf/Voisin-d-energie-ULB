@@ -415,7 +415,7 @@ def saveHomeMissingData(config, to_timing, home, saved_sensors):
 	hid = home.getHomeID()
 
 	try:
-		config_id = config.getConfigID().isoformat()
+		config_id = config.getConfigID()
 
 		col_names = ["sensor_id", "config_id", "start_ts", "end_ts"]
 		
