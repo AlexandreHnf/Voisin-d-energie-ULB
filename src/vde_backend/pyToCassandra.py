@@ -4,14 +4,12 @@ __author__ = "Alexandre Heneffe, and Guillaume Levasseur"
 __license__ = "MIT"
 
 
-# standard library
-import json
-
 # 3rd party packages
 import cassandra
 import cassandra.auth
 import cassandra.cluster
 import cassandra.policies
+import json
 import logging
 import os.path
 import pandas as pd
@@ -22,28 +20,20 @@ from constants import (
 	SERVER_BACKEND_IP,
 	CASSANDRA_REPLICATION_STRATEGY,
 	CASSANDRA_REPLICATION_FACTOR,
+	CASSANDRA_KEYSPACE
 )
 
 
-def getRightFormat(values):
-	""" 
-	Get the right string format given a list of values 
-	used by 'insert'
-	"""
-	res = []
-	for v in values:
-		if type(v) == str:
-			res.append("'" + v + "'")
-		elif type(v) == list:
-			# => ['v1', 'v2', 'v3', ... ]
-			l = "["
-			for vv in v:
-				l += "'" + vv + "',"
-			res.append(l[:-1] + "]")
-		else:
-			res.append(str(v))
-	
-	return res
+def load_json_credentials(path: str):
+	cred = {}
+	if os.path.exists(path):
+		with open(path) as json_file:
+			cred = json.load(json_file)
+
+	return cred
+
+
+# ==========================================================================
 
 
 def createKeyspace(session, keyspace_name):
@@ -64,15 +54,80 @@ def createKeyspace(session, keyspace_name):
 	session.execute(keyspace_query)
 
 
-def deleteRows(session, keyspace, table_name):
+def connectToCluster(keyspace):
+	""" 
+	connect to Cassandra Cluster
+	- either locally : simple, ip = 127.0.0.1:9042, by default
+	- or with username and password using AuthProvider, if the credentials file
+	  exits
+	"""
+	lbp = cassandra.policies.DCAwareRoundRobinPolicy(local_dc='datacenter1')
+	auth_provider = None
+	try:
+		cred = load_json_credentials(CASSANDRA_CREDENTIALS_FILE)
+		if len(cred):
+			auth_provider = cassandra.auth.PlainTextAuthProvider(
+				username=cred["username"],
+				password=cred["password"]
+			)
+
+		cluster = cassandra.cluster.Cluster(
+			contact_points=[SERVER_BACKEND_IP, '127.0.0.1',],
+			port=9042,
+			load_balancing_policy=lbp,
+			protocol_version=4,
+			auth_provider=auth_provider,
+		)
+
+		# connect to the keyspace
+		session = cluster.connect()
+		session.set_keyspace(keyspace)
+	except cassandra.InvalidRequest:
+		# Create the keyspace if it does not exist.
+		createKeyspace(session, keyspace)
+		session.set_keyspace(keyspace)
+	except:
+		logging.critical("Exception occured in 'connectToCluster' cassandra: ", exc_info=True)
+		exit(57)
+
+	return session
+
+
+SESSION = connectToCluster(CASSANDRA_KEYSPACE)
+
+
+def getRightFormat(values):
+	""" 
+	Get the right string format given a list of values 
+	used by 'insert'
+	"""
+	res = []
+	for v in values:
+		if type(v) == str:
+			res.append("'" + v + "'")
+		elif type(v) == list:
+			# => ['v1', 'v2', 'v3', ... ]
+			l = "["
+			for vv in v:
+				l += "'" + vv + "',"
+			res.append(l[:-1] + "]")
+		elif "isoformat" in dir(v):
+			res.append("'" + v.isoformat() + "'")
+		else:
+			res.append(str(v))
+	
+	return res
+
+
+def deleteRows(keyspace, table_name):
 	""" 
 	delete all rows of a table
 	"""
 	query = "TRUNCATE {}.{}".format(keyspace, table_name)
-	session.execute(query)
+	SESSION.execute(query)
 
 
-def insert(session, keyspace, table, columns, values):
+def insert(keyspace, table, columns, values):
 	""" 
 	Insert a new row in the table
 
@@ -83,9 +138,8 @@ def insert(session, keyspace, table, columns, values):
 	query += ".{} ".format(table)
 	query += "({}) ".format(",".join(columns))
 	query += "VALUES ({});".format(",".join(getRightFormat(values)))
-
-	logging.info("===> insert query :" + query)
-	session.execute(query)
+	logging.debug("===> insert query :" + query)
+	SESSION.execute(query)
 
 
 def getInsertQuery(keyspace, table, columns, values):
@@ -104,7 +158,7 @@ def getInsertQuery(keyspace, table, columns, values):
 
 
 
-def batch_insert(session, inserts):
+def batch_insert(inserts):
 	""" 
 	Gets a string containing a series of Insert queries
 	and use batch to execute them all at once
@@ -114,7 +168,7 @@ def batch_insert(session, inserts):
 	query += inserts
 	query += "APPLY BATCH;"
 
-	session.execute(query)
+	SESSION.execute(query)
 
 
 def getOrdering(ordering):
@@ -131,7 +185,7 @@ def getOrdering(ordering):
 	return res
 
 
-def createTable(session, keyspace, table_name, columns, primary_keys, clustering_keys, ordering):
+def createTable(keyspace, table_name, columns, primary_keys, clustering_keys, ordering):
 	""" 
 	Create a new table in the database 
 	columns = [column name type, ...]
@@ -147,7 +201,7 @@ def createTable(session, keyspace, table_name, columns, primary_keys, clustering
 	query += "{})) ".format(',' + ','.join(clustering_keys) if len(clustering_keys) else '')
 	query += "{};".format(getOrdering(ordering))
 
-	session.execute(query)
+	SESSION.execute(query)
 	logging.debug("===> create table query : " + query)
 
 
@@ -182,23 +236,22 @@ def convertColumnsTimezones(df, tz):
 			df[col_name] = df[col_name].dt.tz_localize("UTC").dt.tz_convert(tz)
 
 
-def selectResToDf(session, query):
+def selectResToDf(query):
 	""" 
 	process a select query and returns a pandas DataFrame
 	with the result of the query 
 	"""
 
-	session.row_factory = pandas_factory
-	session.default_fetch_size = None
+	SESSION.row_factory = pandas_factory
+	SESSION.default_fetch_size = None
 
-	rslt = session.execute(query, timeout=None)
+	rslt = SESSION.execute(query, timeout=None)
 	df = rslt._current_rows
 
 	return df
 
 
 def selectQuery(
-		session, 
 		keyspace, 
 		table_name, 
 		columns, 
@@ -232,7 +285,7 @@ def selectQuery(
 	query += "{};".format(allow_filtering)
 
 	logging.debug("===> select query : " + query)
-	res_df = selectResToDf(session, query)
+	res_df = selectResToDf(query)
 	if len(res_df) > 0:
 		# remark: the date column in tables is in CET timezone
 		convertColumnsTimezones(res_df, tz)
@@ -241,7 +294,6 @@ def selectQuery(
 
 
 def groupbyQuery(
-		session, 
 		keyspace, 
 		table_name, 
 		column,
@@ -273,7 +325,7 @@ def groupbyQuery(
 		allow_filtering,
 	)
 	logging.debug("===> groupby query : " + query)
-	res_df = selectResToDf(session, query)
+	res_df = selectResToDf(query)
 	if len(res_df) > 0:
 		# remark: the date column in tables is in CET timezone
 		convertColumnsTimezones(res_df, tz)
@@ -281,7 +333,7 @@ def groupbyQuery(
 	return res_df
 
 
-def existTable(session, keyspace, table_name):
+def existTable(keyspace, table_name):
 	""" 
 	Check if a table exists in the cluster given a certain keyspace
 	"""
@@ -290,49 +342,6 @@ def existTable(session, keyspace, table_name):
 	query += "and table_name = '{}' ".format(table_name)
 	query += "ALLOW FILTERING;"
 
-	res_df = selectResToDf(session, query)
+	res_df = selectResToDf(query)
 
 	return len(res_df) > 0
-
-
-# ==========================================================================
-
-
-def connectToCluster(keyspace):
-	""" 
-	connect to Cassandra Cluster
-	- either locally : simple, ip = 127.0.0.1:9042, by default
-	- or with username and password using AuthProvider, if the credentials file
-	  exits
-	"""
-	lbp = cassandra.policies.DCAwareRoundRobinPolicy(local_dc='datacenter1')
-	auth_provider = None
-	try:
-		if os.path.exists(CASSANDRA_CREDENTIALS_FILE):
-			with open(CASSANDRA_CREDENTIALS_FILE) as json_file:
-				cred = json.load(json_file)
-				auth_provider = cassandra.auth.PlainTextAuthProvider(
-					username=cred["username"],
-					password=cred["password"]
-				)
-
-		cluster = cassandra.cluster.Cluster(
-			contact_points=[SERVER_BACKEND_IP, '127.0.0.1',],
-			port=9042,
-			load_balancing_policy=lbp,
-			protocol_version=4,
-			auth_provider=auth_provider,
-		)
-
-		# connect to the keyspace
-		session = cluster.connect()
-		session.set_keyspace(keyspace)
-	except cassandra.InvalidRequest:
-		# Create the keyspace if it does not exist.
-		createKeyspace(session, keyspace)
-		session.set_keyspace(keyspace)
-	except:
-		logging.critical("Exception occured in 'connectToCluster' cassandra: ", exc_info=True)
-		exit(57)
-
-	return session

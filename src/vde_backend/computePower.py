@@ -30,7 +30,7 @@ from utils import (
 # ====================================================================================
 
 
-def saveHomePowerDataToCassandra(cassandra_session, home, config):
+def saveHomePowerDataToCassandra(home, config):
 	""" 
 	save power flukso data to cassandra : P_cons, P_prod, P_tot
 	- home : Home object 
@@ -39,8 +39,8 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config):
 	hid = home.getHomeID()
 
 	try: 
-		insertion_time = pd.Timestamp.now(tz="CET").isoformat()
-		config_id = config.getConfigID().isoformat()
+		insertion_time = pd.Timestamp.now(tz="CET")
+		config_id = config.getConfigID()
 
 		cons_prod_df = home.getConsProdDF()
 		# add date column
@@ -62,10 +62,8 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config):
 			insert_queries = ""
 			nb_inserts = 0
 			for timestamp, row in date_rows.iterrows():
-				# save timestamp with CET local timezone, ISO format.
-				ts = timestamp.isoformat()
 				# [:-1] to avoid date column
-				values = [hid, date, ts] + list(row)[:-1] + [insertion_time, config_id]  
+				values = [hid, date, timestamp] + list(row)[:-1] + [insertion_time, config_id]  
 				insert_queries += ptc.getInsertQuery(
 					CASSANDRA_KEYSPACE, 
 					TBL_POWER, 
@@ -74,12 +72,12 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config):
 				)
 
 				if (nb_inserts+1) % INSERTS_PER_BATCH == 0:
-					ptc.batch_insert(cassandra_session, insert_queries)
+					ptc.batch_insert(insert_queries)
 					insert_queries = ""
 
 				nb_inserts+=1
 		
-			ptc.batch_insert(cassandra_session, insert_queries)
+			ptc.batch_insert(insert_queries)
 		
 	except:
 		logging.critial("Exception occured in 'saveHomePowerDataToCassandra' : {}".format(hid), exc_info=True)
@@ -90,7 +88,7 @@ def saveHomePowerDataToCassandra(cassandra_session, home, config):
 # =====================================================================================
 
 
-def getHomeRawData(cassandra_session, sensors_df, day):
+def getHomeRawData(sensors_df, day):
 	""" 
 	get raw flukso data from cassandra given a certain day
 	return dictionary of the format : 
@@ -102,7 +100,6 @@ def getHomeRawData(cassandra_session, sensors_df, day):
 	for sid in sensors_df.index:
 		where_clause = "sensor_id = '{}' and day = '{}'".format(sid, day)
 		raw_data_df = ptc.selectQuery(
-			cassandra_session, 
 			CASSANDRA_KEYSPACE, 
 			TBL_RAW,
 			["sensor_id, day, ts, power"], 
@@ -144,7 +141,7 @@ def getHomeConsumptionProductionDf(home_rawdata, home_id, sensors_df):
 	return cons_prod_df
 
 
-def saveRecomputedPowersToCassandra(cassandra_session, new_config_id, cons_prod_df):
+def saveRecomputedPowersToCassandra(new_config_id, cons_prod_df):
 	""" 
 	Save the powers (P_cons, P_prod, P_tot) of the raw data
 	of some period of time in Cassandra for 1 specific home
@@ -152,7 +149,7 @@ def saveRecomputedPowersToCassandra(cassandra_session, new_config_id, cons_prod_
 
 	We assume that the data is of 1 specific date. 
 	"""
-	insertion_time = pd.Timestamp.now(tz="CET").isoformat()
+	insertion_time = pd.Timestamp.now(tz="CET")
 	col_names = [
 		"home_id", 
 		"day", 
@@ -168,8 +165,7 @@ def saveRecomputedPowersToCassandra(cassandra_session, new_config_id, cons_prod_
 	
 	for _, row in cons_prod_df.iterrows():
 		values = list(row)
-		values[2] = values[2].isoformat() # timestamp (ts)
-		values.append(new_config_id)  # isoformat
+		values.append(new_config_id)
 		values.append(insertion_time)
 		insert_queries += ptc.getInsertQuery(
 			CASSANDRA_KEYSPACE, 
@@ -178,15 +174,15 @@ def saveRecomputedPowersToCassandra(cassandra_session, new_config_id, cons_prod_
 			values
 		)
 		if (nb_inserts+1) % INSERTS_PER_BATCH == 0:
-			ptc.batch_insert(cassandra_session, insert_queries)
+			ptc.batch_insert(insert_queries)
 			insert_queries = ""
 
 		nb_inserts+=1
 
-	ptc.batch_insert(cassandra_session, insert_queries)
+	ptc.batch_insert(insert_queries)
 
 
-def getDataDatesFromHome(cassandra_session, sensors_df):
+def getDataDatesFromHome(sensors_df):
 	""" 
 	From a home, query the first date in the raw data.
 	then, return all dates between the first date and now.
@@ -195,7 +191,6 @@ def getDataDatesFromHome(cassandra_session, sensors_df):
 	first_date = now
 	for sensor_id in list(sensors_df.index):  # sensor ids
 		first_date_df = ptc.selectQuery(
-			cassandra_session,
 			CASSANDRA_KEYSPACE,
 			TBL_RAW,
 			["day"],
@@ -210,14 +205,13 @@ def getDataDatesFromHome(cassandra_session, sensors_df):
 	return all_dates
 
 
-def existHomePowerData(cassandra_session, home_id, date):
+def existHomePowerData(home_id, date):
 	""" 
 	From a home, query the first date in the raw data.
 	return True if there is at least 1 row of data for this home, 
 	given the specified date.
 	"""
 	first_date_df = ptc.selectQuery(
-		cassandra_session,
 		CASSANDRA_KEYSPACE,
 		TBL_POWER,
 		["p_cons"],
@@ -227,41 +221,42 @@ def existHomePowerData(cassandra_session, home_id, date):
 	return len(first_date_df) > 0
 
 
-def recomputePowerData(cassandra_session, new_config, homes):
+def recomputePowerData(new_config, homes):
 	""" 
 	Given a configuration, recompute all power data for all select homes
 	based on the existing raw data stored in Cassandra.
 	"""
 	config_by_home = new_config.getSensorsConfig().groupby("home_id")  # group by home
-	new_config_id = new_config.getConfigID().isoformat()
+	new_config_id = new_config.getConfigID()
 	if len(homes) == 0:
 		homes = list(config_by_home.groups.keys())
 
 	for hid in homes:
 		sensors_df = config_by_home.get_group(hid) # new config
 		# first select all dates registered for this home
-		all_dates = getDataDatesFromHome(cassandra_session, sensors_df)
+		all_dates = getDataDatesFromHome(sensors_df)
 
-		if len(all_dates) > 0 and existHomePowerData(cassandra_session, hid, all_dates[0]):
+		if len(all_dates) > 0 and existHomePowerData(hid, all_dates[0]):
 			# then, for each day, recompute data and store it in the database (overwrite existing data)
 			for date in all_dates:
 				# get raw data from previous config
-				home_rawdata = getHomeRawData(cassandra_session, sensors_df, date)
-				# recompute power data with new config info : consumption, production, total
-				home_powers = getHomeConsumptionProductionDf(home_rawdata, hid, sensors_df)
+				home_rawdata = getHomeRawData(sensors_df, date)
+				# Check if raw data is not empty
+				if len(home_rawdata) > 0:
+					# recompute power data with new config info : consumption, production, total
+					home_powers = getHomeConsumptionProductionDf(home_rawdata, hid, sensors_df)
 
-				# save (overwrite) to cassandra table
-				if len(home_powers) > 0:
-					saveRecomputedPowersToCassandra(cassandra_session, new_config_id, home_powers)
+					# save (overwrite) to cassandra table
+					if len(home_powers) > 0:
+						saveRecomputedPowersToCassandra(new_config_id, home_powers)
 
 
 # ====================================================================================
 
 
 def main():
-	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-	last_config = getLastRegisteredConfig(cassandra_session)
-	recomputePowerData(cassandra_session, last_config, [])
+	last_config = getLastRegisteredConfig()
+	recomputePowerData(last_config, [])
 
 
 if __name__ == "__main__":

@@ -13,6 +13,8 @@ import pandas as pd
 
 # local source
 from constants import (
+	TBL_ACCESS,
+	TBL_GROUP,
 	TBL_POWER,
 	TBL_SENSORS_CONFIG, 
 	CASSANDRA_KEYSPACE, 
@@ -116,20 +118,20 @@ def get_config_df(config_file_path, index_name=""):
 	return config_df
 
 
-def recompute_data(cassandra_session):
+def recompute_data():
 	""" 
 	Recompute the power data according to the latest configuration.
 	"""
 
 	# only recompute if 'power' table exists
-	if ptc.existTable(cassandra_session, CASSANDRA_KEYSPACE, TBL_POWER):
+	if ptc.existTable(CASSANDRA_KEYSPACE, TBL_POWER):
 		print("> Recompute previous data... ")
-		new_config = getLastRegisteredConfig(cassandra_session)
+		new_config = getLastRegisteredConfig()
 		changed_homes = new_config.getSensorsConfig()["home_id"].unique()
-		recomputePowerData(cassandra_session, new_config, changed_homes)
+		recomputePowerData(new_config, changed_homes)
 
 
-def write_sensors_config_cassandra(cassandra_session, new_config, now):
+def write_sensors_config_cassandra(new_config, now):
 	""" 
 	write sensors config to cassandra table 
 	"""
@@ -149,7 +151,6 @@ def write_sensors_config_cassandra(cassandra_session, new_config, now):
 	for sensor_id, row in new_config.getSensorsConfig().iterrows():
 		values = [insertion_time] + [sensor_id] + list(row)
 		ptc.insert(
-			cassandra_session, 
 			CASSANDRA_KEYSPACE, 
 			TBL_SENSORS_CONFIG, 
 			col_names, 
@@ -176,7 +177,7 @@ def get_installation_captions(config_file_path):
 	return captions
 
 
-def write_access_data_cassandra(cassandra_session, config_file_path, table_name):
+def write_access_data_cassandra(config_file_path, table_name):
 	""" 
 	write access data to cassandra (login ids)
 	"""
@@ -188,7 +189,6 @@ def write_access_data_cassandra(cassandra_session, config_file_path, table_name)
 	for login_id, installation_ids in by_login:
 		values = [login_id, list(installation_ids["InstallationId"])]
 		ptc.insert(
-			cassandra_session, 
 			CASSANDRA_KEYSPACE, 
 			table_name, 
 			col_names, 
@@ -198,7 +198,7 @@ def write_access_data_cassandra(cassandra_session, config_file_path, table_name)
 	print("Successfully inserted access data in table '{}'".format(table_name))
 
 
-def write_group_captions_cassandra(cassandra_session, config_file_path, table_name):
+def write_group_captions_cassandra(config_file_path, table_name):
 	""" 
 	write groups (installation ids) with their captions
 	"""
@@ -211,7 +211,6 @@ def write_group_captions_cassandra(cassandra_session, config_file_path, table_na
 		values = [installation_id, caption]
 
 		ptc.insert(
-			cassandra_session, 
 			CASSANDRA_KEYSPACE, 
 			table_name, 
 			col_names, 
@@ -226,7 +225,7 @@ def write_group_captions_cassandra(cassandra_session, config_file_path, table_na
 # ==========================================================================
 
 
-def create_table_sensor_config(cassandra_session, table_name):
+def create_table_sensor_config(table_name):
 	""" 
 	create a sensors config table
 	"""
@@ -243,7 +242,6 @@ def create_table_sensor_config(cassandra_session, table_name):
 	]
 
 	ptc.createTable(
-		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
@@ -253,7 +251,7 @@ def create_table_sensor_config(cassandra_session, table_name):
 	)
 
 
-def create_table_groups_config(cassandra_session, table_name):
+def create_table_groups_config(table_name):
 	""" 
 	create a table with groups config
 	group_id, list of home ids
@@ -265,7 +263,6 @@ def create_table_groups_config(cassandra_session, table_name):
 	]
 
 	ptc.createTable(
-		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
@@ -275,7 +272,7 @@ def create_table_groups_config(cassandra_session, table_name):
 	)
 
 
-def create_table_access(cassandra_session, table_name):
+def create_table_access(table_name):
 	"""
 	create a table for the login access
 	access, installations
@@ -286,7 +283,6 @@ def create_table_access(cassandra_session, table_name):
 	]
 
 	ptc.createTable(
-		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
@@ -296,7 +292,7 @@ def create_table_access(cassandra_session, table_name):
 	)
 
 
-def create_table_group(cassandra_session, table_name):
+def create_table_group(table_name):
 	""" 
 	create a table for the groups captions
 	installation_id, caption
@@ -307,7 +303,6 @@ def create_table_group(cassandra_session, table_name):
 	]
 
 	ptc.createTable(
-		cassandra_session, 
 		CASSANDRA_KEYSPACE, 
 		table_name, 
 		cols, 
@@ -320,16 +315,16 @@ def create_table_group(cassandra_session, table_name):
 # ==========================================================================
 
 
-def create_tables(cassandra_session):
+def create_tables():
 	""" 
 	create tables if necessary (if they do not already exist)
 	"""
-	create_table_sensor_config(cassandra_session, "sensors_config")
-	create_table_access(cassandra_session, "access")
-	create_table_group(cassandra_session, "group")
+	create_table_sensor_config("sensors_config")
+	create_table_access("access")
+	create_table_group("group")
 
 
-def save_config(cassandra_session, config_file_path, new_config, now):
+def save_config(config_file_path, new_config, now):
 	""" 
 	Given a configuration, write
 	the right data to Cassandra 
@@ -340,13 +335,13 @@ def save_config(cassandra_session, config_file_path, new_config, now):
 
 	# > fill config tables using excel configuration file
 	print("> Writing new config in cassandra...")
-	write_sensors_config_cassandra(cassandra_session, new_config, now)
+	write_sensors_config_cassandra(new_config, now)
 
 	# write login and group ids to 'access' cassandra table
-	write_access_data_cassandra(cassandra_session, config_file_path, "access")
+	write_access_data_cassandra(config_file_path, "access")
 
 	# write group captions to 'group' cassandra table 
-	write_group_captions_cassandra(cassandra_session, config_file_path, "group")
+	write_group_captions_cassandra(config_file_path, "group")
 
 
 # ==========================================================================
@@ -389,7 +384,7 @@ def check_changes(c1_path, c1, c2_path, c2):
 	return nb_changes
 
 
-def process_configs(cassandra_session, c1_path, c2_path, now):
+def process_configs(c1_path, c2_path, now):
 	""" 
 	Given 2 configuration paths
 	c1_path = old path, can be empty
@@ -406,7 +401,7 @@ def process_configs(cassandra_session, c1_path, c2_path, now):
 
 	if not c1_path:  
 		# we consider the last registered config
-		last_config = getLastRegisteredConfig(cassandra_session)
+		last_config = getLastRegisteredConfig()
 		if not last_config:
 			# no comparisons
 			save = True
@@ -423,9 +418,9 @@ def process_configs(cassandra_session, c1_path, c2_path, now):
 		check_changes(c1_path, other_config, c2_path, new_config)
 	
 	if save:
-		save_config(cassandra_session, c2_path, new_config, now)
+		save_config(c2_path, new_config, now)
 		# then, recompute data if necessary
-		recompute_data(cassandra_session)
+		recompute_data()
 
 
 def process_arguments():
@@ -459,15 +454,12 @@ def main():
 	new_config_path = args.config
 	old_config_path = args.diff
 
-	cassandra_session = ptc.connectToCluster(CASSANDRA_KEYSPACE)
-
 	# Define the current time once for consistency of the insert time between tables.
 	now = pd.Timestamp.now(tz="CET")
 
-	create_tables(cassandra_session)
+	create_tables()
 
 	process_configs(
-		cassandra_session, 
 		old_config_path, 
 		new_config_path, 
 		now
