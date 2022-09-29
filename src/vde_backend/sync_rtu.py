@@ -23,9 +23,8 @@ COLS = {
 }
 
 
-def create_rtu_table(session):
+def create_rtu_table():
     ptc.createTable(
-        session,
         CASSANDRA_KEYSPACE,
         TBL_RTU_DATA,
         [ ' '.join(kv) for kv in COLS.items() ],
