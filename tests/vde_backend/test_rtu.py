@@ -4,6 +4,7 @@ sys.path.insert(1, 'src/vde_backend')
 # python3 tests/vde_backend/test_rtu.py
 
 import constants
+import datetime
 import mock_rtu_pages
 import os.path
 import pandas as pd
@@ -101,15 +102,15 @@ class TestRTUDriver(unittest.TestCase):
         self.assertDictEqual(
             {
                 'ip': '1.1.1.1',
-                'day': '2022-09-11',
+                'day': datetime.date(2022, 9, 11),
                 'ts': pd.Timestamp('2022-09-11T17:27:00', tz='CET'),
                 'cos_phi': -0.906700,
                 'active': 30720.000000,
                 'apparent': 34920.000000,
                 'reactive': -6120.000000,
-                'tension1-2': 237.500000,
-                'tension2-3': 237.229996,
-                'tension3-1': 237.319992,
+                'tension1_2': 237.500000,
+                'tension2_3': 237.229996,
+                'tension3_1': 237.319992,
             },
             prep_vals.to_dict()
         )
