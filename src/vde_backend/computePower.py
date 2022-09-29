@@ -39,8 +39,8 @@ def saveHomePowerDataToCassandra(home, config):
 	hid = home.getHomeID()
 
 	try: 
-		insertion_time = pd.Timestamp.now(tz="CET").isoformat()
-		config_id = config.getConfigID().isoformat()
+		insertion_time = pd.Timestamp.now(tz="CET")
+		config_id = config.getConfigID()
 
 		cons_prod_df = home.getConsProdDF()
 		# add date column
@@ -62,10 +62,8 @@ def saveHomePowerDataToCassandra(home, config):
 			insert_queries = ""
 			nb_inserts = 0
 			for timestamp, row in date_rows.iterrows():
-				# save timestamp with CET local timezone, ISO format.
-				ts = timestamp.isoformat()
 				# [:-1] to avoid date column
-				values = [hid, date, ts] + list(row)[:-1] + [insertion_time, config_id]  
+				values = [hid, date, timestamp] + list(row)[:-1] + [insertion_time, config_id]  
 				insert_queries += ptc.getInsertQuery(
 					CASSANDRA_KEYSPACE, 
 					TBL_POWER, 
@@ -151,7 +149,7 @@ def saveRecomputedPowersToCassandra(new_config_id, cons_prod_df):
 
 	We assume that the data is of 1 specific date. 
 	"""
-	insertion_time = pd.Timestamp.now(tz="CET").isoformat()
+	insertion_time = pd.Timestamp.now(tz="CET")
 	col_names = [
 		"home_id", 
 		"day", 
@@ -167,8 +165,7 @@ def saveRecomputedPowersToCassandra(new_config_id, cons_prod_df):
 	print(cons_prod_df)
 	for _, row in cons_prod_df.iterrows():
 		values = list(row)
-		values[2] = values[2].isoformat() # timestamp (ts)
-		values.append(new_config_id)  # isoformat
+		values.append(new_config_id)
 		values.append(insertion_time)
 		insert_queries += ptc.getInsertQuery(
 			CASSANDRA_KEYSPACE, 
@@ -230,7 +227,7 @@ def recomputePowerData(new_config, homes):
 	based on the existing raw data stored in Cassandra.
 	"""
 	config_by_home = new_config.getSensorsConfig().groupby("home_id")  # group by home
-	new_config_id = new_config.getConfigID().isoformat()
+	new_config_id = new_config.getConfigID()
 	if len(homes) == 0:
 		homes = list(config_by_home.groups.keys())
 

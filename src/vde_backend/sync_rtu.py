@@ -45,7 +45,7 @@ def prepare_rtu_row(vals: pd.Series, ip: str):
         'TENSION PHASE 3-1': 'tension3_1',
     })
     vals['ip'] = ip
-    vals['day'] = vals['ts'].date().isoformat()
+    vals['day'] = vals['ts'].date()
     return vals[COLS.keys()] # Ensure all columns are present.
 
 

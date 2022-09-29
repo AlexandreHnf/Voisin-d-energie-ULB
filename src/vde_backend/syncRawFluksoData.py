@@ -424,15 +424,12 @@ def saveHomeMissingData(config, to_timing, home, saved_sensors):
 			sensors_ids = inc_power_df.columns
 			for sid in sensors_ids:
 				if saved_sensors.get(sid, None) is None:  # if no missing data saved for this sensor yet
-					end_ts = to_timing.isoformat()
 					if inc_power_df[sid].isnull().values.any():  # if the column contains null
 						for i, timestamp in enumerate(inc_power_df.index):
 							# if valid timestamp
 							if (to_timing - timestamp).days < LIMIT_TIMING_RAW:  # X days from now max
-								# save timestamp with CET local timezone
-								start_ts = timestamp.isoformat()
 								if np.isnan(inc_power_df[sid][i]):
-									values = [sid, config_id, start_ts, end_ts]
+									values = [sid, config_id, timestamp, to_timing]
 									ptc.insert(CASSANDRA_KEYSPACE, TBL_RAW_MISSING, col_names, values)
 									saved_sensors[sid] = True  # mark that this sensor has missing data
 									# as soon as we find the first ts with null value, we go to next sensor
@@ -452,8 +449,8 @@ def saveHomeRawToCassandra(home, config, timings):
 	hid = home.getHomeID()
 
 	try: 
-		insertion_time = pd.Timestamp.now(tz="CET").isoformat()
-		config_id = config.getConfigID().isoformat()
+		insertion_time = pd.Timestamp.now(tz="CET")
+		config_id = config.getConfigID()
 
 		power_df = home.getRawDF()
 		power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1)  # add date column
@@ -468,9 +465,8 @@ def saveHomeRawToCassandra(home, config, timings):
 				for i, timestamp in enumerate(date_rows[sid].index):
 					# if the timestamp > the sensor's defined start timing
 					if isEarlier(timings[hid]["sensors"][sid], timestamp):
-						ts = timestamp.isoformat()
 						power = date_rows[sid][i]
-						values = [sid, date, ts, insertion_time, config_id, power]
+						values = [sid, date, timestamp, insertion_time, config_id, power]
 						insert_queries += ptc.getInsertQuery(CASSANDRA_KEYSPACE, TBL_RAW, col_names, values)
 
 						if (i + 1) % INSERTS_PER_BATCH == 0:
