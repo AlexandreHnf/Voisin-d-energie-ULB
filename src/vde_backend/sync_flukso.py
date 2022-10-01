@@ -414,7 +414,7 @@ def save_home_missing_data(config, to_timing, home, saved_sensors):
 	hid = home.get_home_id()
 
 	try:
-		config_id = config.get_config_id().isoformat()
+		config_id = config.get_config_id()
 
 		col_names = ["sensor_id", "config_id", "start_ts", "end_ts"]
 		
@@ -423,15 +423,12 @@ def save_home_missing_data(config, to_timing, home, saved_sensors):
 			sensors_ids = inc_power_df.columns
 			for sid in sensors_ids:
 				if saved_sensors.get(sid, None) is None:  # if no missing data saved for this sensor yet
-					end_ts = to_timing.isoformat()
 					if inc_power_df[sid].isnull().values.any():  # if the column contains null
 						for i, timestamp in enumerate(inc_power_df.index):
 							# if valid timestamp
 							if (to_timing - timestamp).days < LIMIT_TIMING_RAW:  # X days from now max
-								# save timestamp with CET local timezone
-								start_ts = timestamp.isoformat()
 								if np.isnan(inc_power_df[sid][i]):
-									values = [sid, config_id, start_ts, end_ts]
+									values = [sid, config_id, timestamp, to_timing]
 									ptc.insert(CASSANDRA_KEYSPACE, TBL_RAW_MISSING, col_names, values)
 									saved_sensors[sid] = True  # mark that this sensor has missing data
 									# as soon as we find the first ts with null value, we go to next sensor
@@ -451,8 +448,8 @@ def save_home_raw_data(home, config, timings):
 	hid = home.get_home_id()
 
 	try: 
-		insertion_time = pd.Timestamp.now(tz="CET").isoformat()
-		config_id = config.get_config_id().isoformat()
+		insertion_time = pd.Timestamp.now(tz="CET")
+		config_id = config.get_config_id()
 
 		power_df = home.get_raw_df()
 		power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1)  # add date column
@@ -467,9 +464,8 @@ def save_home_raw_data(home, config, timings):
 				for i, timestamp in enumerate(date_rows[sid].index):
 					# if the timestamp > the sensor's defined start timing
 					if is_earlier(timings[hid]["sensors"][sid], timestamp):
-						ts = timestamp.isoformat()
 						power = date_rows[sid][i]
-						values = [sid, date, ts, insertion_time, config_id, power]
+						values = [sid, date, timestamp, insertion_time, config_id, power]
 						insert_queries += ptc.get_insert_query(CASSANDRA_KEYSPACE, TBL_RAW, col_names, values)
 
 						if (i + 1) % INSERTS_PER_BATCH == 0:

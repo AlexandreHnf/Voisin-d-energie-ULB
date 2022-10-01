@@ -17,15 +17,14 @@ COLS = {
     'active': 'FLOAT',
     'apparent': 'FLOAT',
     'reactive': 'FLOAT',
-    'tension1-2': 'FLOAT',
-    'tension2-3': 'FLOAT',
-    'tension3-1': 'FLOAT',
+    'tension1_2': 'FLOAT',
+    'tension2_3': 'FLOAT',
+    'tension3_1': 'FLOAT',
 }
 
 
-def create_rtu_table(session):
+def create_rtu_table():
     ptc.create_table(
-        session,
         CASSANDRA_KEYSPACE,
         TBL_RTU_DATA,
         [ ' '.join(kv) for kv in COLS.items() ],
@@ -41,12 +40,12 @@ def prepare_rtu_row(vals: pd.Series, ip: str):
         'PUISSANCE ACTIVE': 'active',
         'PUISSANCE APPARENTE': 'apparent',
         'PUISSANCE REACTIVE': 'reactive',
-        'TENSION PHASE 1-2': 'tension1-2',
-        'TENSION PHASE 2-3': 'tension2-3',
-        'TENSION PHASE 3-1': 'tension3-1',
+        'TENSION PHASE 1-2': 'tension1_2',
+        'TENSION PHASE 2-3': 'tension2_3',
+        'TENSION PHASE 3-1': 'tension3_1',
     })
     vals['ip'] = ip
-    vals['day'] = vals['ts'].date().isoformat()
+    vals['day'] = vals['ts'].date()
     return vals[COLS.keys()] # Ensure all columns are present.
 
 
