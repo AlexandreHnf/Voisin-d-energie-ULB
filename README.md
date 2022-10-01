@@ -179,13 +179,13 @@ Here are the list of all the executable scripts aswell as their arguments :
 
 * sync raw flukso data : The script automatically get the new Flukso data using the tmpo API and store it in Cassandra. No need to specify any arguments.
   ```sh
-  syncRawFluksoData.py
+  sync_flukso.py
   ```
 
 * preprocess Flukso sensors : The script contains a lot of different functions that are meant to be used before the raw data syncing. The script allows, among others, to create the neccessary Cassandra tables, as well as inserting the new data in them. However, those functions are automatically triggered using one command : 
   
   ```sh
-  preprocessFluksoSensors.py [config]
+  preprocess_sensors_config.py [config]
   ```
   * The _config_ argument allows to specify a config file path. The configuration file must be an Excel file containing those 3 tabs : 
 	1. **Export_InstallationSensors** : All flukso info : 
@@ -217,9 +217,9 @@ Here are the list of all the executable scripts aswell as their arguments :
 
 <br />
 
-* retrieveDB : The script allows to get power data from Cassandra database into csv files. 1 file = 1 home and 1 specific day.
+* dump_csv : The script allows to get power data from Cassandra database into csv files. 1 file = 1 home and 1 specific day.
   ```sh
-  retrieveDB.py [--home HOME_ID] [--day DAY] [--date_range DATE1 DATE2] output_filename
+  dump_csv.py [--home HOME_ID] [--day DAY] [--date_range DATE1 DATE2] output_filename
   ```
   * The --day argument is the specific day we can query. It has to be in the form : YYYY_MM_DD
     *  If no specific day is specified, then the script automatically retrieve data from the last saved date based on the previous local files for each home. If no data has been saved for a home yet, the script will take all the history available in the database for that home.
