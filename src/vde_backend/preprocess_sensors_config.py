@@ -1,4 +1,4 @@
-__title__ = "preprocessFluksoSensors"
+__title__ = "preprocess_sensors_config"
 __version__ = "1.0.0"
 __author__ = "Alexandre Heneffe, and Guillaume Levasseur"
 __license__ = "MIT"
@@ -24,7 +24,6 @@ from constants import (
 )
 
 import py_to_cassandra as ptc
-from sensors_config import Configuration
 from compute_power import recompute_power_data
 from utils import get_last_registered_config
 
@@ -32,7 +31,7 @@ from utils import get_last_registered_config
 # ==========================================================================
 
 
-def getConfigDf(config_file_path, sheet_name):
+def get_sheet_data(config_file_path, sheet_name):
 	""" 
 	given a config file (excel), and a sheet name within this file, 
 	return a dataframe with the data
@@ -41,53 +40,20 @@ def getConfigDf(config_file_path, sheet_name):
 		data_df = pd.read_excel(config_file_path, sheet_name=sheet_name)
 		return data_df
 	except Exception as e:
-		print("Error when trying to read excel file : {}. Please provide a valid Configuration file.".format(config_file_path))
+		print("Error when trying to read excel file : {}".format(config_file_path))
+		print("Please provide a valid Configuration file.")
 		print("Exception : {}".format(str(e)))
 		sys.exit(1)
 
 
-def getFluksosDic(installation_ids_df):
-	""" 
-	Return a dictionary of the form : 
-	key = flukso id, value = installation id 
-	ex : {'FL08000475': 'CDB001'}
-	"""
-	fluksos = {}
-
-	for i in range(len(installation_ids_df)):
-		FlmId = installation_ids_df["FlmId"][i]
-		installation_id = installation_ids_df["InstallationId"][i]
-		# print(FlmId, installation_id)
-
-		fluksos[FlmId] = installation_id
-
-	# print(fluksos)
-	return fluksos
-
-
-def getInstallationsIds(flukso_ids, fluksos):
-	""" 
-	return a list of all the installations ids in the excel column, but
-	only those whose fluksos are available. (an id can appear several times)
-	"""
-	installation_id_col = []
-	for fi in flukso_ids:
-		if fi in fluksos:
-			installation_id_col.append(fluksos[fi])
-		else:
-			installation_id_col.append("unknown")
-
-	return installation_id_col
-
-
-def getCompactSensorDF(config_file_path):
+def get_config_df(config_file_path):
 	"""
 	read the excel sheet containing the flukso ids, the sensors ids, the tokens
 	and compact them into a simpler usable csv file
 	columns : home_id, phase, flukso_id, sensor_id, token, net, con, pro
 	"""
 	print("Config file : ", config_file_path)
-	sensors_df = getConfigDf(config_file_path, CONFIG_SENSORS_TAB)
+	sensors_df = get_sheet_data(config_file_path, CONFIG_SENSORS_TAB)
 	compact_df = pd.DataFrame(
 		columns=[
 			"home_id",
@@ -117,7 +83,7 @@ def getCompactSensorDF(config_file_path):
 	return compact_df
 
 
-def recomputeData():
+def recompute_data():
 	""" 
 	Recompute the power data according to the latest configuration.
 	"""
@@ -126,7 +92,7 @@ def recomputeData():
 	recompute_power_data(new_config, changed_homes)
 
 
-def writeSensorsConfigCassandra(new_config_df, now):
+def write_sensors_config_cassandra(new_config_df, now):
 	""" 
 	write sensors config to cassandra table 
 	"""
@@ -158,13 +124,13 @@ def writeSensorsConfigCassandra(new_config_df, now):
 # ==========================================================================
 
 
-def getInstallationCaptions(config_file_path):
+def get_installation_captions(config_file_path):
 	""" 
 	get a dictionary with
 	key : installation id (login id = home id) => generally a group
 	value : caption, description
 	"""
-	captions_df = getConfigDf(config_file_path, CONFIG_CAPTIONS_TAB)
+	captions_df = get_sheet_data(config_file_path, CONFIG_CAPTIONS_TAB)
 	captions = {}
 	for i in captions_df.index:
 		captions[captions_df.iloc[i]["InstallationId"]] = captions_df.iloc[i]["Caption"]
@@ -172,11 +138,11 @@ def getInstallationCaptions(config_file_path):
 	return captions
 
 
-def writeAccessDataCassandra(config_file_path, table_name):
+def write_access_data_cassandra(config_file_path, table_name):
 	""" 
 	write access data to cassandra (login ids)
 	"""
-	login_df = getConfigDf(config_file_path, CONFIG_ACCESS_TAB)
+	login_df = get_sheet_data(config_file_path, CONFIG_ACCESS_TAB)
 	by_login = login_df.groupby("Login")
 
 	col_names = ["login", "installations"]
@@ -193,11 +159,11 @@ def writeAccessDataCassandra(config_file_path, table_name):
 	print("Successfully inserted access data in table '{}'".format(table_name))
 
 
-def writeGroupCaptionsToCassandra(config_file_path, table_name):
+def write_group_captions_cassandra(config_file_path, table_name):
 	""" 
 	write groups (installation ids) with their captions
 	"""
-	captions = getInstallationCaptions(config_file_path)
+	captions = get_installation_captions(config_file_path)
 
 	col_names = ["installation_id", "caption"]
 
@@ -220,7 +186,7 @@ def writeGroupCaptionsToCassandra(config_file_path, table_name):
 # ==========================================================================
 
 
-def createTableSensorConfig(table_name):
+def create_table_sensor_config(table_name):
 	""" 
 	create a sensors config table
 	"""
@@ -246,7 +212,7 @@ def createTableSensorConfig(table_name):
 	)
 
 
-def createTableGroupsConfig(table_name):
+def create_table_groups_config(table_name):
 	""" 
 	create a table with groups config
 	group_id, list of home ids
@@ -267,7 +233,7 @@ def createTableGroupsConfig(table_name):
 	)
 
 
-def createTableAccess(table_name):
+def create_table_access(table_name):
 	"""
 	create a table for the login access
 	access, installations
@@ -287,7 +253,7 @@ def createTableAccess(table_name):
 	)
 
 
-def createTableGroup(table_name):
+def create_table_group(table_name):
 	""" 
 	create a table for the groups captions
 	installation_id, caption
@@ -310,7 +276,7 @@ def createTableGroup(table_name):
 # ==========================================================================
 
 
-def processConfig(config_file_path, new_config_df, now):
+def process_config(config_file_path, new_config_df, now):
 	""" 
 	Given a compact dataframe with a configuration, write
 	the right data to Cassandra 
@@ -320,24 +286,24 @@ def processConfig(config_file_path, new_config_df, now):
 	"""
 
 	# first, create tables if necessary (if they do not already exist)
-	createTableSensorConfig(TBL_SENSORS_CONFIG)
-	createTableAccess(TBL_ACCESS)
-	createTableGroup(TBL_GROUP)
+	create_table_sensor_config(TBL_SENSORS_CONFIG)
+	create_table_access(TBL_ACCESS)
+	create_table_group(TBL_GROUP)
 
 	# > fill config tables using excel configuration file
 	print("> Writing new config in cassandra...")
-	writeSensorsConfigCassandra(new_config_df, now)
+	write_sensors_config_cassandra(new_config_df, now)
 
 	# write login and group ids to 'access' cassandra table
-	writeAccessDataCassandra(config_file_path, TBL_ACCESS)
+	write_access_data_cassandra(config_file_path, TBL_ACCESS)
 
 	# write group captions to 'group' cassandra table 
-	writeGroupCaptionsToCassandra(config_file_path, TBL_GROUP)
+	write_group_captions_cassandra(config_file_path, TBL_GROUP)
 
 
 # ==========================================================================
 
-def processArguments():
+def process_arguments():
 
 	argparser = argparse.ArgumentParser(
 		description=__doc__,
@@ -355,23 +321,23 @@ def processArguments():
 
 def main():
 	# > arguments
-	argparser = processArguments()
+	argparser = process_arguments()
 	args = argparser.parse_args()
 	config_path = args.config
 
 	# > get the useful flukso sensors data in a compact dataframe
-	new_config_df = getCompactSensorDF(config_path)
+	new_config_df = get_config_df(config_path)
 	print("nb sensors : ", len(new_config_df))
 
 	# Define the current time once for consistency of the insert time between tables.
 	now = pd.Timestamp.now(tz="CET")
 	
-	processConfig(config_path, new_config_df, now)
+	process_config(config_path, new_config_df, now)
 
 	# then, compare new config with previous configs and recompute data if necessary
 	if (ptc.exist_table(CASSANDRA_KEYSPACE, TBL_POWER)):
 		print("> Recompute previous data... ")
-		recomputeData()
+		recompute_data()
 
 
 
