@@ -214,11 +214,11 @@ def process_arguments():
 		- now also a specific home id and a specific date range
 	
 	arguments : 
-		- sftp config filename (mandatory)
-			-> contains host, port, username, password and destination path
+		- config filename (mandatory)
 		- home (optional): specific home id
-		- day (optional): specific day
-		- date_range (optional) : range between 2 specific dates
+		- day (optional): specific day (YYYY-MM-DD)
+		- start (optional): start day (YYYY-MM-DD)
+		- end (optional): end day (YYYY-MM-DD)
 	"""
 	argparser = argparse.ArgumentParser(
 		description=__doc__,
