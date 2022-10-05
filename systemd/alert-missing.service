@@ -3,7 +3,7 @@ Description=Backend service - alert for incorrect signs
 After=multi-user.target
 
 [Service]
-Type=simple
+Type=oneshot
 Restart=no
 ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/alerts.py" --m sign
 

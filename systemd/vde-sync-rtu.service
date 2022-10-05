@@ -3,10 +3,10 @@ Description=Backend service - sync RTU data
 After=multi-user.target network.target
 
 [Service]
-Type=simple
+Type=oneshot
 Restart=no
 ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/sync_rtu.py"
-TimeoutSec=5hours
+TimeoutSec=4minutes
 
 [Install]
 WantedBy=multi-user.target
