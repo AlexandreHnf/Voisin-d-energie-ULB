@@ -5,7 +5,7 @@ After=multi-user.target
 [Service]
 Type=oneshot
 Restart=no
-ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/syncSftp.py"
+ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/sync_sftp.py"
 
 [Install]
 WantedBy=multi-user.target

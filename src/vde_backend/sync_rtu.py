@@ -1,5 +1,5 @@
 import pandas as pd
-import pyToCassandra as ptc
+import py_to_cassandra as ptc
 
 from constants import (
     CASSANDRA_KEYSPACE,
@@ -24,7 +24,7 @@ COLS = {
 
 
 def create_rtu_table():
-    ptc.createTable(
+    ptc.create_table(
         CASSANDRA_KEYSPACE,
         TBL_RTU_DATA,
         [ ' '.join(kv) for kv in COLS.items() ],
