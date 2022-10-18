@@ -28,14 +28,19 @@ const io = require("socket.io")(server)
 // ===================== GLOBAL VARIABLES =========================== 
 
 // constants for server
-
-const CASSANDRA = {
-	DATACENTER :                        "datacenter1",
-	CREDENTIALS_FILE :                  "cassandra_serv_credentials.json",
-	DOMAIN_NAME :                       "iridia-vde-frontend.hpda.ulb.ac.be",
-	IP :                                "164.15.254.92",
-
-	KEYSPACE :                          "flukso"
+const CASSANDRA = process.env.NODE_ENV === 'production' ? 
+{
+    DATACENTER :                        "datacenter1",
+    CREDENTIALS_FILE :                  "/opt/vde/cassandra_serv_credentials.json",
+    DOMAIN_NAME :                       "iridia-vde-frontend.hpda.ulb.ac.be",
+    IP :                                "164.15.254.92",
+    KEYSPACE :                          "flukso"
+} : {
+    DATACENTER :                        "datacenter1",
+    CREDENTIALS_FILE :                  "cassandra_serv_credentials.json",
+    DOMAIN_NAME :                       "localhost",
+    IP :                                "127.0.0.1",
+    KEYSPACE :                          "test"
 }
 
 const LOG_FILE =                      "logs.txt"

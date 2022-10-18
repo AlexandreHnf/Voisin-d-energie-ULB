@@ -3,6 +3,7 @@ Description=frontend systemd service - production
 After=multi-user.target
 
 [Service]
+Type=simple
 ExecStart=/usr/bin/node "/opt/vde/webapp/server.js"
 Restart=always
 StandardOutput=syslog

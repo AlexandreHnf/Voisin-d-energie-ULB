@@ -3,9 +3,9 @@ Description=Backend service - sync raw data
 After=multi-user.target
 
 [Service]
-Type=simple
+Type=oneshot
 Restart=no
-ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/syncRawFluksoData.py"
+ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/sync_flukso.py"
 TimeoutSec=5hours
 
 [Install]
