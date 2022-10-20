@@ -19,8 +19,8 @@ import logging.handlers
 
 # local sources
 from constants import (
-    CASSANDRA_KEYSPACE, 
-    FREQ, 
+    CASSANDRA_KEYSPACE,
+    FREQ,
     LOG_LEVEL,
     LOG_FILE,
     LOG_HANDLER,
@@ -33,9 +33,9 @@ import py_to_cassandra as ptc
 
 
 def setup_log_level():
-    """ 
+    """
     set logging level based on a constant
-    levels : 
+    levels :
     - CRITICAL
     - ERROR
     - WARNING
@@ -55,7 +55,7 @@ def setup_log_level():
 
 
 def get_log_handler():
-    """ 
+    """
     If prod : rotating logfile handler
     If dev : only stdout
     """
@@ -67,7 +67,6 @@ def get_log_handler():
         )
     else:  # stdout
         handler = logging.StreamHandler(stream=sys.stdout)
-    
     return handler
 
 
@@ -77,8 +76,8 @@ logging.getLogger("requests").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 logging.basicConfig(
-    level = setup_log_level(),
-    format = "{asctime} {levelname:<8} {filename:<16} {message}",
+    level=setup_log_level(),
+    format="{asctime} {levelname:<8} {filename:<16} {message}",
     style='{',
     handlers=[get_log_handler()]
 )
@@ -97,8 +96,8 @@ def read_sensor_info(path, sensor_file):
     """
     path += sensor_file
     sensors = pd.read_csv(
-        path, 
-        header=0, 
+        path,
+        header=0,
         index_col=1
     )
     return sensors
@@ -110,7 +109,8 @@ def set_init_seconds(ts):
     """
     minute = ts.minute
     sec = "00"
-    if minute % 2 != 0: # odd
+    # odd
+    if minute % 2 != 0:
         sec = "04"
     ts = ts.replace(second=int(sec))
     return ts
@@ -141,19 +141,20 @@ def get_last_registered_config():
 
 
 def get_all_registered_configs():
-    """ 
+    """
     Get all configs present in the system
     returns a list of config ids
 
     POTENTIAL ISSUE : if the whole config table does not fit in memory
-        -> possible solution : select distinct insertion_time, home_id, sensor_id to reduce the nb of queried lines
+        -> possible solution : select distinct insertion_time, home_id, sensor_id
+            to reduce the nb of queried lines
     """
     all_configs_df = ptc.select_query(
-        CASSANDRA_KEYSPACE, 
+        CASSANDRA_KEYSPACE,
         TBL_SENSORS_CONFIG,
-        ["*"], 
-        where_clause="", 
-        limit=None, 
+        ["*"],
+        where_clause="",
+        limit=None,
         allow_filtering=False
     )
 
@@ -167,7 +168,7 @@ def get_all_registered_configs():
 
 
 def get_home_power_data_from_cassandra(home_id, date, ts_clause=""):
-    """ 
+    """
     Get power data from Power table in Cassandra
     > for 1 specific home
     > specific day
@@ -175,18 +176,18 @@ def get_home_power_data_from_cassandra(home_id, date, ts_clause=""):
 
     where_clause = "home_id = '{}' and day = '{}' {}".format(home_id, date, ts_clause)
     cols = [
-        "home_id", 
-        "day", 
-        "ts", 
-        "p_cons", 
-        "p_prod", 
+        "home_id",
+        "day",
+        "ts",
+        "p_cons",
+        "p_prod",
         "p_tot"
     ]
 
     home_df = ptc.select_query(
-        CASSANDRA_KEYSPACE, 
-        TBL_POWER, 
-        cols, 
+        CASSANDRA_KEYSPACE,
+        TBL_POWER,
+        cols,
         where_clause,
     )
 
@@ -194,12 +195,12 @@ def get_home_power_data_from_cassandra(home_id, date, ts_clause=""):
 
 
 def get_dates_between(start_date, end_date):
-    """ 
+    """
     get the list of dates between 2 given dates
     """
     d = pd.date_range(
-        start_date.date(), 
-        end_date.date()-timedelta(days=1), 
+        start_date.date(),
+        end_date.date() - timedelta(days=1),
         freq='d'
     )
 
@@ -216,7 +217,7 @@ def to_epochs(time):
 
 
 def is_earlier(ts1, ts2):
-    """ 
+    """
     check if timestamp 'ts1' is earlier/older than timestamp 'ts2'
     """
     return (ts1 - ts2) / np.timedelta64(1, 's') < 0
@@ -237,9 +238,10 @@ def resample_extend(df, since_timing, to_timing):
     On the opposite, this function guarrantees that the index of the returned,
     resampled DataFrame start at since_timing and end at to_timing.
     """
-    filled_df = (df
-        # Resampling with origin is needed for later reindexing. If indexes are
-        # unaligned, the data is lost, replaced by NaNs.
+    # Resampling with origin is needed for later reindexing. If indexes are
+    # unaligned, the data is lost, replaced by NaNs.
+    filled_df = (
+        df
         .resample(str(FREQ[0]) + FREQ[1], origin=since_timing)
         .mean()
         .reindex(time_range(since_timing, to_timing))
@@ -253,14 +255,14 @@ def energy2power(energy_df):
     """
     power_df = energy_df.diff() * 1000
     power_df.fillna(0, inplace=True)
-    
+
     power_df = power_df.resample(str(FREQ[0]) + FREQ[1]).mean()
 
     return power_df
 
 
 def get_time_spent(time_begin, time_end):
-    """ 
+    """
     Get the time spent in seconds between 2 timings (1 timing = time.time())
     """
     return timedelta(seconds=time_end - time_begin)

@@ -16,10 +16,10 @@ from constants import (
     TBL_ACCESS,
     TBL_GROUP,
     TBL_POWER,
-    TBL_SENSORS_CONFIG, 
-    CASSANDRA_KEYSPACE, 
-    CONFIG_SENSORS_TAB, 
-    CONFIG_ACCESS_TAB, 
+    TBL_SENSORS_CONFIG,
+    CASSANDRA_KEYSPACE,
+    CONFIG_SENSORS_TAB,
+    CONFIG_ACCESS_TAB,
     CONFIG_CAPTIONS_TAB
 )
 
@@ -32,8 +32,8 @@ from utils import get_last_registered_config
 
 
 def get_sheet_data(config_file_path, sheet_name):
-    """ 
-    given a config file (excel), and a sheet name within this file, 
+    """
+    given a config file (excel), and a sheet name within this file,
     return a dataframe with the data
     """
     try:
@@ -84,7 +84,7 @@ def get_config_df(config_file_path):
 
 
 def recompute_data():
-    """ 
+    """
     Recompute the power data according to the latest configuration.
     """
     new_config = get_last_registered_config()
@@ -93,27 +93,27 @@ def recompute_data():
 
 
 def write_sensors_config_cassandra(new_config_df, now):
-    """ 
-    write sensors config to cassandra table 
+    """
+    write sensors config to cassandra table
     """
     col_names = [
-        "insertion_time", 
-        "home_id", 
-        "phase", 
-        "flukso_id", 
-        "sensor_id", 
-        "sensor_token", 
-        "net", 
-        "con", 
+        "insertion_time",
+        "home_id",
+        "phase",
+        "flukso_id",
+        "sensor_id",
+        "sensor_token",
+        "net",
+        "con",
         "pro"
     ]
 
     for _, row in new_config_df.iterrows():
         values = [now] + list(row)
         ptc.insert(
-            CASSANDRA_KEYSPACE, 
-            TBL_SENSORS_CONFIG, 
-            col_names, 
+            CASSANDRA_KEYSPACE,
+            TBL_SENSORS_CONFIG,
+            col_names,
             values
         )
 
@@ -124,7 +124,7 @@ def write_sensors_config_cassandra(new_config_df, now):
 
 
 def get_installation_captions(config_file_path):
-    """ 
+    """
     get a dictionary with
     key : installation id (login id = home id) => generally a group
     value : caption, description
@@ -133,12 +133,12 @@ def get_installation_captions(config_file_path):
     captions = {}
     for i in captions_df.index:
         captions[captions_df.iloc[i]["InstallationId"]] = captions_df.iloc[i]["Caption"]
-    
+
     return captions
 
 
 def write_access_data_cassandra(config_file_path, table_name):
-    """ 
+    """
     write access data to cassandra (login ids)
     """
     login_df = get_sheet_data(config_file_path, CONFIG_ACCESS_TAB)
@@ -149,9 +149,9 @@ def write_access_data_cassandra(config_file_path, table_name):
     for login_id, installation_ids in by_login:
         values = [login_id, list(installation_ids["InstallationId"])]
         ptc.insert(
-            CASSANDRA_KEYSPACE, 
-            table_name, 
-            col_names, 
+            CASSANDRA_KEYSPACE,
+            table_name,
+            col_names,
             values
         )
 
@@ -159,7 +159,7 @@ def write_access_data_cassandra(config_file_path, table_name):
 
 
 def write_group_captions_cassandra(config_file_path, table_name):
-    """ 
+    """
     write groups (installation ids) with their captions
     """
     captions = get_installation_captions(config_file_path)
@@ -171,12 +171,12 @@ def write_group_captions_cassandra(config_file_path, table_name):
         values = [installation_id, caption]
 
         ptc.insert(
-            CASSANDRA_KEYSPACE, 
-            table_name, 
-            col_names, 
+            CASSANDRA_KEYSPACE,
+            table_name,
+            col_names,
             values
         )
-    
+
     print("Successfully inserted group captions in table '{}'".format(table_name))
 
 
@@ -186,48 +186,48 @@ def write_group_captions_cassandra(config_file_path, table_name):
 
 
 def create_table_sensor_config(table_name):
-    """ 
+    """
     create a sensors config table
     """
     cols = [
-        "insertion_time TIMESTAMP", 
-        "home_id TEXT", 
-        "phase TEXT", 
-        "flukso_id TEXT", 
-        "sensor_id TEXT", 
-        "sensor_token TEXT", 
-        "net FLOAT", 
-        "con FLOAT", 
+        "insertion_time TIMESTAMP",
+        "home_id TEXT",
+        "phase TEXT",
+        "flukso_id TEXT",
+        "sensor_id TEXT",
+        "sensor_token TEXT",
+        "net FLOAT",
+        "con FLOAT",
         "pro FLOAT"
     ]
 
     ptc.create_table(
-        CASSANDRA_KEYSPACE, 
-        table_name, 
-        cols, 
-        ["home_id", "sensor_id"], 
-        ["insertion_time"], 
+        CASSANDRA_KEYSPACE,
+        table_name,
+        cols,
+        ["home_id", "sensor_id"],
+        ["insertion_time"],
         {"insertion_time": "DESC"}
     )
 
 
 def create_table_groups_config(table_name):
-    """ 
+    """
     create a table with groups config
     group_id, list of home ids
     """
     cols = [
-        "insertion_time TIMESTAMP", 
-        "group_id TEXT", 
+        "insertion_time TIMESTAMP",
+        "group_id TEXT",
         "homes LIST<TEXT>"
     ]
 
     ptc.create_table(
-        CASSANDRA_KEYSPACE, 
-        table_name, 
-        cols, 
-        ["insertion_time", "group_id"], 
-        [], 
+        CASSANDRA_KEYSPACE,
+        table_name,
+        cols,
+        ["insertion_time", "group_id"],
+        [],
         {}
     )
 
@@ -238,22 +238,22 @@ def create_table_access(table_name):
     access, installations
     """
     cols = [
-        "login TEXT", 
+        "login TEXT",
         "installations LIST<TEXT>"
     ]
 
     ptc.create_table(
-        CASSANDRA_KEYSPACE, 
-        table_name, 
-        cols, 
-        ["login"], 
-        [], 
+        CASSANDRA_KEYSPACE,
+        table_name,
+        cols,
+        ["login"],
+        [],
         {}
     )
 
 
 def create_table_group(table_name):
-    """ 
+    """
     create a table for the groups captions
     installation_id, caption
     """
@@ -263,11 +263,11 @@ def create_table_group(table_name):
     ]
 
     ptc.create_table(
-        CASSANDRA_KEYSPACE, 
-        table_name, 
-        cols, 
-        ["installation_id"], 
-        [], 
+        CASSANDRA_KEYSPACE,
+        table_name,
+        cols,
+        ["installation_id"],
+        [],
         {}
     )
 
@@ -276,9 +276,9 @@ def create_table_group(table_name):
 
 
 def process_config(config_file_path, new_config_df, now):
-    """ 
+    """
     Given a compact dataframe with a configuration, write
-    the right data to Cassandra 
+    the right data to Cassandra
     - config in config table
     - login info in access table
     - group captions in group table
@@ -296,7 +296,7 @@ def process_config(config_file_path, new_config_df, now):
     # write login and group ids to 'access' cassandra table
     write_access_data_cassandra(config_file_path, TBL_ACCESS)
 
-    # write group captions to 'group' cassandra table 
+    # write group captions to 'group' cassandra table
     write_group_captions_cassandra(config_file_path, TBL_GROUP)
 
 
@@ -310,7 +310,7 @@ def process_arguments():
     )
 
     argparser.add_argument(
-        "config", 
+        "config",
         type=str,
         help="Path to the config excel file"
     )
@@ -330,7 +330,7 @@ def main():
 
     # Define the current time once for consistency of the insert time between tables.
     now = pd.Timestamp.now(tz="CET")
-    
+
     process_config(config_path, new_config_df, now)
 
     # then, compare new config with previous configs and recompute data if necessary
@@ -339,7 +339,5 @@ def main():
         recompute_data()
 
 
-
 if __name__ == "__main__":
     main()
-
