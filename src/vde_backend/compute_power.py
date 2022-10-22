@@ -256,7 +256,10 @@ def recompute_power_data(new_config, homes):
 
 def main():
     last_config = get_last_registered_config()
-    recompute_power_data(last_config, [])
+    if last_config:
+        recompute_power_data(last_config, [])
+    else:
+        print("No registered config in db.")
 
 
 if __name__ == "__main__":

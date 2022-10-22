@@ -294,24 +294,27 @@ def main():
 
     config = get_last_registered_config()
 
-    now = pd.Timestamp.now()
-    default_date, moment, moment_now = get_date_to_query(now)
+    if config:
+        now = pd.Timestamp.now()
+        default_date, moment, moment_now = get_date_to_query(now)
 
-    logging.debug("config id : " + str(config.get_config_id()))
-    logging.debug("date : " + default_date)
-    logging.debug("moment : " + moment)
-    logging.debug("moment now : " + moment_now)
+        logging.debug("config id : " + str(config.get_config_id()))
+        logging.debug("date : " + default_date)
+        logging.debug("moment : " + moment)
+        logging.debug("moment now : " + moment_now)
 
 
-    process_all_homes(
-        sftp_session, 
-        config, 
-        default_date, 
-        moment, 
-        moment_now, 
-        now, 
-        sftp_info
-    )
+        process_all_homes(
+            sftp_session, 
+            config, 
+            default_date, 
+            moment, 
+            moment_now, 
+            now, 
+            sftp_info
+        )
+    else:
+        print("No registered config in db.")
 
 
 if __name__ == "__main__":

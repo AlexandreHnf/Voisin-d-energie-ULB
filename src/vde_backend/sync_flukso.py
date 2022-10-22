@@ -673,57 +673,59 @@ def sync(custom_timings):
 
     # > Configuration
     config = get_last_registered_config()
-    missing_data = ptc.select_query(
-        CASSANDRA_KEYSPACE,
-        TBL_RAW_MISSING,
-        ["*"],
-        where_clause="",
-        limit=None,
-        allow_filtering=False
-    )
+    if config:
+        missing_data = ptc.select_query(
+            CASSANDRA_KEYSPACE,
+            TBL_RAW_MISSING,
+            ["*"],
+            where_clause="",
+            limit=None,
+            allow_filtering=False
+        )
 
-    logging.info("- Running time (Now - CET) :  " + str(now))
-    setup_time = time.time()
+        logging.info("- Running time (Now - CET) :  " + str(now))
+        setup_time = time.time()
 
-    # =========================================================
+        # =========================================================
 
-    # Timer
-    config_id = config.get_config_id()
-    logging.info("- Config :                    " + str(config_id))
-    timer = {"start": time.time()}
+        # Timer
+        config_id = config.get_config_id()
+        logging.info("- Config :                    " + str(config_id))
+        timer = {"start": time.time()}
 
-    # Config information
-    show_config_info(config)
+        # Config information
+        show_config_info(config)
 
-    logging.info("---------------------- Tmpo -----------------------")
+        logging.info("---------------------- Tmpo -----------------------")
 
-    # TMPO synchronization
-    tmpo_session = get_tmpo_session(config)
+        # TMPO synchronization
+        tmpo_session = get_tmpo_session(config)
 
-    # STEP 1 : get start and end timings for all homes for the query
-    timings = process_timings(
-        tmpo_session,
-        config,
-        missing_data,
-        now,
-        custom_timings
-    )
-    timer["timing"] = time.time()
+        # STEP 1 : get start and end timings for all homes for the query
+        timings = process_timings(
+            tmpo_session,
+            config,
+            missing_data,
+            now,
+            custom_timings
+        )
+        timer["timing"] = time.time()
 
-    # =========================================================
+        # =========================================================
 
-    logging.info("---------------------- Homes ---------------------")
-    logging.info("Generating homes data, getting Flukso data and save in Cassandra...")
+        logging.info("---------------------- Homes ---------------------")
+        logging.info("Generating homes data, getting Flukso data and save in Cassandra...")
 
-    # STEP 2 : process all homes data, and save in database
-    process_homes(tmpo_session, config, timings, now, custom)
+        # STEP 2 : process all homes data, and save in database
+        process_homes(tmpo_session, config, timings, now, custom)
 
-    timer["homes"] = time.time()
+        timer["homes"] = time.time()
 
-    # =========================================================
+        # =========================================================
 
-    show_processing_times(begin, setup_time, timer) 
-
+        show_processing_times(begin, setup_time, timer) 
+    else:
+        print("No registered config in db.")
 
 def process_custom_timings(start, end):
     """ 

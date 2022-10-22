@@ -181,35 +181,38 @@ def main():
     mode = args.mode
 
     last_config = get_last_registered_config()
-    now = pd.Timestamp.now(tz="CET")
-    yesterday = get_yesterday(now)
-    print("yesterday : ", yesterday)
+    if last_config:
+        now = pd.Timestamp.now(tz="CET")
+        yesterday = get_yesterday(now)
+        print("yesterday : ", yesterday)
 
-    if mode == "missing":
-        to_alert = get_homes_with_missing_data(last_config, yesterday)
-        if len(to_alert) > 0:
-            threshold = "{} %".format(MISSING_ALERT_THRESHOLD)
-            legend = "'home id' > percentage of missing data for 1 day"
-            mail_content = get_mail_text(
-                "There is missing data", 
-                threshold, legend, to_alert, yesterday)
-            print(mail_content)
-            write_mail_to_file(mail_content, "alert_missing.txt")
-            send_mail("alert_missing.txt")
+        if mode == "missing":
+            to_alert = get_homes_with_missing_data(last_config, yesterday)
+            if len(to_alert) > 0:
+                threshold = "{} %".format(MISSING_ALERT_THRESHOLD)
+                legend = "'home id' > percentage of missing data for 1 day"
+                mail_content = get_mail_text(
+                    "There is missing data", 
+                    threshold, legend, to_alert, yesterday)
+                print(mail_content)
+                write_mail_to_file(mail_content, "alert_missing.txt")
+                send_mail("alert_missing.txt")
 
-    elif mode == "sign":
-        to_alert = get_homes_with_incorrect_signs(last_config, yesterday)
-        if len(to_alert) > 0:
-            threshold = "{} ".format(SIGN_THRESHOLD)
-            legend = "'home id ' > \n"
-            legend += "{'cons_neg = is there any negative consumption values ?', \n"
-            legend += "'prod_pos = is there any positive production values ?'}}"
-            mail_content = get_mail_text(
-                "There are incorrect signs", 
-                threshold, legend, to_alert, yesterday)
-            print(mail_content)
-            write_mail_to_file(mail_content, "alert_signs.txt")
-            send_mail("alert_signs.txt")
+        elif mode == "sign":
+            to_alert = get_homes_with_incorrect_signs(last_config, yesterday)
+            if len(to_alert) > 0:
+                threshold = "{} ".format(SIGN_THRESHOLD)
+                legend = "'home id ' > \n"
+                legend += "{'cons_neg = is there any negative consumption values ?', \n"
+                legend += "'prod_pos = is there any positive production values ?'}}"
+                mail_content = get_mail_text(
+                    "There are incorrect signs", 
+                    threshold, legend, to_alert, yesterday)
+                print(mail_content)
+                write_mail_to_file(mail_content, "alert_signs.txt")
+                send_mail("alert_signs.txt")
+                
+    print("No registered config in db.")
 
 
 

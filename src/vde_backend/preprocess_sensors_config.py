@@ -13,6 +13,8 @@ import pandas as pd
 
 # local source
 from constants import (
+    TBL_ACCESS,
+    TBL_GROUP,
     TBL_POWER,
     TBL_SENSORS_CONFIG, 
     CASSANDRA_KEYSPACE, 
@@ -39,8 +41,8 @@ def get_sheet_data(config_file_path, sheet_name):
         data_df = pd.read_excel(config_file_path, sheet_name=sheet_name)
         return data_df
     except Exception as e:
-        print("Error when trying to read excel file : {}. ", end="")
-        print("Please provide a valid Configuration file.".format(config_file_path))
+        print("Error when trying to read excel file : {}. ".format(config_file_path))
+        print("Please provide a valid Configuration file.")
         print("Exception : {}".format(str(e)))
         sys.exit(1)
 
@@ -93,8 +95,13 @@ def recompute_data():
     if ptc.exist_table(CASSANDRA_KEYSPACE, TBL_POWER):
         print("> Recompute previous data... ")
         new_config = get_last_registered_config()
-        changed_homes = new_config.get_sensors_config()["home_id"].unique()
-        recompute_power_data(new_config, changed_homes)
+        if new_config:
+            changed_homes = new_config.get_sensors_config()["home_id"].unique()
+            recompute_power_data(new_config, changed_homes)
+        else:
+            print("No registered config in db.")
+    else:
+        print("No data to recompute.")
 
 
 def write_sensors_config_cassandra(new_config, now):
@@ -112,10 +119,9 @@ def write_sensors_config_cassandra(new_config, now):
         "con", 
         "pro"
     ]
-    insertion_time = now.isoformat()
 
     for sensor_id, row in new_config.get_sensors_config().iterrows():
-        values = [insertion_time] + [sensor_id] + list(row)
+        values = [now] + [sensor_id] + list(row)
         ptc.insert(
             CASSANDRA_KEYSPACE, 
             TBL_SENSORS_CONFIG, 
@@ -285,9 +291,9 @@ def create_tables():
     """ 
     create tables if necessary (if they do not already exist)
     """
-    create_table_sensor_config("sensors_config")
-    create_table_access("access")
-    create_table_group("group")
+    create_table_sensor_config(TBL_SENSORS_CONFIG)
+    create_table_access(TBL_ACCESS)
+    create_table_group(TBL_GROUP)
 
 
 def save_config(config_file_path, new_config, now):
@@ -304,10 +310,10 @@ def save_config(config_file_path, new_config, now):
     write_sensors_config_cassandra(new_config, now)
 
     # write login and group ids to 'access' cassandra table
-    write_access_data_cassandra(config_file_path, "access")
+    write_access_data_cassandra(config_file_path, TBL_ACCESS)
 
     # write group captions to 'group' cassandra table 
-    write_group_captions_cassandra(config_file_path, "group")
+    write_group_captions_cassandra(config_file_path, TBL_GROUP)
 
 
 # ==========================================================================
