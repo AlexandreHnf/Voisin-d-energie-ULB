@@ -737,7 +737,7 @@ def sync(custom_timings):
 
         show_processing_times(begin, setup_time, timer)
     else:
-        print("No registered config in db.")
+        logging.debug("No registered config in db.")
 
 
 def process_custom_timings(start, end):

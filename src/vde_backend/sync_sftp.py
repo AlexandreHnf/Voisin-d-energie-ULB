@@ -318,7 +318,7 @@ def main():
             sftp_info
         )
     else:
-        print("No registered config in db.")
+        logging.debug("No registered config in db.")
 
 
 if __name__ == "__main__":

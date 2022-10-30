@@ -19,6 +19,7 @@ from constants import (
 )
 import py_to_cassandra as ptc
 from utils import (
+    logging,
     get_dates_between,
     get_last_registered_config
 )
@@ -261,7 +262,7 @@ def main():
     if last_config:
         recompute_power_data(last_config, [])
     else:
-        print("No registered config in db.")
+        logging.debug("No registered config in db.")
 
 
 if __name__ == "__main__":
