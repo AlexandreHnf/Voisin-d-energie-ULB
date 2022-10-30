@@ -32,28 +32,28 @@ class Configuration:
         return self.config_id
 
     def get_first_sensor_id(self):
-        """ 
+        """
         Get the first sensor id of the list of sensors
         -> useful when all sensors of a home share the same property for ex.
         """
         return self.ids[list(self.ids.keys())[0]][0]
 
     def get_sensors_config(self):
-        """ 
-        get a dataframe with columns : 
+        """
+        get a dataframe with columns :
         - home_id, phase, fluksid, sensor_id, sensor_token, net, con, pro
         """
         return self.sconfig_df
 
     def get_home_sensors(self):
-        """ 
+        """
         return a dictionary with
         key : home id, value : list of sensor ids
         """
         ids = {}
         for hid, home in self.sconfig_df.groupby("home_id"):
             ids[hid] = list(home.index)
-        
+
         return ids
 
     def get_ids(self):

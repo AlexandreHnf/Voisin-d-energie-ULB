@@ -4,7 +4,6 @@ __author__ = "Alexandre Heneffe, and Guillaume Levasseur"
 __license__ = "MIT"
 
 
-
 # standard library
 
 # 3rd party packages
@@ -20,9 +19,9 @@ from utils import (
 # ===============================================================================
 
 
-class Sensor: 
+class Sensor:
     def __init__(self, session, flukso_id, sensor_id, since_timing, to_timing):
-        self.session = session 
+        self.session = session
         self.flukso_id = flukso_id
         self.sensor_id = sensor_id
 
@@ -32,24 +31,24 @@ class Sensor:
 
     def get_flukso_id(self):
         return self.flukso_id
-    
+
     def get_sensor_id(self):
         return self.sensor_id
 
     def get_serie(self):
-        """ 
+        """
         # since_timing and to_timing = UTC timezone for tmpo query
         """
 
         if self.to_timing == 0:
             dff = self.session.series(
-                self.sensor_id, 
+                self.sensor_id,
                 head=self.since_timing
             )
         else:
             dff = self.session.series(
-                self.sensor_id, 
-                head=self.since_timing, 
+                self.sensor_id,
+                head=self.since_timing,
                 tail=self.to_timing
             )
 
@@ -57,4 +56,3 @@ class Sensor:
             dff = pd.Series(np.nan, index=time_range(self.since_timing, self.to_timing))
 
         return dff
-

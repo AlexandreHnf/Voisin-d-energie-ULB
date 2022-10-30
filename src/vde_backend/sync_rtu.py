@@ -46,7 +46,7 @@ def prepare_rtu_row(vals: pd.Series, ip: str):
     })
     vals['ip'] = ip
     vals['day'] = vals['ts'].date()
-    return vals[COLS.keys()] # Ensure all columns are present.
+    return vals[COLS.keys()]  # Ensure all columns are present.
 
 
 def main():
@@ -65,4 +65,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

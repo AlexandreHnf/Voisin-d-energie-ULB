@@ -3,7 +3,6 @@ import requests
 import time
 
 from bs4 import BeautifulSoup
-from datetime import datetime
 from utils import logging
 
 
@@ -60,31 +59,34 @@ class RTUConnector():
                 url_hwinfo = "http://{}".format(self.addr) + link
                 return url_hwinfo
 
-        raise ValueError("RTUConnector.get_hw_addr: no matching URL found for '{}' among {}".format(prefix, ", ".join(links)))
+        raise ValueError(
+            "RTUConnector.get_hw_addr: no matching URL found for '{}' among {}"
+            .format(prefix, ", ".join(links))
+        )
 
     def read_values(self):
         resp = self.sess.get(self.url_hwinfo, auth=self.auth)
         logging.debug('RTU read: GET {}'.format(resp.status_code))
         data = BeautifulSoup(resp.text, "html.parser")
         rows = [
-            [ c.text for c in row.find_all("td") ]
+            [c.text for c in row.find_all("td")]
             for row in data.table.find_all("tr")
         ]
         # Position 0 does not contain data.
-        names = [ r[1] for r in rows ]
-        values = [ float(r[2]) for r in rows ]
-        t_strings = { r[3] for r in rows }
+        names = [r[1] for r in rows]
+        values = [float(r[2]) for r in rows]
+        t_strings = {r[3] for r in rows}
         ts = pd.Timestamp.now(tz='CET')
         for timestr in t_strings:
             # TIV = time invalid, NSY = not synchronized
-            if not "TIV" in timestr:
+            if "TIV" not in timestr:
                 ts = pd.to_datetime(
                     timestr[1:21],
                     format=self.datefmt
                 ).tz_localize('CET')
-                break # Stop at first valid time.
+                # Stop at first valid time.
+                break
 
         names.append('ts')
         values.append(ts)
         return pd.Series(values, index=names)
-
