@@ -27,7 +27,7 @@ def create_rtu_table():
     ptc.create_table(
         CASSANDRA_KEYSPACE,
         TBL_RTU_DATA,
-        [ ' '.join(kv) for kv in COLS.items() ],
+        [' '.join(kv) for kv in COLS.items()],
         ['ip'],
         ['day', 'ts'],
         {'day': 'ASC', 'ts': 'ASC'}

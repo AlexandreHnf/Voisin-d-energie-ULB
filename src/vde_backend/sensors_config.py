@@ -12,7 +12,7 @@ class Configuration:
         self.ids = self.get_home_sensors()      # all home ids (installation ids)
 
     def __str__(self):
-        """ 
+        """
         Display Configuration stats/information
         """
 

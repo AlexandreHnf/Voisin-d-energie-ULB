@@ -129,7 +129,7 @@ def get_last_registered_config():
         allow_filtering=False,
         tz="UTC"
     )
-    if len(latest_configs) == 0: # if no config in db yet.
+    if len(latest_configs) == 0:  # if no config in db yet.
         return None
     last_config_id = latest_configs.max().max().tz_localize('UTC')
     config_df = ptc.select_query(

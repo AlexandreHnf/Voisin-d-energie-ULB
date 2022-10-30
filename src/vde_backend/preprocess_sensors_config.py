@@ -67,14 +67,14 @@ def get_config_df(config_file_path, index_name=""):
         ]
     )
 
-    config_df["home_id"] = 		sensors_df["InstallationId"]
-    config_df["phase"] = 		sensors_df["Function"]
-    config_df["flukso_id"] = 	sensors_df["FlmId"]
-    config_df["sensor_id"] = 	sensors_df["SensorId"]
-    config_df["token"] = 		sensors_df["Token"]
-    config_df["net"] = 			sensors_df["Network"]
-    config_df["con"] = 			sensors_df["Cons"]
-    config_df["pro"] = 			sensors_df["Prod"]
+    config_df["home_id"] = sensors_df["InstallationId"]
+    config_df["phase"] = sensors_df["Function"]
+    config_df["flukso_id"] = sensors_df["FlmId"]
+    config_df["sensor_id"] = sensors_df["SensorId"]
+    config_df["token"] = sensors_df["Token"]
+    config_df["net"] = sensors_df["Network"]
+    config_df["con"] = sensors_df["Cons"]
+    config_df["pro"] = sensors_df["Prod"]
 
     config_df.fillna(0, inplace=True)
 
@@ -105,18 +105,18 @@ def recompute_data():
 
 
 def write_sensors_config_cassandra(new_config, now):
-    """ 
-    write sensors config to cassandra table 
+    """
+    write sensors config to cassandra table
     """
     col_names = [
-        "insertion_time", 
-        "sensor_id", 
-        "home_id", 
-        "phase", 
-        "flukso_id", 
-        "sensor_token", 
-        "net", 
-        "con", 
+        "insertion_time",
+        "sensor_id",
+        "home_id",
+        "phase",
+        "flukso_id",
+        "sensor_token",
+        "net",
+        "con",
         "pro"
     ]
 
@@ -288,7 +288,7 @@ def create_table_group(table_name):
 
 
 def create_tables():
-    """ 
+    """
     create tables if necessary (if they do not already exist)
     """
     create_table_sensor_config(TBL_SENSORS_CONFIG)
@@ -297,9 +297,9 @@ def create_tables():
 
 
 def save_config(config_file_path, new_config, now):
-    """ 
+    """
     Given a configuration, write
-    the right data to Cassandra 
+    the right data to Cassandra
     - config in config table
     - login info in access table
     - group captions in group table
@@ -320,7 +320,7 @@ def save_config(config_file_path, new_config, now):
 
 
 def check_changes(c1_path, c1, c2_path, c2):
-    """ 
+    """
     Go through the 2 config home ids and sensors ids
     and detect new changes
 
@@ -357,7 +357,7 @@ def check_changes(c1_path, c1, c2_path, c2):
 
 
 def process_configs(c1_path, c2_path, now):
-    """ 
+    """
     Given 2 configuration paths
     c1_path = old path, can be empty
     c2_path = new path, cannot be empty
@@ -371,7 +371,7 @@ def process_configs(c1_path, c2_path, now):
         get_config_df(c2_path, "sensor_id")
     )
 
-    if not c1_path:  
+    if not c1_path:
         # we consider the last registered config
         last_config = get_last_registered_config()
         if not last_config:
@@ -380,15 +380,15 @@ def process_configs(c1_path, c2_path, now):
         else:
             nb_changes = check_changes(c1_path, last_config, c2_path, new_config)
             if nb_changes > 0:  # only save is there are novelties
-                save = True 
+                save = True
     else:
         # just compare 2 configurations from 2 files
         other_config = Configuration(
-            now, 
+            now,
             get_config_df(c1_path, "sensor_id")
         )
         check_changes(c1_path, other_config, c2_path, new_config)
-    
+
     if save:
         save_config(c2_path, new_config, now)
         # then, recompute data if necessary
@@ -432,10 +432,11 @@ def main():
     create_tables()
 
     process_configs(
-        old_config_path, 
-        new_config_path, 
+        old_config_path,
+        new_config_path,
         now
     )
+
 
 if __name__ == "__main__":
     main()

@@ -190,7 +190,7 @@ def main():
                 threshold = "{} %".format(MISSING_ALERT_THRESHOLD)
                 legend = "'home id' > percentage of missing data for 1 day"
                 mail_content = get_mail_text(
-                    "There is missing data", 
+                    "There is missing data",
                     threshold, legend, to_alert, yesterday)
                 print(mail_content)
                 write_mail_to_file(mail_content, "alert_missing.txt")
@@ -204,12 +204,12 @@ def main():
                 legend += "{'cons_neg = is there any negative consumption values ?', \n"
                 legend += "'prod_pos = is there any positive production values ?'}}"
                 mail_content = get_mail_text(
-                    "There are incorrect signs", 
+                    "There are incorrect signs",
                     threshold, legend, to_alert, yesterday)
                 print(mail_content)
                 write_mail_to_file(mail_content, "alert_signs.txt")
                 send_mail("alert_signs.txt")
-                
+
     print("No registered config in db.")
 
 

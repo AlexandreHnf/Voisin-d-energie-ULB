@@ -739,6 +739,7 @@ def sync(custom_timings):
     else:
         print("No registered config in db.")
 
+
 def process_custom_timings(start, end):
     """
     Given the custom mode, check if the two provided arguments
