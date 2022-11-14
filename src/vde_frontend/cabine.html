@@ -62,35 +62,77 @@
 			  <span class="navbar-toggler-icon"></span>
 			</button>
 			<div class="collapse navbar-collapse" id="navbarText">
-			  <ul class="navbar-nav mr-auto">
-				<li class="nav-item">
-				  <a class="nav-link" href="client.html">Flukso</span></a>
-				</li>
-				<li class="nav-item active">
-				  <a class="nav-link" href="cabine.html">Cabine basse tension <span class="sr-only">(current)</a>
-				</li>
-			  </ul>
-			  <span class="navbar-text">
-				<a class="nav-link" href="#">
-					Profil <span id="profil_badge" class="badge badge-secondary">CDB</span> 
-				</a>
-			  </span>
+				<ul class="navbar-nav mr-auto">
+					<li class="nav-item">
+						<a class="nav-link" href="client.html">Flukso</a>
+					</li>
+					<li class="nav-item active">
+						<a class="nav-link" href="#">Cabine basse tension <span class="sr-only">(current)</span></a>
+					</li>
+				</ul>
+				<span class="navbar-text">
+					<a class="nav-link" href="#">
+						Profil <span id="profil_badge" class="badge badge-secondary">CDB</span> 
+					</a>
+				</span>
 
-			  <span class="navbar-text">
-				<a class="nav-link bi bi-box-arrow-right" href="/#">
-					Se déconnecter 
-				</a> 
-			  </span>
+				<span class="navbar-text">
+					<a class="nav-link bi bi-box-arrow-right" href="/#">
+						Se déconnecter 
+					</a> 
+				</span>
 			</div>
-		  </nav>
+		</nav>
 
 		<br>
 
 		<div class="container-fluid">
-			Cette page n'est pas encore implémentée.
+			<div class="row">
+				<div class="col-8">
+				<!-- Date selector -->
+					<form onsubmit="processDateQueryRTU();return false">
+						<label for="day">Afficher les données du : </label>
+						<input type="date" id="day" value="2022-13-01" name="day">
+						<input id="DaySubmit" type="submit" value="OK">
+					</form>
+					<br>
+					<div class="loader" id="loader"></div>
+				</div>
+			</div>
 		</div>
 
-
+		<!-- Menu pour Flukso, groups, activity -->
+		<ul class="nav nav-tabs" role="tablist">
+			<li class="nav-item">
+				<a class="nav-link" id="power_rtu_tab" data-toggle="tab" href="#rtu">Puissances </a>
+			</li>
+		</ul>
+		<div class="tab-content">
+			<div id="rtu" class="container-fluid tab-pane fade"><br>
+				<h3>Puissance active <span id="date_badge", class="badge bg-info"></span></h3>
+				<div class="row">
+					<div class="col-sm-9">
+						<br><p class="text-danger" id="query_msg_rtu"></p>
+					</div>
+					<div class="col-sm-3">
+						<div class=float-right>
+							<button onclick="downloadRTU()" type="button" id= "btn_csv" class="btn btn-secondary bi bi-download"></button>
+							Télécharger les données (format csv)
+						</div>
+						
+					</div>
+				</div> 
+				
+				<!-- graphs -->
+				<!-- Flukso power : -->
+				<div class="container-fluid">
+					<!-- list of items -->
+					<ul class="list-group">
+						<li class="list-group-item" id="power_data_charts_rtu"></li>
+					</ul>
+				</div>
+			</div>
+		</div>
 	</div>
 
 </body>
@@ -98,6 +140,6 @@
 <!-- JAVASCRIPT -->
 <script src="chart.utils.js"></script>
 <!-- <script src="client.js"></script> -->
-<script src="client.js"></script>
+<script src="cabine.js"></script>
 
 </html>
