@@ -98,7 +98,7 @@ try {
 }
 
 
-const TABLES = {'access': 'access', 'raw': 'raw', 'power': 'power', 'groups': 'power', 'group': 'group'};
+const TABLES = {'access': 'access', 'raw': 'raw', 'power': 'power', 'groups': 'power', 'group': 'group', 'rtu': 'rtu'};
 
 
 // ========================= FUNCTIONS ==================================
@@ -146,6 +146,28 @@ async function queryFluksoData(data_type, date, home_id, response) {
   try {
     where_homeid = `home_id = '${home_id}' and`;
     var query = `SELECT * FROM ${CASSANDRA.KEYSPACE}.${TABLES[data_type]} WHERE ${where_homeid} day = ? ALLOW FILTERING;`
+
+    const result = await client.execute(query, [date], { prepare: true });
+
+    let j = 0;
+    let res = [];
+    // paging to get the large fetch results set in an array to send to client
+    for await (const row of result) {
+      res.push(row);
+      j++;
+    }
+
+    response.json({msg: "date well received!", data: res});
+  } catch(error) {
+    showError(error, "! Error when querying cassandra data.");
+  }
+}
+async function queryRTUData(data_type, date, response) {
+  /*
+  Query rtu data from cassandra based on the provided date and home ID
+  */
+  try {
+    var query = `SELECT * FROM ${CASSANDRA.KEYSPACE}.${TABLES[data_type]} WHERE day = ? ALLOW FILTERING;`
 
     const result = await client.execute(query, [date], { prepare: true });
 
@@ -228,6 +250,10 @@ app.get('/client.js', function(req, res) {
   res.sendFile('/client.js', {root: __dirname});
 });
 
+app.get('/cabine.js', function(req, res) {
+  res.sendFile('/cabine.js', {root: __dirname});
+});
+
 // ===========================
 // send the css file
 app.get('/styles.css', function(req, res) {
@@ -260,6 +286,14 @@ router.post('/date', (request, response) => {
   if (VERBOSE) {console.log(`> date request from ${home_id} | date : ${date}, type : ${data_type}`);}
   logger.log(`${new Date().toISOString()}: > date request from ${home_id} | date : ${date}, type : ${data_type}`);
   queryFluksoData(data_type, date, home_id, response);
+});
+
+router.post('/date_rtu', (request, response) =>{
+  const date = request.body.date;
+  const data_type = request.body.data_type;
+  if (VERBOSE) {console.log(`> date request from RTU | date : ${date}, type : ${data_type}`);}
+  logger.log(`${new Date().toISOString()}: > date request from RTU | date : ${date}, type : ${data_type}`);
+  queryRTUData(data_type, date, response);
 });
 
 router.post('/caption', (request, response) => {
