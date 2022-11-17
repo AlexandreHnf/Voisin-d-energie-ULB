@@ -19,6 +19,7 @@ from constants import (
 )
 import py_to_cassandra as ptc
 from utils import (
+    logging,
     get_dates_between,
     get_last_registered_config
 )
@@ -162,7 +163,7 @@ def save_recomputed_powers_to_cassandra(new_config_id, cons_prod_df):
     ]
     insert_queries = ""
     nb_inserts = 0
-    print(cons_prod_df)
+
     for _, row in cons_prod_df.iterrows():
         values = list(row)
         values.append(new_config_id)
@@ -258,7 +259,10 @@ def recompute_power_data(new_config, homes):
 
 def main():
     last_config = get_last_registered_config()
-    recompute_power_data(last_config, [])
+    if last_config:
+        recompute_power_data(last_config, [])
+    else:
+        logging.debug("No registered config in db.")
 
 
 if __name__ == "__main__":

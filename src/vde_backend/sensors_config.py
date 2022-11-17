@@ -6,10 +6,24 @@ __license__ = "MIT"
 
 class Configuration:
     def __init__(self, config_id, sconfig_df):
-        self.config_id = config_id          # config insertion date
-        self.sconfig_df = sconfig_df        # dataframe with the whole config
+        self.config_id = config_id              # config insertion date
+        self.sconfig_df = sconfig_df            # dataframe with the whole config
 
-        self.ids = self.get_home_sensors()    # all home ids (installation ids)
+        self.ids = self.get_home_sensors()      # all home ids (installation ids)
+
+    def __str__(self):
+        """
+        Display Configuration stats/information
+        """
+
+        s = "- Number of Homes :           "
+        s += str(self.get_nb_homes()) + "\n"
+        s += "- Number of Fluksos :         "
+        s += str(len(set(self.get_sensors_config().flukso_id))) + "\n"
+        s += "- Number of Fluksos sensors : "
+        s += str(len(self.get_sensors_config())) + "\n"
+
+        return s
 
     def get_nb_homes(self):
         return len(self.ids)

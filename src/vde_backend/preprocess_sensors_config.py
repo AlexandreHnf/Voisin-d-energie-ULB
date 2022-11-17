@@ -24,6 +24,7 @@ from constants import (
 )
 
 import py_to_cassandra as ptc
+from sensors_config import Configuration
 from compute_power import recompute_power_data
 from utils import get_last_registered_config
 
@@ -40,21 +41,20 @@ def get_sheet_data(config_file_path, sheet_name):
         data_df = pd.read_excel(config_file_path, sheet_name=sheet_name)
         return data_df
     except Exception as e:
-        print("Error when trying to read excel file : {}".format(config_file_path))
+        print("Error when trying to read excel file : {}. ".format(config_file_path))
         print("Please provide a valid Configuration file.")
         print("Exception : {}".format(str(e)))
         sys.exit(1)
 
 
-def get_config_df(config_file_path):
+def get_config_df(config_file_path, index_name=""):
     """
     read the excel sheet containing the flukso ids, the sensors ids, the tokens
-    and compact them into a simpler usable csv file
+    and compact them into a simpler usable dataframe
     columns : home_id, phase, flukso_id, sensor_id, token, net, con, pro
     """
-    print("Config file : ", config_file_path)
     sensors_df = get_sheet_data(config_file_path, CONFIG_SENSORS_TAB)
-    compact_df = pd.DataFrame(
+    config_df = pd.DataFrame(
         columns=[
             "home_id",
             "phase",
@@ -67,49 +67,61 @@ def get_config_df(config_file_path):
         ]
     )
 
-    compact_df["home_id"] = sensors_df["InstallationId"]
-    compact_df["phase"] = sensors_df["Function"]
-    compact_df["flukso_id"] = sensors_df["FlmId"]
-    compact_df["sensor_id"] = sensors_df["SensorId"]
-    compact_df["token"] = sensors_df["Token"]
-    compact_df["net"] = sensors_df["Network"]
-    compact_df["con"] = sensors_df["Cons"]
-    compact_df["pro"] = sensors_df["Prod"]
+    config_df["home_id"] = sensors_df["InstallationId"]
+    config_df["phase"] = sensors_df["Function"]
+    config_df["flukso_id"] = sensors_df["FlmId"]
+    config_df["sensor_id"] = sensors_df["SensorId"]
+    config_df["token"] = sensors_df["Token"]
+    config_df["net"] = sensors_df["Network"]
+    config_df["con"] = sensors_df["Cons"]
+    config_df["pro"] = sensors_df["Prod"]
 
-    compact_df.fillna(0, inplace=True)
+    config_df.fillna(0, inplace=True)
 
-    compact_df.sort_values(by=["home_id"])
+    config_df.sort_values(by=["home_id"])
 
-    return compact_df
+    if index_name:
+        config_df = config_df.set_index(index_name)
+
+    return config_df
 
 
 def recompute_data():
     """
     Recompute the power data according to the latest configuration.
     """
-    new_config = get_last_registered_config()
-    changed_homes = new_config.get_sensors_config()["home_id"].unique()
-    recompute_power_data(new_config, changed_homes)
+
+    # only recompute if 'power' table exists
+    if ptc.exist_table(CASSANDRA_KEYSPACE, TBL_POWER):
+        print("> Recompute previous data... ")
+        new_config = get_last_registered_config()
+        if new_config:
+            changed_homes = new_config.get_sensors_config()["home_id"].unique()
+            recompute_power_data(new_config, changed_homes)
+        else:
+            print("No registered config in db.")
+    else:
+        print("No data to recompute.")
 
 
-def write_sensors_config_cassandra(new_config_df, now):
+def write_sensors_config_cassandra(new_config, now):
     """
     write sensors config to cassandra table
     """
     col_names = [
         "insertion_time",
+        "sensor_id",
         "home_id",
         "phase",
         "flukso_id",
-        "sensor_id",
         "sensor_token",
         "net",
         "con",
         "pro"
     ]
 
-    for _, row in new_config_df.iterrows():
-        values = [now] + list(row)
+    for sensor_id, row in new_config.get_sensors_config().iterrows():
+        values = [now] + [sensor_id] + list(row)
         ptc.insert(
             CASSANDRA_KEYSPACE,
             TBL_SENSORS_CONFIG,
@@ -275,23 +287,27 @@ def create_table_group(table_name):
 # ==========================================================================
 
 
-def process_config(config_file_path, new_config_df, now):
+def create_tables():
     """
-    Given a compact dataframe with a configuration, write
+    create tables if necessary (if they do not already exist)
+    """
+    create_table_sensor_config(TBL_SENSORS_CONFIG)
+    create_table_access(TBL_ACCESS)
+    create_table_group(TBL_GROUP)
+
+
+def save_config(config_file_path, new_config, now):
+    """
+    Given a configuration, write
     the right data to Cassandra
     - config in config table
     - login info in access table
     - group captions in group table
     """
 
-    # first, create tables if necessary (if they do not already exist)
-    create_table_sensor_config(TBL_SENSORS_CONFIG)
-    create_table_access(TBL_ACCESS)
-    create_table_group(TBL_GROUP)
-
     # > fill config tables using excel configuration file
     print("> Writing new config in cassandra...")
-    write_sensors_config_cassandra(new_config_df, now)
+    write_sensors_config_cassandra(new_config, now)
 
     # write login and group ids to 'access' cassandra table
     write_access_data_cassandra(config_file_path, TBL_ACCESS)
@@ -302,6 +318,83 @@ def process_config(config_file_path, new_config_df, now):
 
 # ==========================================================================
 
+
+def check_changes(c1_path, c1, c2_path, c2):
+    """
+    Go through the 2 config home ids and sensors ids
+    and detect new changes
+
+    return the number of changes
+    """
+
+    print("--------------------------------------------------")
+    print("Old config : " + (c1_path if c1_path else "Last registered config"))
+    print(c1)
+    print("New config : " + c2_path)
+    print(c2)
+
+    nb_changes = 0
+
+    if c1 and c2:
+        for hid, sids in c1.get_home_sensors().items():
+            print("{} : ".format(hid), end="")
+            if hid in c2.get_home_sensors():
+                new_sids = c2.get_home_sensors()[hid]
+                if set(sids) == set(new_sids):
+                    print("Same sensor ids")
+                else:
+                    print("New sensors ids : ")
+                    # sensors ids from new config not present in the other config
+                    print([sid for sid in new_sids if sid not in sids])
+                    nb_changes += 1
+            else:
+                print("New home")
+                nb_changes += 1
+    print("Number of changes : " + str(nb_changes))
+    print("--------------------------------------------------")
+
+    return nb_changes
+
+
+def process_configs(c1_path, c2_path, now):
+    """
+    Given 2 configuration paths
+    c1_path = old path, can be empty
+    c2_path = new path, cannot be empty
+    if c1_path and c2_path = both excel file paths => just check new changes
+    else : compare new config with last registered config in Cassandra
+        if new changes are detected, we can save the new config
+    """
+    save = False
+    new_config = Configuration(
+        now,
+        get_config_df(c2_path, "sensor_id")
+    )
+
+    if not c1_path:
+        # we consider the last registered config
+        last_config = get_last_registered_config()
+        if not last_config:
+            # no comparisons
+            save = True
+        else:
+            nb_changes = check_changes(c1_path, last_config, c2_path, new_config)
+            if nb_changes > 0:  # only save is there are novelties
+                save = True
+    else:
+        # just compare 2 configurations from 2 files
+        other_config = Configuration(
+            now,
+            get_config_df(c1_path, "sensor_id")
+        )
+        check_changes(c1_path, other_config, c2_path, new_config)
+
+    if save:
+        save_config(c2_path, new_config, now)
+        # then, recompute data if necessary
+        recompute_data()
+
+
 def process_arguments():
 
     argparser = argparse.ArgumentParser(
@@ -309,10 +402,18 @@ def process_arguments():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
+    # mandatory argument
     argparser.add_argument(
         "config",
         type=str,
-        help="Path to the config excel file"
+        help="Path to the new config excel file. Format : ConfigurationNN_YYYYmmdd.xlsx"
+    )
+
+    # optional argument
+    argparser.add_argument(
+        "--diff",
+        type=str,
+        help="Path to another config excel file. Format : ConfigurationNN_YYYYmmdd.xlsx"
     )
 
     return argparser
@@ -322,21 +423,19 @@ def main():
     # > arguments
     argparser = process_arguments()
     args = argparser.parse_args()
-    config_path = args.config
-
-    # > get the useful flukso sensors data in a compact dataframe
-    new_config_df = get_config_df(config_path)
-    print("nb sensors : ", len(new_config_df))
+    new_config_path = args.config
+    old_config_path = args.diff
 
     # Define the current time once for consistency of the insert time between tables.
     now = pd.Timestamp.now(tz="CET")
 
-    process_config(config_path, new_config_df, now)
+    create_tables()
 
-    # then, compare new config with previous configs and recompute data if necessary
-    if (ptc.exist_table(CASSANDRA_KEYSPACE, TBL_POWER)):
-        print("> Recompute previous data... ")
-        recompute_data()
+    process_configs(
+        old_config_path,
+        new_config_path,
+        now
+    )
 
 
 if __name__ == "__main__":

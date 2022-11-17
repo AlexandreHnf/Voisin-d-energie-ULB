@@ -278,21 +278,25 @@ def main():
 
     config = get_last_registered_config()
 
-    now = pd.Timestamp.now()
+    if config:
+        now = pd.Timestamp.now()
 
-    print("config id : " + str(config.get_config_id()))
-    print("specific home : " + ("/" if not specific_home else specific_home))
-    print("specific range : " + ("/" if not start_day else "{} -> {}".format(start_day, end_day)))
-    print("specific day : " + ("/" if not specific_day else specific_day))
+        print("config id : " + str(config.get_config_id()))
+        print("specific home : " + ("/" if not specific_home else specific_home))
+        print("specific range : " + ("/" if not start_day
+                                     else "{} -> {}".format(start_day, end_day)))
+        print("specific day : " + ("/" if not specific_day else specific_day))
 
-    homes = get_homes(config, specific_home)
+        homes = get_homes(config, specific_home)
 
-    process_all_homes(
-        now,
-        homes,
-        specific_days,
-        output_filename
-    )
+        process_all_homes(
+            now,
+            homes,
+            specific_days,
+            output_filename
+        )
+    else:
+        print("No registered config in db.")
 
 
 if __name__ == "__main__":

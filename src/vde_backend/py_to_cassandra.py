@@ -343,6 +343,6 @@ def exist_table(keyspace, table_name):
     query += "and table_name = '{}' ".format(table_name)
     query += "ALLOW FILTERING;"
 
-    r = SESSION.execute(query)
+    res_df = select_res_to_df(query)
 
-    return len(r.current_rows) > 0
+    return len(res_df) > 0

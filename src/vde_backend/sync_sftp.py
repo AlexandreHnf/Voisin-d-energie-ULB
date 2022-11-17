@@ -207,7 +207,7 @@ def get_all_history_dates(home_id, table_name, now):
     from that first date, return the list of dates until now.
     """
 
-    # get first date available for this home 
+    # get first date available for this home
     where_clause = "home_id = '{}'".format(home_id)
     cols = ["day"]
     date_df = ptc.select_query(
@@ -299,23 +299,26 @@ def main():
 
     config = get_last_registered_config()
 
-    now = pd.Timestamp.now()
-    default_date, moment, moment_now = get_date_to_query(now)
+    if config:
+        now = pd.Timestamp.now()
+        default_date, moment, moment_now = get_date_to_query(now)
 
-    logging.debug("config id : " + str(config.get_config_id()))
-    logging.debug("date : " + default_date)
-    logging.debug("moment : " + moment)
-    logging.debug("moment now : " + moment_now)
+        logging.debug("config id : " + str(config.get_config_id()))
+        logging.debug("date : " + default_date)
+        logging.debug("moment : " + moment)
+        logging.debug("moment now : " + moment_now)
 
-    process_all_homes(
-        sftp_session,
-        config,
-        default_date,
-        moment,
-        moment_now,
-        now,
-        sftp_info
-    )
+        process_all_homes(
+            sftp_session,
+            config,
+            default_date,
+            moment,
+            moment_now,
+            now,
+            sftp_info
+        )
+    else:
+        logging.debug("No registered config in db.")
 
 
 if __name__ == "__main__":
