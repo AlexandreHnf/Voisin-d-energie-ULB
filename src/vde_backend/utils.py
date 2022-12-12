@@ -270,6 +270,20 @@ def get_time_spent(time_begin, time_end):
     return timedelta(seconds=time_end - time_begin)
 
 
+def get_local_timestamps_index(df):
+    """
+    set timestamps to local timezone
+    """
+
+    # NAIVE
+    if df.index.tzinfo is None or df.index.tzinfo.utcoffset(df.index) is None:
+        # first convert to aware timestamp, then local
+        return df.index.tz_localize("CET", ambiguous='NaT').tz_convert("CET")
+    # if already aware timestamp
+    else:
+        return df.index.tz_convert("CET")
+
+
 def main():
     config = get_last_registered_config()
     print(config.get_sensors_config())
