@@ -139,18 +139,19 @@ requirements.txt
 
 # FRONTEND uneccesary files
 src/vde_frontend/.directory
-src/vde_frontend/error_logs.txt
-src/vde_frontend/logs.txt
-src/vde_frontend/node_modules/
-src/vde_frontend/package-lock.json
-src/vde_frontend/package.json
+*error_logs.txt
+*logs.txt
+*node_modules/
+*package-lock.json
+*package.json
 src/vde_frontend/local/
 
 # BACKEND uneccesary files
 src/vde_backend/__pycache__/
 src/vde_backend/.directory
-src/vde_backend/.tmpo/
+*.tmpo/
 src/vde_backend/cassandra_serv_credentials.json
+src/vde_backend/rtu_credentials.json
 src/vde_backend/sftp_credentials.json
 src/vde_backend/local_scripts/
 src/vde_backend/RTU_local/
@@ -158,3 +159,7 @@ src/vde_backend/flukso_config/
 src/vde_backend/logs/
 src/vde_backend/constants_dev.py
 src/vde_backend/errors/
+
+*.vscode/
+
+*.DS_Store
