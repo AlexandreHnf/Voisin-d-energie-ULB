@@ -234,32 +234,25 @@ def time_range(since, until):
     )
 
 
-def resample_extend(df, since_timing, to_timing):
-    """
-    pandas' df.resample only returns a DataFrame whose index matches the input index.
-    On the opposite, this function guarrantees that the index of the returned,
-    resampled DataFrame start at since_timing and end at to_timing.
-    """
-    # Resampling with origin is needed for later reindexing. If indexes are
-    # unaligned, the data is lost, replaced by NaNs.
-    filled_df = (
-        df
-        .resample(str(FREQ[0]) + FREQ[1], origin=since_timing)
-        .mean()
-        .reindex(time_range(since_timing, to_timing))
-    )
-    return filled_df
-
-
 def energy2power(energy_df):
     """
-    from cumulative energy to power (Watt)
+    From cumulative energy to power (Watt).
+    The global idea is the following:
+        - We want to fill nan with something. We want to apply it before the diff
+        because the diff will be 0 by a fill (no change).
+        - We first apply a ffill and then a bfill in order to not have a series that
+        start with nan.
+        - Finally, we apply a bfill AFTER the diff because the diff will create a nan
+        in the first raw => that produce peak to 0. Then we check if it remains a nan
+        and if it is the case => 0. (case where there is no data in server)
     """
-    power_df = energy_df.diff() * 1000
-    power_df.fillna(0, inplace=True)
-
-    power_df = power_df.resample(str(FREQ[0]) + FREQ[1]).mean()
-
+    power_df = (
+        energy_df
+        .fillna(method='ffill')
+        .fillna(method='bfill')
+        .diff()
+    ) * 1000
+    power_df.fillna(method='bfill', inplace=True)
     return power_df
 
 
