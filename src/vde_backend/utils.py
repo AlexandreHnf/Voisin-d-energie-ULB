@@ -107,13 +107,7 @@ def set_init_seconds(ts):
     """
     SS = 00 if M even, 04 if odd
     """
-    minute = ts.minute
-    sec = "00"
-    # odd
-    if minute % 2 != 0:
-        sec = "04"
-    ts = ts.replace(second=int(sec))
-    return ts
+    return ts.replace(second=4 if ts.minute % 2 != 0 else 0)
 
 
 def get_last_registered_config():
