@@ -225,12 +225,57 @@ def get_sensor_timings(tmpo_session, missing_data, sid, now):
         default_timing = get_last_registered_timestamp(TBL_RAW, sid)  # None or tz-naive CET
         if default_timing is None:  # if no raw data registered for this sensor yet
             # we take its first tmpo timestamp
-            initial_ts = get_initial_timestamp(tmpo_session, sid, now)
-            sensor_start_ts = initial_ts
+            sensor_start_ts = get_initial_timestamp(tmpo_session, sid, now)
         else:
             sensor_start_ts = default_timing
 
     return sensor_start_ts
+
+
+def compute_timings(tmpo_session, timings, home_id, sensors_ids, missing_data, now):
+    """
+    Function to compute timings. By timings we mean that moments where we don't have data.
+
+    For instance, sensor_start_ts  will give the first moment where don't have data.
+
+    :param tmpo_session:    Tmpo session.
+    :param timings:         Timings -> period where there are missing data.
+    :param home_id:         Home id.
+    :param sensors_ids:     List of all sensors for the home_id.
+    :param missing_data:    Dataframe containing missing data.
+    :param now:             Current timestamp.
+
+    :return:                Return a dictionary with periods where there are missing data.
+    """
+    # for each sensor of this home
+    for sid in sensors_ids:
+        # Get the first moment where we have missing data
+        sensor_start_ts = get_sensor_timings(tmpo_session, missing_data, sid, now)
+        sensor_end_ts = tmpo_session.last_timestamp(sid).tz_convert("CET")
+        # Sometimes, get_sensor_timing will return a list. So, if it is not a list,
+        # we create a list.
+        if type(sensor_start_ts) is not pd.Series:
+            sensor_start_ts = [sensor_start_ts]
+        # For each potential ts.
+        for ts in sensor_start_ts:
+            logging.debug(f"sensors start ts : {ts}")
+            # if 'ts' is older (in the past) than the current start_ts
+            if is_earlier(ts, timings[home_id]["start_ts"]):
+                timings[home_id]["start_ts"] = ts
+
+            # ensures a CET timezone
+            if str(ts.tz) == "None":
+                ts = ts.tz_localize("CET")
+            # CET
+            timings[home_id]["sensors"][sid] = set_init_seconds(ts)
+
+        # Check if the sensor_end_ts the newest ts
+        if sensor_end_ts > timings[home_id]["end_ts"]:
+            timings[home_id]["end_ts"] = sensor_end_ts
+    # no data to recover from this home
+    if timings[home_id]["start_ts"] is now:
+        timings[home_id]["start_ts"] = None
+    return timings
 
 
 def get_timings(tmpo_session, config, missing_data, now):
@@ -248,26 +293,16 @@ def get_timings(tmpo_session, config, missing_data, now):
         ids = config.get_ids()
         for home_id, sensors_ids in ids.items():
             # start_ts = earliest timestamp among all sensors of this home
-            timings[home_id] = {"start_ts": now, "end_ts": now, "sensors": {}}
+            timings[home_id] = {
+                "start_ts": now,
+                "end_ts": now - pd.Timedelta(minutes=10),
+                "sensors": {}
+            }
 
-            for sid in sensors_ids:  # for each sensor of this home
-                sensor_start_ts = get_sensor_timings(tmpo_session, missing_data, sid, now)
-                if type(sensor_start_ts) is not pd.Series:
-                    sensor_start_ts = [sensor_start_ts]
-                # if 'start_ts' is older (in the past) than the current start_ts
-                for ts in sensor_start_ts:
-                    logging.debug(f"sensors start ts : {ts}")
-                    if ts is not None and is_earlier(ts, timings[home_id]["start_ts"]):
-                        timings[home_id]["start_ts"] = ts
+            timings = compute_timings(
+                tmpo_session, timings, home_id, sensors_ids, missing_data, now
+            )
 
-                    if ts is not None and str(ts.tz) == "None":
-                        # ensures a CET timezone
-                        ts = ts.tz_localize("CET")
-                    # CET
-                    timings[home_id]["sensors"][sid] = set_init_seconds(ts)
-
-            if timings[home_id]["start_ts"] is now:  # no data to recover from this home
-                timings[home_id]["start_ts"] = None
         # truncate existing rows in Raw missing table
         ptc.delete_rows(CASSANDRA_KEYSPACE, TBL_RAW_MISSING)
         logging.debug("Missing raw table deleted")
