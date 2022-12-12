@@ -32,6 +32,9 @@ from utils import (
     is_earlier,
     set_init_seconds,
     read_sensor_info,
+    energy2power,
+    get_local_timestamps_index,
+    time_range
 )
 
 
@@ -41,11 +44,11 @@ import warnings
 
 
 # local sources
-from home import Home
 from constants import (
     PROD,
     CASSANDRA_KEYSPACE,
     FROM_FIRST_TS,
+    GAP_THRESHOLD,
     INSERTS_PER_BATCH,
     LIMIT_TIMING_RAW,
     TBL_RAW,
@@ -58,7 +61,6 @@ from constants import (
 
 import py_to_cassandra as ptc
 from compute_power import save_home_power_data_to_cassandra
-from sensor import Sensor
 
 # security warning & Future warning
 warnings.simplefilter('ignore', urllib3.exceptions.SecurityWarning)
@@ -211,7 +213,6 @@ def get_sensor_timings(tmpo_session, missing_data, sid, now):
     return a starting timestamp with CET timezone
         or None if no starting timestamp
     """
-    sensor_start_ts = None
     if sid in missing_data['sensor_id']:  # if there is missing data for this sensor
         # CET timezone (minus a certain offset to avoid losing first ts)
         sensor_start_ts = (
@@ -319,29 +320,6 @@ def process_timings(tmpo_session, config, missing_data, now, custom_timings):
 # ====================================================================================
 
 
-def generate_home(tmpo_session, hid, home_sensors, since_timing, to_timing):
-    """
-    Given a start timing and an end timing, generate a Home object containing the
-    result of the query between these 2 timings.
-    """
-    sensors = []  # list of Sensor objects
-
-    duration_min = round((to_timing - since_timing).total_seconds() / 60.0, 2)
-    logging.info("  -> {} > {} ({} min.)".format(
-        since_timing,
-        to_timing,
-        duration_min
-    ))
-
-    for sid, row in home_sensors.iterrows():
-        sensors.append(Sensor(tmpo_session, row["flukso_id"], sid, since_timing, to_timing))
-
-    home = Home(home_sensors, since_timing, to_timing, hid, sensors)
-    home.show_query_info()
-
-    return home
-
-
 def test_session(sensors_config):
     """
     test each sensor and see if tmpo accepts or refuses the sensor when
@@ -408,30 +386,28 @@ def get_flukso_data(sensor_file, path=""):
 # ====================================================================================
 
 
-def save_home_missing_data(config, to_timing, home, saved_sensors):
+def save_home_missing_data(config, to_timing, hid, incomplete_raw_df):
     """
     Save the first timestamp with no data (nan values) for each sensors of the home
     """
-    hid = home.get_home_id()
-
+    saved_sensors = {}
     try:
         config_id = config.get_config_id()
 
         col_names = ["sensor_id", "config_id", "start_ts", "end_ts"]
 
-        inc_power_df = home.get_incomplete_power_df()
-        if len(inc_power_df) > 0:
-            sensors_ids = inc_power_df.columns
+        if len(incomplete_raw_df) > 0:
+            sensors_ids = incomplete_raw_df.columns
             for sid in sensors_ids:
                 # if no missing data saved for this sensor yet
                 if saved_sensors.get(sid, None) is None:
                     # if the column contains null
-                    if inc_power_df[sid].isnull().values.any():
-                        for i, timestamp in enumerate(inc_power_df.index):
+                    if incomplete_raw_df[sid].isnull().values.any():
+                        for i, timestamp in enumerate(incomplete_raw_df.index):
                             # if valid timestamp
                             # X days from now max
                             if (to_timing - timestamp).days < LIMIT_TIMING_RAW:
-                                if np.isnan(inc_power_df[sid][i]):
+                                if np.isnan(incomplete_raw_df[sid][i]):
                                     values = [sid, config_id, timestamp, to_timing]
                                     ptc.insert(
                                         CASSANDRA_KEYSPACE, TBL_RAW_MISSING,
@@ -448,22 +424,19 @@ def save_home_missing_data(config, to_timing, home, saved_sensors):
         )
 
 
-def save_home_raw_data(home, config, timings):
+def save_home_raw_data(hid, raw_df, config, timings):
     """
     Save raw flukso flukso data to Cassandra table
     Save per sensor : 1 row = 1 sensor + 1 timestamp + 1 power value
         home_df : timestamp, sensor_id1, sensor_id2, sensor_id3 ... sensor_idN
     """
-    hid = home.get_home_id()
-
     try:
         insertion_time = pd.Timestamp.now(tz="CET")
         config_id = config.get_config_id()
 
-        power_df = home.get_raw_df()
         # add date column
-        power_df['date'] = power_df.apply(lambda row: str(row.name.date()), axis=1)
-        by_day_df = power_df.groupby("date")  # group by date
+        raw_df['date'] = raw_df.apply(lambda row: str(row.name.date()), axis=1)
+        by_day_df = raw_df.groupby("date")  # group by date
 
         col_names = ["sensor_id", "day", "ts", "insertion_time", "config_id", "power"]
         for date, date_rows in by_day_df:  # loop through each group (each date group)
@@ -537,7 +510,10 @@ def get_intermediate_timings(start_ts, end_ts):
     return intermediate_timings
 
 
-def save_data_threads(home, config, timings, now, saved_sensors, custom):
+def save_data_threads(
+    hid, raw_df, incomplete_raw_df, cons_prod_df,
+    config, timings, now, custom
+):
     """
     Threads to save data to different Cassandra tables
     -> raw data in raw table
@@ -547,33 +523,195 @@ def save_data_threads(home, config, timings, now, saved_sensors, custom):
 
     threads = []
     # save raw flukso data in cassandra
-    t1 = Thread(
-        target=save_home_raw_data,
-        args=(home, config, timings)
-    )
-    threads.append(t1)
-    t1.start()
+    if len(raw_df) > 0:
+        t1 = Thread(
+            target=save_home_raw_data,
+            args=(hid, raw_df, config, timings)
+        )
+        threads.append(t1)
+        t1.start()
 
-    if not custom:  # in custom mode, no need to save missing data (in the past)
+    # in custom mode, no need to save missing data (in the past)
+    # and check if there are data
+    if not custom and len(incomplete_raw_df) > 0:
         # save missing raw data in cassandra
         t2 = Thread(
             target=save_home_missing_data,
-            args=(config, now, home, saved_sensors)
+            args=(config, now, hid, incomplete_raw_df)
         )
         threads.append(t2)
         t2.start()
 
     # save power flukso data in cassandra
-    t3 = Thread(
-        target=save_home_power_data_to_cassandra,
-        args=(home, config)
-    )
-    threads.append(t3)
-    t3.start()
+    if len(cons_prod_df) > 0:
+        t3 = Thread(
+            target=save_home_power_data_to_cassandra,
+            args=(hid, cons_prod_df, config)
+        )
+        threads.append(t3)
+        t3.start()
 
     # wait for the threads to complete
     for t in threads:
         t.join()
+
+
+def find_incomplete_raw_df(energy_df):
+    """
+    From the cumulative energy dataframe,
+    1) fill the gaps in the timestamps with NaN values
+    2) get a dataframe containing all the lines with NaN values (= incomplete rows)
+    """
+    incomplete_raw_df = energy_df[energy_df.isna().any(axis=1)]  # with CET timezones
+    incomplete_raw_df.index = pd.DatetimeIndex(incomplete_raw_df.index, name="time")
+    # convert all timestamps to local timezone (CET)
+    incomplete_raw_df.index = get_local_timestamps_index(incomplete_raw_df)
+    return incomplete_raw_df
+
+
+def generate_raw_df(df):
+    """
+    The goal of this function is to generate a raw dataframe according to the df
+    that can be a dataframe with consumption values or production values. It will
+    return the generated dataframe.
+
+    The main idea of this function is that we don't want to keep a hole of data
+    that is above a certain threshold but holes that are under the threshold, we
+    want to keep them. We want to fill these small holes.
+
+    :param df:  Dataframe. The dataframe can be a dataframe with consumption values
+                or production values.
+
+    :return:    Return the new created dataframe.
+    """
+    raw_df = pd.DataFrame()
+    # Check if there is a hole of values of a certain threshold of time.
+    if ((df.dropna().index.to_series().diff() > GAP_THRESHOLD).cumsum().sum()) > 0:
+        tmp_res = []
+        # If it is the case, we create a group where we drop all data.
+        group = df.groupby((df.dropna().index.to_series().diff() > GAP_THRESHOLD).cumsum())
+        for chunk_nb, chunk in group:
+            # First, we check the difference between the first time value of the group 0
+            # and the first time value of energy_df. The reason is that the dropna will
+            # drop all na but we want to keep na that are under the threshold and remove
+            # all na that above the threshold. That's also why we consider df and not chunk.
+            if (
+                chunk_nb == 0
+                and chunk.index[0] != df.index[0]
+                and (chunk.index[0] - df.index[0]) <= pd.Timedelta(GAP_THRESHOLD)
+            ):
+                tmp_res.append(energy2power(df[df.index[0]:chunk.index[-1]]))
+            # Same reason as before but with last values.
+            elif (
+                chunk_nb == group.ngroups - 1
+                and chunk.index[-1] != df.index[-1]
+                and (df.index[-1] - chunk.index[-1]) <= pd.Timedelta(GAP_THRESHOLD)
+            ):
+                tmp_res.append(
+                    energy2power(df[chunk.index[0]:df.index[-1]])
+                )
+            # All intermediates states.
+            else:
+                tmp_res.append(energy2power(df[chunk.index[0]:chunk.index[-1]]))
+        # Check if the list is not empty
+        if len(tmp_res) > 0:
+            raw_df = pd.concat(tmp_res)
+    # If it is not the case, we do the way to have the power.
+    else:
+        raw_df = energy2power(df)
+    return raw_df
+
+
+def create_flukso_raw_df(energy_df, home_sensors):
+    """
+    create a dataframe where the colums are the phases of the Flukso and the rows are the
+    data :
+    1 row = 1 timestamp = 1 power value
+    """
+    # Separate mains and pv.
+    raw_cons = generate_raw_df(energy_df[home_sensors.loc[home_sensors['net'] != 0].index])
+    raw_prod = generate_raw_df(energy_df[home_sensors.loc[home_sensors['pro'] != 0].index])
+    # It is missing a column VE in the database and we need it for ECHCOM
+    # raw_ve = generate_raw_df(energy_df[home_sensors.loc[home_sensors['ve'] != 0]])
+    # raw_df = pd.concat([raw_cons, raw_prod, raw_ve], axis=1)
+    raw_df = pd.concat([raw_cons, raw_prod], axis=1)
+    if len(raw_df) > 0:
+        # convert all timestamps to local timezone (CET)
+        local_timestamps = get_local_timestamps_index(raw_df)
+        raw_df.index = local_timestamps
+        if len(local_timestamps) > 1:
+            # drop first row because NaN after conversion
+            raw_df.drop(local_timestamps[0], inplace=True)
+
+            raw_df = raw_df.round(1)  # round with 1 decimals
+    return raw_df
+
+
+def get_consumption_production_df(raw_df, sensors_config):
+    """
+    P_cons = P_tot - P_prod
+    P_net = P_prod + P_cons
+    cons_prod_df : timestamp, P_cons, P_prod, P_tot
+    """
+    cons_prod_df = pd.DataFrame(
+        0,
+        raw_df.index,
+        ["P_cons", "P_prod", "P_tot"]
+    )
+
+    for _, sid in enumerate(sensors_config.index):
+        p = sensors_config.loc[sid]["pro"]
+        n = sensors_config.loc[sid]["net"]
+
+        cons_prod_df["P_prod"] += raw_df[sid].multiply(p, fill_value=0)
+        cons_prod_df["P_tot"] += raw_df[sid].multiply(n, fill_value=0 if n == 0 else None)
+
+    cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
+
+    cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
+
+    return cons_prod_df
+
+
+def get_serie(session, sensor_id, since_timing, to_timing):
+    """
+    # since_timing and to_timing = UTC timezone for tmpo query
+    """
+    if to_timing == 0:
+        df = session.series(
+            sensor_id,
+            head=since_timing
+        )
+    else:
+        df = session.series(
+            sensor_id,
+            head=since_timing,
+            tail=to_timing
+        )
+    if len(df.index) == 0:
+        df = pd.Series(np.nan, index=time_range(since_timing, to_timing))
+    return df
+
+
+def create_energy_df(tmpo_session, home_sensors, start_ts, to_ts):
+    """
+    Function to create a dataframe with energies for each sensor.
+
+    :param tmpo_session:    Tmpo Session.
+    :param home_sensors:    Dataframe with the config.
+    :param start_ts:        Start ts.
+    :param to_ts:           End ts.
+
+    :return:                Return an energy dataframe.
+    """
+    sensors = []
+    columns = []
+    for sid, _ in home_sensors.iterrows():
+        sensors.append(get_serie(tmpo_session, sid, start_ts, to_ts))
+        columns.append(sid)
+    energy_df = pd.concat(sensors, axis=1)
+    energy_df.columns = columns
+    return energy_df
 
 
 def process_homes(tmpo_session, config, timings, now, custom):
@@ -582,10 +720,8 @@ def process_homes(tmpo_session, config, timings, now, custom):
     all the tmpo queries and series computation
     Then, we save computed data in Cassandra tables.
     """
-
     # for each home
     for hid, home_sensors in config.get_sensors_config().groupby("home_id"):
-        saved_sensors = {}  # for missing data, to check if sensors missing data already saved
         # if home has a start timestamp and a end timestamp
         if timings[hid]["start_ts"] is not None and timings[hid]["end_ts"] is not None:
             # set init seconds (for tmpo query), might set timings
@@ -594,29 +730,34 @@ def process_homes(tmpo_session, config, timings, now, custom):
             end_timing = set_init_seconds(timings[hid]["end_ts"])
             intermediate_timings = get_intermediate_timings(start_timing, end_timing)
             display_home_info(hid, start_timing, end_timing)
-
-            for i in range(len(intermediate_timings) - 1):  # query day by day
-                start_ts = intermediate_timings[i]
-                to_ts = intermediate_timings[i + 1]
-
-                # generate home
-                home = generate_home(
-                    tmpo_session,
-                    hid,
-                    home_sensors,
-                    start_ts,
-                    to_ts
+            # query day by day
+            for i in range(len(intermediate_timings) - 1):
+                # generate energy df
+                energy_df = create_energy_df(
+                    tmpo_session, home_sensors,
+                    intermediate_timings[i], intermediate_timings[i + 1]
                 )
+                # If all values are nan, we need to add the name of the column
+                # and we don't retrieve data
+                if energy_df.isna().all().all():
+                    raw_df = pd.DataFrame()
+                    cons_prod_df = pd.DataFrame()
+                else:
+                    raw_df = create_flukso_raw_df(energy_df, home_sensors)
+                    cons_prod_df = get_consumption_production_df(raw_df, home_sensors)
+
+                incomplete_raw_df = find_incomplete_raw_df(energy_df)
+
+                logging.info("     - len raw : {}, len NaN : {}, tot NaN: {}".format(
+                    len(raw_df.index),
+                    len(incomplete_raw_df),
+                    energy_df.isna().sum().sum()
+                ))
 
                 save_data_threads(
-                    home,
-                    config,
-                    timings,
-                    now,
-                    saved_sensors,
-                    custom
+                    hid, raw_df, incomplete_raw_df, cons_prod_df,
+                    config, timings, now, custom
                 )
-
         else:
             logging.info("{} : No data to save".format(hid))
 

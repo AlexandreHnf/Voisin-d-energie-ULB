@@ -45,6 +45,8 @@ FROM_FIRST_TS = "10min"
 # nb lines to insert per batch insert when inserting in cassandra table
 INSERTS_PER_BATCH = 11000
 
+# Threshold of holes
+GAP_THRESHOLD = '4h'
 
 # =========================== CASSANDRA =======================================
 # cassandra keyspaces
