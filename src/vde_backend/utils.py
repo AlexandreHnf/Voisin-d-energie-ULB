@@ -1,6 +1,6 @@
 __title__ = "utils"
 __version__ = "2.0.0"
-__author__ = "Alexandre Heneffe, and Guillaume Levasseur"
+__author__ = "Alexandre Heneffe, Guillaume Levasseur, and Brice Petit"
 __license__ = "MIT"
 
 
@@ -240,14 +240,14 @@ def energy2power(energy_df):
         in the first raw => that produce peak to 0. Then we check if it remains a nan
         and if it is the case => 0. (case where there is no data in server)
     """
-    power_df = (
+    return (
         energy_df
-        .fillna(method='ffill')
-        .fillna(method='bfill')
+        .ffill()
+        .bfill()
         .diff()
-    ) * 1000
-    power_df.fillna(method='bfill', inplace=True)
-    return power_df
+        .mul(1000)
+        .bfill()
+    )
 
 
 def get_time_spent(time_begin, time_end):
