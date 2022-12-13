@@ -110,6 +110,32 @@ def get_home_raw_data(sensors_df, day):
     return home_rawdata
 
 
+def get_consumption_production_df(raw_df, sensors_config):
+    """
+    P_cons = P_tot - P_prod
+    P_net = P_prod + P_cons
+    cons_prod_df : timestamp, P_cons, P_prod, P_tot
+    """
+    cons_prod_df = pd.DataFrame(
+        0,
+        raw_df.index,
+        ["P_cons", "P_prod", "P_tot"]
+    )
+
+    for _, sid in enumerate(sensors_config.index):
+        p = sensors_config.loc[sid]["pro"]
+        n = sensors_config.loc[sid]["net"]
+
+        cons_prod_df["P_prod"] += raw_df[sid].multiply(p, fill_value=0)
+        cons_prod_df["P_tot"] += raw_df[sid].multiply(n, fill_value=0 if n == 0 else None)
+
+    cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
+
+    cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
+
+    return cons_prod_df
+
+
 def get_home_consumption_production_df(home_rawdata, home_id, sensors_df):
     """
     compute power data from raw data (coming from cassandra 'raw' table) :
@@ -130,12 +156,12 @@ def get_home_consumption_production_df(home_rawdata, home_id, sensors_df):
         p = sensors_df.loc[sid]["pro"]
         n = sensors_df.loc[sid]["net"]
 
-        cons_prod_df["P_prod"] = cons_prod_df["P_prod"] + p * power_df["power"]
-        cons_prod_df["P_tot"] = cons_prod_df["P_tot"] + n * power_df["power"]
+        cons_prod_df["P_prod"] += power_df["power"].multiply(p, fill_value=0)
+        cons_prod_df["P_tot"] += power_df["power"].multiply(n, fill_value=0 if n == 0 else None)
 
     cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
 
-    cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
+    cons_prod_df = cons_prod_df.round(1)  # round all column values with 1 decimals
 
     return cons_prod_df
 
