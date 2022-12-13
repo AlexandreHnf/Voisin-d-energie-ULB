@@ -60,7 +60,7 @@ from constants import (
 
 
 import py_to_cassandra as ptc
-from compute_power import save_home_power_data_to_cassandra
+from compute_power import save_home_power_data_to_cassandra, get_consumption_production_df
 
 # security warning & Future warning
 warnings.simplefilter('ignore', urllib3.exceptions.SecurityWarning)
@@ -680,32 +680,6 @@ def create_flukso_raw_df(energy_df, home_sensors):
 
             raw_df = raw_df.round(1)  # round with 1 decimals
     return raw_df
-
-
-def get_consumption_production_df(raw_df, sensors_config):
-    """
-    P_cons = P_tot - P_prod
-    P_net = P_prod + P_cons
-    cons_prod_df : timestamp, P_cons, P_prod, P_tot
-    """
-    cons_prod_df = pd.DataFrame(
-        0,
-        raw_df.index,
-        ["P_cons", "P_prod", "P_tot"]
-    )
-
-    for _, sid in enumerate(sensors_config.index):
-        p = sensors_config.loc[sid]["pro"]
-        n = sensors_config.loc[sid]["net"]
-
-        cons_prod_df["P_prod"] += raw_df[sid].multiply(p, fill_value=0)
-        cons_prod_df["P_tot"] += raw_df[sid].multiply(n, fill_value=0 if n == 0 else None)
-
-    cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
-
-    cons_prod_df = cons_prod_df.round(1)  # round all column values with 2 decimals
-
-    return cons_prod_df
 
 
 def get_serie(session, sensor_id, since_timing, to_timing):
