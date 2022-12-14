@@ -45,6 +45,17 @@ class Configuration:
         """
         return self.sconfig_df
 
+    def get_home_config(self, hid):
+        """
+        Getter for the configuration of the home hid.
+
+        :param hid: String of the home id.
+
+        :return:    Return a subset of the configuration with only
+                    the configuration of the home hid.
+        """
+        return self.sconfig_df[self.sconfig_df['home_id'] == hid]
+
     def get_home_sensors(self):
         """
         return a dictionary with
