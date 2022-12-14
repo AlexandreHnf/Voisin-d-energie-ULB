@@ -342,6 +342,13 @@ def check_changes(c1_path, c1, c2_path, c2):
                 new_sids = c2.get_home_sensors()[hid]
                 if set(sids) == set(new_sids):
                     print("Same sensor ids")
+                    config_c1 = c1.get_home_config(hid).sort_index()[['net', 'pro', 'con']]
+                    config_c2 = c2.get_home_config(hid).sort_index()[['net', 'pro', 'con']]
+                    if (config_c1 == config_c2).all().all():
+                        print(f"Same configurations for home_id {hid}")
+                    else:
+                        print("Configurations aren't the same")
+                        nb_changes += (~(config_c1 == config_c2)).sum().sum()
                 else:
                     print("New sensors ids : ")
                     # sensors ids from new config not present in the other config
