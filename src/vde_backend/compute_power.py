@@ -285,7 +285,7 @@ def recompute_power_data(last_config, dates=None):
                 else:
                     logging.debug(f"No data for the date {date}")
         else:
-            logging.debut("No date to process")
+            logging.debug("No date to process")
 
 
 # ====================================================================================
