@@ -322,9 +322,7 @@ def main():
     if last_config:
         # Check if we want to do a daily recomputation or not
         if args.daily:
-            now = dt.datetime.now() - dt.timedelta(days=1)
-            date = dt.date(now.year, now.month, now.day)
-            recompute_power_data(last_config, [date])
+            recompute_power_data(last_config, [(pd.Timestamp.now() - pd.Timedelta(days=1)).date()])
         else:
             recompute_power_data(last_config)
     else:
