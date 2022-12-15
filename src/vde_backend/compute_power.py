@@ -296,11 +296,42 @@ def recompute_power_data(last_config, dates=None):
 # ====================================================================================
 
 
+def process_arguments():
+    """
+    Function to process arguments.
+
+    :return:    Return ArgumentParser.
+    """
+
+    argparser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    argparser.add_argument(
+        "-d",
+        "--daily",
+        action='store_true',
+        help="Add this argument to apply a daily computation for each home."
+    )
+
+    return argparser
+
+
 def main():
+    argparser = process_arguments()
+    args = argparser.parse_args()
+    print(args.daily)
     last_config = get_last_registered_config()
+    # If the configuration exists
     if last_config:
-        recompute_power_data(last_config, [])
-        recompute_power_data(last_config)
+        # Check if we want to do a daily recomputation or not
+        if args.daily:
+            now = dt.datetime.now() - dt.timedelta(days=1)
+            date = dt.date(now.year, now.month, now.day)
+            recompute_power_data(last_config, [date])
+        else:
+            recompute_power_data(last_config)
     else:
         logging.debug("No registered config in db.")
 
