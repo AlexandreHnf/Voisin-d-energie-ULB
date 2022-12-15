@@ -142,36 +142,32 @@ def get_home_consumption_production_df(home_raw_data, home_config):
     P_cons = P_tot - P_prod
     P_net = P_prod + P_cons
 
-    :param home_raw_data:   Dictionary of dataframes with the following format:
-                            {sensor_id1: df, sensor_id2: df, ...} where the df has
+    :param home_raw_data:   Dataframe with all sensors.
                             columns -> ["sensor_id, day, ts, power"].
     :param home_config:     The configuration for a specific home.
 
     :return:                Return a dataframe with computed power data.
     """
-    first_sid = home_config.index[0]
-    size = len(home_raw_data[first_sid])
-    cons_prod_df = pd.concat(
-        [
-            pd.Series([home_config.iloc[0, 0]] * size),
-            home_raw_data[first_sid]["day"],
-            home_raw_data[first_sid]["ts"],
-            pd.Series([0] * size),
-            pd.Series([0] * size),
-            pd.Series([0] * size)
-        ],
-        axis=1,
-        ignore_index=True
+    grouped_sensors = home_raw_data.groupby('sensor_id')
+    first_group = grouped_sensors.get_group(home_raw_data.iloc[0, 0])
+    cons_prod_df = (
+        pd.DataFrame(columns=['home_id', 'day', 'ts', 'P_cons', 'P_prod', 'P_tot'])
+        .assign(
+            day=first_group['day'],
+            ts=first_group['ts'],
+            home_id=home_config.iloc[0, 0],
+            P_cons=0,
+            P_prod=0,
+            P_tot=0
+        )
     )
-    cons_prod_df.columns = ['home_id', 'day', 'ts', 'P_cons', 'P_prod', 'P_tot']
 
-    for sid in home_config.index:
-        power_df = home_raw_data[sid]
+    for sid, sensor_df in grouped_sensors:
         p = home_config.loc[sid]["pro"]
         n = home_config.loc[sid]["net"]
 
-        cons_prod_df["P_prod"] += power_df["power"].multiply(p, fill_value=0)
-        cons_prod_df["P_tot"] += power_df["power"].multiply(n, fill_value=0 if n == 0 else None)
+        cons_prod_df["P_prod"] += sensor_df["power"].multiply(p, fill_value=0)
+        cons_prod_df["P_tot"] += sensor_df["power"].multiply(n, fill_value=0 if n == 0 else None)
 
     cons_prod_df["P_cons"] = cons_prod_df["P_tot"] - cons_prod_df["P_prod"]
 
