@@ -1,0 +1,12 @@
+[Unit]
+Description=Backend service - daily recompute power data
+After=multi-user.target network.target
+
+[Service]
+Type=oneshot
+Restart=no
+ExecStart=/opt/vde/venv/bin/python3 "/opt/vde/compute_power.py --daily"
+TimeoutSec=23hours
+
+[Install]
+WantedBy=multi-user.target
