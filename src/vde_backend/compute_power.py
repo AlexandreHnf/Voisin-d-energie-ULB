@@ -7,6 +7,8 @@ __license__ = "MIT"
 # standard library
 
 # 3rd party packages
+import argparse
+import datetime as dt
 import logging
 import pandas as pd
 
@@ -19,7 +21,6 @@ from constants import (
 )
 import py_to_cassandra as ptc
 from utils import (
-    logging,
     get_dates_between,
     get_last_registered_config
 )
@@ -87,26 +88,26 @@ def save_home_power_data_to_cassandra(hid, cons_prod_df, config):
 # =====================================================================================
 
 
-def get_home_raw_data(sensors_df, day):
+def get_home_raw_data(home, date):
     """
-    get raw flukso data from cassandra given a certain day
-    return dictionary of the format :
-        {home_id: {sensor_id1: df, sensor_id2: df, ...}, ...}
-    """
+    Function to query raw data in the database according to a day.
 
+    :param home:    Dataframe with the home configuration.
+    :param date:     The date to recover data.
+
+    :return:        Return a dictionary of dataframes with the following format:
+                    {sensor_id1: df, sensor_id2: df, ...} where each df has
+                    columns -> ["sensor_id, day, ts, power"].
+    """
     home_rawdata = {}
-
-    for sid in sensors_df.index:
-        where_clause = "sensor_id = '{}' and day = '{}'".format(sid, day)
+    for sid in home.index:
         raw_data_df = ptc.select_query(
             CASSANDRA_KEYSPACE,
             TBL_RAW,
             ["sensor_id, day, ts, power"],
-            where_clause
+            f"sensor_id = '{sid}' and day = '{date}'"
         )
-
         home_rawdata[sid] = raw_data_df
-
     return home_rawdata
 
 
@@ -136,25 +137,39 @@ def get_consumption_production_df(raw_df, sensors_config):
     return cons_prod_df
 
 
-def get_home_consumption_production_df(home_rawdata, home_id, sensors_df):
+def get_home_consumption_production_df(home_raw_data, home_config):
     """
     compute power data from raw data (coming from cassandra 'raw' table) :
     P_cons = P_tot - P_prod
     P_net = P_prod + P_cons
+
+    :param home_raw_data:   Dictionary of dataframes with the following format:
+                            {sensor_id1: df, sensor_id2: df, ...} where the df has
+                            columns -> ["sensor_id, day, ts, power"].
+    :param home_config:     The configuration for a specific home.
+
+    :return:                Return a dataframe with computed power data.
     """
+    first_sid = home_config.index[0]
+    size = len(home_raw_data[first_sid])
+    cons_prod_df = pd.concat(
+        [
+            pd.Series([home_config.iloc[0, 0]] * size),
+            home_raw_data[first_sid]["day"],
+            home_raw_data[first_sid]["ts"],
+            pd.Series([0] * size),
+            pd.Series([0] * size),
+            pd.Series([0] * size)
+        ],
+        axis=1,
+        ignore_index=True
+    )
+    cons_prod_df.columns = ['home_id', 'day', 'ts', 'P_cons', 'P_prod', 'P_tot']
 
-    first_sid = list(home_rawdata.keys())[0]
-    cons_prod_df = home_rawdata[first_sid][["sensor_id", "day", "ts"]].copy()
-    cons_prod_df = cons_prod_df.rename(columns={"sensor_id": "home_id"})
-    cons_prod_df["home_id"] = home_id  # replace 1st sensor_id by home_id
-    cons_prod_df["P_cons"] = 0
-    cons_prod_df["P_prod"] = 0
-    cons_prod_df["P_tot"] = 0
-
-    for sid in sensors_df.index:
-        power_df = home_rawdata[sid]
-        p = sensors_df.loc[sid]["pro"]
-        n = sensors_df.loc[sid]["net"]
+    for sid in home_config.index:
+        power_df = home_raw_data[sid]
+        p = home_config.loc[sid]["pro"]
+        n = home_config.loc[sid]["net"]
 
         cons_prod_df["P_prod"] += power_df["power"].multiply(p, fill_value=0)
         cons_prod_df["P_tot"] += power_df["power"].multiply(n, fill_value=0 if n == 0 else None)
@@ -246,36 +261,36 @@ def exist_home_power_data(home_id, date):
     return len(first_date_df) > 0
 
 
-def recompute_power_data(new_config, homes):
+def recompute_power_data(last_config, dates=None):
     """
-    Given a configuration, recompute all power data for all select homes
+    Given a configuration, recompute all power data for all homes
     based on the existing raw data stored in Cassandra.
+
+    :param last_config: Configuration file.
+    :param dates:       List of dates.
     """
-    config_by_home = new_config.get_sensors_config().groupby("home_id")  # group by home
-    new_config_id = new_config.get_config_id()
-    if len(homes) == 0:
-        homes = list(config_by_home.groups.keys())
-
-    for hid in homes:
-        # new config
-        sensors_df = config_by_home.get_group(hid)
+    # Get a dataframe of the new configuration file and we groupby home_id.
+    for hid, home_config in last_config.get_sensors_config().groupby("home_id"):
         # first select all dates registered for this home
-        all_dates = get_data_dates_from_home(sensors_df)
+        if dates is None:
+            dates = get_data_dates_from_home(home_config)
 
-        if len(all_dates) > 0 and exist_home_power_data(hid, all_dates[0]):
+        if len(dates) > 0:
             # then, for each day, recompute data and store it in the database
             # (overwrite existing data)
-            for date in all_dates:
-                # get raw data from previous config
-                home_rawdata = get_home_raw_data(sensors_df, date)
-                # Check if raw data is not empty
-                if len(home_rawdata) > 0:
-                    # recompute power data with new config info : consumption, production, total
-                    home_powers = get_home_consumption_production_df(home_rawdata, hid, sensors_df)
-
+            for date in dates:
+                if exist_home_power_data(hid, date):
+                    home_raw_data = get_home_raw_data(home_config, date)
+                    home_powers = get_home_consumption_production_df(home_raw_data, home_config)
                     # save (overwrite) to cassandra table
                     if len(home_powers) > 0:
-                        save_recomputed_powers_to_cassandra(new_config_id, home_powers)
+                        save_recomputed_powers_to_cassandra(
+                            last_config.get_config_id(), home_powers
+                        )
+                else:
+                    logging.debug(f"No data for the date {date}")
+        else:
+            logging.debut("No date to process")
 
 
 # ====================================================================================
@@ -285,6 +300,7 @@ def main():
     last_config = get_last_registered_config()
     if last_config:
         recompute_power_data(last_config, [])
+        recompute_power_data(last_config)
     else:
         logging.debug("No registered config in db.")
 

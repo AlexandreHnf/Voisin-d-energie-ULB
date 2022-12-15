@@ -96,8 +96,7 @@ def recompute_data():
         print("> Recompute previous data... ")
         new_config = get_last_registered_config()
         if new_config:
-            changed_homes = new_config.get_sensors_config()["home_id"].unique()
-            recompute_power_data(new_config, changed_homes)
+            recompute_power_data(new_config)
         else:
             print("No registered config in db.")
     else:
