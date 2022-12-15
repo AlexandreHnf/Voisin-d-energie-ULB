@@ -1,0 +1,9 @@
+[Unit]
+Description=Backend service - daily recompute power data
+
+[Timer]
+OnCalendar=*-*-* 1:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
