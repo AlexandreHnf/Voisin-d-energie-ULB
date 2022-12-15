@@ -93,13 +93,12 @@ def get_home_raw_data(home, date):
     Function to query raw data in the database according to a day.
 
     :param home:    Dataframe with the home configuration.
-    :param date:     The date to recover data.
+    :param date:    The date to recover data.
 
-    :return:        Return a dictionary of dataframes with the following format:
-                    {sensor_id1: df, sensor_id2: df, ...} where each df has
+    :return:        Return a concatenated dataframe with all sensors.
                     columns -> ["sensor_id, day, ts, power"].
     """
-    home_rawdata = {}
+    home_raw_data = []
     for sid in home.index:
         raw_data_df = ptc.select_query(
             CASSANDRA_KEYSPACE,
@@ -107,8 +106,8 @@ def get_home_raw_data(home, date):
             ["sensor_id, day, ts, power"],
             f"sensor_id = '{sid}' and day = '{date}'"
         )
-        home_rawdata[sid] = raw_data_df
-    return home_rawdata
+        home_raw_data.append(raw_data_df)
+    return pd.concat(home_raw_data)
 
 
 def get_consumption_production_df(raw_df, sensors_config):
