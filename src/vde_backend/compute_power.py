@@ -307,7 +307,10 @@ def process_arguments():
         "-d",
         "--daily",
         action='store_true',
-        help="Add this argument to apply a daily computation for each home."
+        help="""
+        By adding this argument, the script will recompute yesterday's power data for each house in
+        the database.
+        """
     )
 
     return argparser
