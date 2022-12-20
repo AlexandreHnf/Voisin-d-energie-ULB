@@ -335,11 +335,12 @@ def check_changes(c1_path, c1, c2_path, c2):
     nb_changes = 0
 
     if c1 and c2:
-        for hid, sids in c1.get_home_sensors().items():
+        for hid, sids_c2 in c2.get_home_sensors().items():
             print("{} : ".format(hid), end="")
-            if hid in c2.get_home_sensors():
-                new_sids = c2.get_home_sensors()[hid]
-                if set(sids) == set(new_sids):
+            if hid in c1.get_home_sensors():
+
+                sids_c1 = c1.get_home_sensors()[hid]
+                if set(sids_c2) == set(sids_c1):
                     print("Same sensor ids")
                     config_c1 = c1.get_home_config(hid).sort_index()[['net', 'pro', 'con']]
                     config_c2 = c2.get_home_config(hid).sort_index()[['net', 'pro', 'con']]
@@ -351,11 +352,12 @@ def check_changes(c1_path, c1, c2_path, c2):
                 else:
                     print("New sensors ids : ")
                     # sensors ids from new config not present in the other config
-                    print([sid for sid in new_sids if sid not in sids])
-                    nb_changes += 1
+                    print([sid for sid in sids_c1 if sid not in sids_c2])
+
             else:
                 print("New home")
-                nb_changes += 1
+                print(sids_c2)
+
     print("Number of changes : " + str(nb_changes))
     print("--------------------------------------------------")
 
