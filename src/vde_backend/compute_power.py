@@ -122,7 +122,7 @@ def get_consumption_production_df(raw_df, sensors_config):
         ["P_cons", "P_prod", "P_tot"]
     )
 
-    for _, sid in enumerate(sensors_config.index):
+    for sid in raw_df.columns:
         p = sensors_config.loc[sid]["pro"]
         n = sensors_config.loc[sid]["net"]
 

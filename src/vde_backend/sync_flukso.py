@@ -251,7 +251,7 @@ def compute_timings(tmpo_session, timings, home_id, sensors_ids, missing_data, n
     for sid in sensors_ids:
         # Get the first moment where we have missing data
         sensor_start_ts = get_sensor_timings(tmpo_session, missing_data, sid, now)
-        sensor_end_ts = tmpo_session.last_timestamp(sid).tz_convert("CET")
+
         # Sometimes, get_sensor_timing will return a list. So, if it is not a list,
         # we create a list.
         if type(sensor_start_ts) is not pd.Series:
@@ -269,9 +269,6 @@ def compute_timings(tmpo_session, timings, home_id, sensors_ids, missing_data, n
             # CET
             timings[home_id]["sensors"][sid] = set_init_seconds(ts)
 
-        # Check if the sensor_end_ts the newest ts
-        if sensor_end_ts > timings[home_id]["end_ts"]:
-            timings[home_id]["end_ts"] = sensor_end_ts
     # no data to recover from this home
     if timings[home_id]["start_ts"] is now:
         timings[home_id]["start_ts"] = None
