@@ -332,7 +332,8 @@ def check_changes(c1_path, c1, c2_path, c2):
     print("New config : " + c2_path)
     print(c2)
 
-    nb_changes = 0
+    recompute = False
+    save = False
 
     if c1 and c2:
         c1_hids = c1.get_home_sensors()
@@ -349,24 +350,25 @@ def check_changes(c1_path, c1, c2_path, c2):
                         print(f"Same configurations for home_id {hid}")
                     else:
                         print("Configurations aren't the same")
-                        nb_changes += (~(config_c1 == config_c2)).sum().sum()
+                        recompute = True
+                        save = True
                 else:
                     print("New sensors ids : ")
                     # sensors ids from new config not present in the other config
                     print([sid for sid in sids_c1 if sid not in sids_c2])
+                    save = True
 
             else:
                 print("New home")
                 print(sids_c2)
+                save = True
 
         if len(c1_hids) > 0:
             print("Deleted home(s)")
             print([hid for hid in c1_hids])
+            save = True
 
-    print("Number of changes : " + str(nb_changes))
-    print("--------------------------------------------------")
-
-    return nb_changes
+    return recompute, save
 
 
 def process_configs(c1_path, c2_path, now):
@@ -379,6 +381,7 @@ def process_configs(c1_path, c2_path, now):
         if new changes are detected, we can save the new config
     """
     save = False
+    recompute = False
     new_config = Configuration(
         now,
         get_config_df(c2_path, "sensor_id")
@@ -391,9 +394,7 @@ def process_configs(c1_path, c2_path, now):
             # no comparisons
             save = True
         else:
-            nb_changes = check_changes(c1_path, last_config, c2_path, new_config)
-            if nb_changes > 0:  # only save is there are novelties
-                save = True
+            recompute, save = check_changes(c1_path, last_config, c2_path, new_config)
     else:
         # just compare 2 configurations from 2 files
         other_config = Configuration(
@@ -404,7 +405,8 @@ def process_configs(c1_path, c2_path, now):
 
     if save:
         save_config(c2_path, new_config, now)
-        # then, recompute data if necessary
+
+    if recompute:
         recompute_data()
 
 
