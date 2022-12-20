@@ -8,7 +8,6 @@ __license__ = "MIT"
 
 # 3rd party packages
 import argparse
-import datetime as dt
 import logging
 import pandas as pd
 
@@ -319,7 +318,6 @@ def process_arguments():
 def main():
     argparser = process_arguments()
     args = argparser.parse_args()
-    print(args.daily)
     last_config = get_last_registered_config()
     # If the configuration exists
     if last_config:
