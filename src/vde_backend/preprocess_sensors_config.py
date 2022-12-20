@@ -335,10 +335,11 @@ def check_changes(c1_path, c1, c2_path, c2):
     nb_changes = 0
 
     if c1 and c2:
+        c1_hids = c1.get_home_sensors()
         for hid, sids_c2 in c2.get_home_sensors().items():
             print("{} : ".format(hid), end="")
             if hid in c1.get_home_sensors():
-
+                del c1_hids[hid]
                 sids_c1 = c1.get_home_sensors()[hid]
                 if set(sids_c2) == set(sids_c1):
                     print("Same sensor ids")
@@ -357,6 +358,10 @@ def check_changes(c1_path, c1, c2_path, c2):
             else:
                 print("New home")
                 print(sids_c2)
+
+        if len(c1_hids) > 0:
+            print("Deleted home(s)")
+            print([hid for hid in c1_hids])
 
     print("Number of changes : " + str(nb_changes))
     print("--------------------------------------------------")
