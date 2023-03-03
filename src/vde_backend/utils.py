@@ -257,7 +257,8 @@ def energy2power(energy_df):
             .to_series()
             .diff()
             .bfill()
-            .apply(lambda x: x.total_seconds())
+            .dt
+            .total_seconds()
         )
         # Apply the formula to convert kWh in W.
         power_df = (

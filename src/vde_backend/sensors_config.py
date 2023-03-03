@@ -1,6 +1,6 @@
 __title__ = "sensors_config"
 __version__ = "2.0.0"
-__author__ = "Alexandre Heneffe"
+__author__ = "Alexandre Heneffe, and Brice Petit"
 __license__ = "MIT"
 
 
