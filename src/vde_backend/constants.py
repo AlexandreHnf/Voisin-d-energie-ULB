@@ -1,6 +1,6 @@
 __title__ = "constants"
 __version__ = "2.0.0"
-__author__ = "Alexandre Heneffe, and Guillaume Levasseur"
+__author__ = "Alexandre Heneffe, Guillaume Levasseur, and Brice Petit"
 __license__ = "MIT"
 
 
@@ -40,7 +40,7 @@ LIMIT_TIMING_RAW = 2  # days
 
 # Period back in time to fetch Flukso data. Will be ignored in production mode.
 # Set None to disable.
-FROM_FIRST_TS = "10min"
+FROM_FIRST_TS = "5770min"
 
 # nb lines to insert per batch insert when inserting in cassandra table
 INSERTS_PER_BATCH = 11000

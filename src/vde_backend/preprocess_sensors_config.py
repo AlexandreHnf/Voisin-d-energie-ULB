@@ -1,6 +1,6 @@
 __title__ = "preprocess_sensors_config"
 __version__ = "1.0.0"
-__author__ = "Alexandre Heneffe, and Guillaume Levasseur"
+__author__ = "Alexandre Heneffe, Guillaume Levasseur, and Brice Petit"
 __license__ = "MIT"
 
 
