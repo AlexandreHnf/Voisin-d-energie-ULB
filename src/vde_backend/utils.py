@@ -240,14 +240,32 @@ def energy2power(energy_df):
         in the first raw => that produce peak to 0. Then we check if it remains a nan
         and if it is the case => 0. (case where there is no data in server)
     """
-    return (
+    # Compute the difference between each value.
+    power_df = (
         energy_df
         .ffill()
         .bfill()
         .diff()
-        .mul(1000)
         .bfill()
     )
+    # Check if the DataFrame is not empty.
+    if not power_df.empty:
+        # Compute the delta time between each point and express this delta time in seconds.
+        delta = (
+            power_df
+            .index
+            .to_series()
+            .diff()
+            .bfill()
+            .apply(lambda x: x.total_seconds())
+        )
+        # Apply the formula to convert kWh in W.
+        power_df = (
+            power_df
+            .mul(3600)
+            .div(delta.values, axis=0)
+        )
+    return power_df
 
 
 def get_time_spent(time_begin, time_end):
