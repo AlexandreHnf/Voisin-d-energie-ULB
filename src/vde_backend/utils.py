@@ -263,8 +263,8 @@ def energy2power(energy_df):
         # Apply the formula to convert kWh in W.
         power_df = (
             power_df
-            .mul(3600)
-            .div(delta.values, axis=0)
+            .mul(3600, fill_value=0)
+            .div(delta.values, axis=0, fill_value=0)
         )
     return power_df
 
