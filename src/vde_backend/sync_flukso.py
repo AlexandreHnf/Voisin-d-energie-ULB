@@ -720,7 +720,7 @@ def create_energy_df(tmpo_session, home_sensors, start_ts, to_ts):
     return energy_df
 
 
-def process_homes(tmpo_session, config, timings, now, custom):
+def process_homes(tmpo_session, config, timings, now, custom, homes):
     """
     For each home, we first create the home object containing
     all the tmpo queries and series computation
@@ -732,6 +732,9 @@ def process_homes(tmpo_session, config, timings, now, custom):
         if timings[hid]["start_ts"] is not None and timings[hid]["end_ts"] is not None:
             # set init seconds (for tmpo query), might set timings
             # earlier than planned (not a problem)
+            # Skip the sync in the case where we want to sync a specific home(s)
+            if homes is not None and hid not in homes:
+                continue
             start_timing = set_init_seconds(timings[hid]["start_ts"])
             end_timing = set_init_seconds(timings[hid]["end_ts"])
             intermediate_timings = get_intermediate_timings(start_timing, end_timing)
@@ -818,7 +821,7 @@ def create_tables():
     create_power_table(TBL_POWER)
 
 
-def sync(custom_timings):
+def sync(custom_timings, homes):
     logging.info("====================== Sync ======================")
 
     # custom mode (custom start and end timings)
@@ -876,7 +879,7 @@ def sync(custom_timings):
         logging.info("Generating homes data, getting Flukso data and save in Cassandra...")
 
         # STEP 2 : process all homes data, and save in database
-        process_homes(tmpo_session, config, timings, now, custom)
+        process_homes(tmpo_session, config, timings, now, custom, homes)
 
         timer["homes"] = time.time()
 
@@ -934,6 +937,12 @@ def get_arguments():
         help="End timing. Format : YYYY-mm-ddTHH:MM:SS"
     )
 
+    argparser.add_argument(
+        "--homes",
+        type=str,
+        help="Give home(s) that you want to sync. You can sync one or more homes. Format : 'HOMEID1 HOMEID2 HOMEID3'"
+    )
+
     return argparser.parse_args()
 
 
@@ -947,7 +956,7 @@ def main():
     create_tables()
 
     # then, sync new data in Cassandra
-    sync(custom_timings)
+    sync(custom_timings, args.homes.split(' ') if args.homes is not None else None)
 
 
 if __name__ == "__main__":
