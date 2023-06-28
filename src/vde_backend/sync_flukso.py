@@ -733,40 +733,40 @@ def process_homes(tmpo_session, config, timings, now, custom, homes):
             # set init seconds (for tmpo query), might set timings
             # earlier than planned (not a problem)
             # Skip the sync in the case where we want to sync a specific home(s)
-            if homes is not None and hid not in homes:
-                continue
-            start_timing = set_init_seconds(timings[hid]["start_ts"])
-            end_timing = set_init_seconds(timings[hid]["end_ts"])
-            intermediate_timings = get_intermediate_timings(start_timing, end_timing)
-            display_home_info(hid, start_timing, end_timing)
-            # query day by day
-            for i in range(len(intermediate_timings) - 1):
-                # generate energy df
-                energy_df = create_energy_df(
-                    tmpo_session, home_sensors,
-                    intermediate_timings[i], intermediate_timings[i + 1]
-                )
-                # If all values are nan, we need to add the name of the column
-                # and we don't retrieve data
-                if energy_df.isna().all().all():
-                    raw_df = pd.DataFrame()
-                    cons_prod_df = pd.DataFrame()
-                else:
-                    raw_df = create_flukso_raw_df(energy_df, home_sensors)
-                    cons_prod_df = get_consumption_production_df(raw_df, home_sensors)
+            # Otherwise we keep sync
+            if not homes or hid in homes:
+                start_timing = set_init_seconds(timings[hid]["start_ts"])
+                end_timing = set_init_seconds(timings[hid]["end_ts"])
+                intermediate_timings = get_intermediate_timings(start_timing, end_timing)
+                display_home_info(hid, start_timing, end_timing)
+                # query day by day
+                for i in range(len(intermediate_timings) - 1):
+                    # generate energy df
+                    energy_df = create_energy_df(
+                        tmpo_session, home_sensors,
+                        intermediate_timings[i], intermediate_timings[i + 1]
+                    )
+                    # If all values are nan, we need to add the name of the column
+                    # and we don't retrieve data
+                    if energy_df.isna().all().all():
+                        raw_df = pd.DataFrame()
+                        cons_prod_df = pd.DataFrame()
+                    else:
+                        raw_df = create_flukso_raw_df(energy_df, home_sensors)
+                        cons_prod_df = get_consumption_production_df(raw_df, home_sensors)
 
-                incomplete_raw_df = find_incomplete_raw_df(energy_df)
+                    incomplete_raw_df = find_incomplete_raw_df(energy_df)
 
-                logging.info("     - len raw : {}, len NaN : {}, tot NaN: {}".format(
-                    len(raw_df.index),
-                    len(incomplete_raw_df),
-                    energy_df.isna().sum().sum()
-                ))
+                    logging.info("     - len raw : {}, len NaN : {}, tot NaN: {}".format(
+                        len(raw_df.index),
+                        len(incomplete_raw_df),
+                        energy_df.isna().sum().sum()
+                    ))
 
-                save_data_threads(
-                    hid, raw_df, incomplete_raw_df, cons_prod_df,
-                    config, timings, now, custom
-                )
+                    save_data_threads(
+                        hid, raw_df, incomplete_raw_df, cons_prod_df,
+                        config, timings, now, custom
+                    )
         else:
             logging.info("{} : No data to save".format(hid))
 
@@ -940,6 +940,7 @@ def get_arguments():
     argparser.add_argument(
         "--homes",
         type=str,
+        default='',
         help="Give home(s) that you want to sync. You can sync one or more homes. Format : 'HOMEID1 HOMEID2 HOMEID3'"
     )
 
@@ -956,7 +957,7 @@ def main():
     create_tables()
 
     # then, sync new data in Cassandra
-    sync(custom_timings, args.homes.split(' ') if args.homes is not None else None)
+    sync(custom_timings, args.homes.split())
 
 
 if __name__ == "__main__":
