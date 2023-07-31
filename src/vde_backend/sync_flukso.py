@@ -742,31 +742,36 @@ def process_homes(tmpo_session, config, timings, now, custom, homes):
                 # query day by day
                 for i in range(len(intermediate_timings) - 1):
                     # generate energy df
-                    energy_df = create_energy_df(
-                        tmpo_session, home_sensors,
-                        intermediate_timings[i], intermediate_timings[i + 1]
-                    )
-                    # If all values are nan, we need to add the name of the column
-                    # and we don't retrieve data
-                    if energy_df.isna().all().all():
-                        raw_df = pd.DataFrame()
-                        cons_prod_df = pd.DataFrame()
-                    else:
-                        raw_df = create_flukso_raw_df(energy_df, home_sensors)
-                        cons_prod_df = get_consumption_production_df(raw_df, home_sensors)
+                    if (
+                            (end_timing - intermediate_timings[i]).days <= 30
+                            or
+                            (homes or custom)
+                    ):
+                        energy_df = create_energy_df(
+                            tmpo_session, home_sensors,
+                            intermediate_timings[i], intermediate_timings[i + 1]
+                        )
+                        # If all values are nan, we need to add the name of the column
+                        # and we don't retrieve data
+                        if energy_df.isna().all().all():
+                            raw_df = pd.DataFrame()
+                            cons_prod_df = pd.DataFrame()
+                        else:
+                            raw_df = create_flukso_raw_df(energy_df, home_sensors)
+                            cons_prod_df = get_consumption_production_df(raw_df, home_sensors)
 
-                    incomplete_raw_df = find_incomplete_raw_df(energy_df)
+                        incomplete_raw_df = find_incomplete_raw_df(energy_df)
 
-                    logging.info("     - len raw : {}, len NaN : {}, tot NaN: {}".format(
-                        len(raw_df.index),
-                        len(incomplete_raw_df),
-                        energy_df.isna().sum().sum()
-                    ))
+                        logging.info("     - len raw : {}, len NaN : {}, tot NaN: {}".format(
+                            len(raw_df.index),
+                            len(incomplete_raw_df),
+                            energy_df.isna().sum().sum()
+                        ))
 
-                    save_data_threads(
-                        hid, raw_df, incomplete_raw_df, cons_prod_df,
-                        config, timings, now, custom
-                    )
+                        save_data_threads(
+                            hid, raw_df, incomplete_raw_df, cons_prod_df,
+                            config, timings, now, custom
+                        )
         else:
             logging.info("{} : No data to save".format(hid))
 
